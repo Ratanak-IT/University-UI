@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type ClassroomCardProps = {
   title: string;
   code: string;
@@ -28,7 +30,10 @@ export default function ClassroomCard({
   badgeClass,
 }: ClassroomCardProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <Link
+      href={`/dashboard/teacher/my-classroom/${classCode}`}
+      className="block overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
+    >
       {/* Colored header */}
       <div className={`relative px-5 py-5 ${headerClass}`}>
         <h3 className="text-lg font-bold text-white">{title}</h3>
@@ -57,14 +62,11 @@ export default function ClassroomCard({
           >
             {toGrade} to grade
           </span>
-          <a
-            href="#"
-            className="text-sm font-semibold text-primary hover:underline"
-          >
+          <span className="text-sm font-semibold text-primary group-hover:underline">
             Open
-          </a>
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
