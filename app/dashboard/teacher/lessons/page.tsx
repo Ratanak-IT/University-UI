@@ -1,6 +1,5 @@
 import LessonsBoard from '@/components/teacher/lessons/LessonsBoard'
 import LessonsHeader from '@/components/teacher/lessons/LessonsHeader'
-import React from 'react'
 
 export default function page() {
   return (

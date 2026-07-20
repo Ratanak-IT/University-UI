@@ -3,7 +3,7 @@
 
 import QuizCard from "./QuizCard";
 import CreateQuizCard from "./CreateQuizCard";
-import { Quiz } from "@/lib/data/quiz";
+import { Quiz } from "@/lib/types/quiz";
 
 interface QuizGridProps {
   quizzes: Quiz[];

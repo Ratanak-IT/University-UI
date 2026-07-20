@@ -1,4 +1,4 @@
-import { AssignmentMeta, IconKind } from "@/lib/types/AssignmentGroup ";
+import { AssignmentMeta, IconKind } from "@/lib/types/AssignmentGroup";
 import {
   ClipboardList,
   BookOpen,

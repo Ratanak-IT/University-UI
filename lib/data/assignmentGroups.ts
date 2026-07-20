@@ -1,4 +1,4 @@
-import type { AssignmentGroup } from "../types/AssignmentGroup ";
+import type { AssignmentGroup } from "../types/AssignmentGroup";
 
 /**
  * Swap this out for data fetched from your API / database,
@@ -10,6 +10,7 @@ export const assignmentGroups: AssignmentGroup[] = [
   {
     id: "ecosystems",
     title: "Ecosystems",
+    classroom: "Database Systems",
     items: [
       {
         id: "eco-1",
@@ -35,6 +36,7 @@ export const assignmentGroups: AssignmentGroup[] = [
   {
     id: "water-cycle",
     title: "Water Cycle",
+    classroom: "Web Development",
     items: [
       {
         id: "water-1",
@@ -54,6 +56,7 @@ export const assignmentGroups: AssignmentGroup[] = [
   {
     id: "atmospheric-sciences",
     title: "Atmospheric Sciences",
+    classroom: "UI/UX Design",
     items: [
       {
         id: "atmo-1",

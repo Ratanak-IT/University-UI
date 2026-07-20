@@ -1,11 +1,12 @@
 // card hover effect
-import { AssignmentItem } from "@/lib/types/AssignmentGroup ";
-import { AssignmentIcon,AssignmentMetaBadge } from "./AssignmentIcon";
+import Link from "next/link";
+import { AssignmentItem } from "@/lib/types/AssignmentGroup";
+import { AssignmentIcon, AssignmentMetaBadge } from "./AssignmentIcon";
 
 export default function AssignmentRow({ item }: { item: AssignmentItem }) {
   return (
-    <button
-      type="button"
+    <Link
+      href={`/dashboard/teacher/assignments/${item.id}`}
       className="flex w-full items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-muted"
     >
       <AssignmentIcon kind={item.icon} />
@@ -18,6 +19,6 @@ export default function AssignmentRow({ item }: { item: AssignmentItem }) {
         </span>
       </span>
       <AssignmentMetaBadge meta={item.meta} />
-    </button>
+    </Link>
   );
 }

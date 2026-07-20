@@ -1,5 +1,5 @@
 // card component for each assignment group
-import { AssignmentGroup } from "@/lib/types/AssignmentGroup ";
+import { AssignmentGroup } from "@/lib/types/AssignmentGroup";
 import { MoreVertical } from "lucide-react";
 import AssignmentRow from "./AssignmentRow";
 

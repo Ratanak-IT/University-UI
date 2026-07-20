@@ -1,4 +1,4 @@
-import { QuizStatus } from "../../../lib/data/quiz";
+import { QuizStatus } from "../../../lib/types/quiz";
 
 const STATUS_STYLES: Record<QuizStatus, { label: string; className: string }> = {
   published: {

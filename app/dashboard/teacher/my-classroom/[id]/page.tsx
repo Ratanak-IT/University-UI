@@ -1,17 +1,21 @@
 import AnnouncementComposer from "@/components/teacher/my-classroom/AnnouncementComposer";
 import ClassCodeCard from "@/components/teacher/my-classroom/ClassCodeCard";
 import ClassroomHero from "@/components/teacher/my-classroom/ClassroomHero";
-import ClassTabs from "@/components/teacher/my-classroom/ClassTabs";
+// import ClassTabs from "@/components/teacher/my-classroom/ClassTabs";
 import CommentInput from "@/components/teacher/my-classroom/CommentInput";
-import FeedPost from "@/components/teacher/my-classroom/FeedPost";
 import UpcomingCard from "@/components/teacher/my-classroom/UpcomingCard";
-import { classroom, feed, tabs, upcoming } from "@/lib/data/classroom-data";
+import AssignmentGroupCard from "@/components/teacher/assignment/AssignmentGroupCard";
+import { classroom, tabs, upcoming } from "@/lib/data/classroom-data";
+import { assignmentGroups } from "@/lib/data/assignmentGroups";
 
+export default function ClassroomAssignmentsPage() {
+  const classroomAssignments = assignmentGroups.filter(
+    (g) => g.classroom === classroom.title
+  );
 
-export default function ClassroomStreamPage() {
   return (
     <div>
-      <ClassTabs tabs={tabs} activeTab="Stream" />
+      {/* <ClassTabs tabs={tabs} activeTab="Assignments" /> */}
 
       <div className="px-8 py-8">
         <ClassroomHero
@@ -22,7 +26,7 @@ export default function ClassroomStreamPage() {
           room={classroom.room}
         />
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] ">
           {/* Left column */}
           <div className="space-y-5">
             <ClassCodeCard code={classroom.classCode} />
@@ -33,9 +37,15 @@ export default function ClassroomStreamPage() {
           <div className="space-y-5">
             <AnnouncementComposer initials="CD" />
 
-            {feed.map((item) => (
-              <FeedPost key={item.id} item={item} />
-            ))}
+            {classroomAssignments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No assignments posted yet for this class.
+              </p>
+            ) : (
+              classroomAssignments.map((group) => (
+                <AssignmentGroupCard key={group.id} group={group} />
+              ))
+            )}
 
             <CommentInput avatar="https://i.pravatar.cc/80?img=12" />
           </div>

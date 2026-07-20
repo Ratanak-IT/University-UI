@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { HelpCircle, Clock, MoreVertical, Copy, Trash2, Pencil } from "lucide-react";
 
 import StatusBadge from "./StatusBadge";
-import { Quiz } from "@/lib/data/quiz";
+import { Quiz } from "@/lib/types/quiz";
 
 interface QuizCardProps {
   quiz: Quiz;
