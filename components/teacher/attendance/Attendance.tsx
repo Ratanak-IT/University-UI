@@ -1,6 +1,6 @@
 "use client";
- 
-import { useState, useRef } from "react";
+
+import { useState, useRef, ChangeEvent, MouseEvent } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,9 +14,9 @@ import {
   Upload,
   X,
 } from "lucide-react";
- 
+
 const PAGE_SIZE = 4;
- 
+
 const avatarPalette = [
   "bg-amber-200 text-amber-800",
   "bg-rose-200 text-rose-800",
@@ -25,8 +25,42 @@ const avatarPalette = [
   "bg-emerald-200 text-emerald-800",
   "bg-cyan-200 text-cyan-800",
 ];
- 
-function initialsOf(name) {
+
+type Status = "Present" | "Absent" | "Late";
+
+interface RosterStudent {
+  id: number;
+  name: string;
+  studentId: string;
+}
+
+interface AttendanceStatus {
+  status: Status;
+  score: number;
+  remark: string;
+}
+
+interface AttendanceRecord extends RosterStudent {
+  classroom: string;
+  initials: string;
+  avatarColor: string;
+  status: Status;
+  score: number;
+  remark: string;
+}
+
+type Rosters = Record<string, RosterStudent[]>;
+type Overrides = Record<string, AttendanceStatus>;
+
+interface FormState {
+  name: string;
+  studentId: string;
+  status: Status;
+  score: number | string;
+  remark: string;
+}
+
+function initialsOf(name: string): string {
   return name
     .split(" ")
     .map((p) => p[0])
@@ -34,7 +68,7 @@ function initialsOf(name) {
     .slice(0, 2)
     .toUpperCase();
 }
- 
+
 const firstNames = [
   "Alexander", "Beatrix", "Carlos", "Dina", "Farrah", "Grant", "Harriet", "Isaac",
   "Julia", "Kevin", "Laura", "Miguel", "Nina", "Oscar", "Priya", "Quinn",
@@ -47,9 +81,9 @@ const lastNames = [
   "Okafor", "Silva", "Murphy", "Haddad", "Kim", "Brooks", "Ortiz", "Baptiste",
   "Ferreira", "Lindqvist", "Costa", "Meyer", "Adeyemi", "Fischer", "Alvarado", "Ross",
 ];
- 
-function buildRoster(count, offset) {
-  const roster = [];
+
+function buildRoster(count: number, offset: number): RosterStudent[] {
+  const roster: RosterStudent[] = [];
   for (let i = 0; i < count; i++) {
     const id = offset + i;
     const first = firstNames[(i + offset) % firstNames.length];
@@ -58,31 +92,36 @@ function buildRoster(count, offset) {
   }
   return roster;
 }
- 
-const initialRosters = {
+
+const initialRosters: Rosters = {
   "AP Physics - Section B": buildRoster(32, 0),
   "AP Chemistry - Section A": buildRoster(24, 100),
   "AP Biology - Section C": buildRoster(18, 200),
 };
- 
-function hashCode(str) {
+
+function hashCode(str: string): number {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
     h = (h * 31 + str.charCodeAt(i)) | 0;
   }
   return Math.abs(h);
 }
- 
-function statusFromHash(h) {
+
+function statusFromHash(h: number): AttendanceStatus {
   const r = h % 100;
   if (r < 78) return { status: "Present", score: 100, remark: "On time and active." };
   if (r < 90) return { status: "Absent", score: 0, remark: "Parent notified." };
   return { status: "Late", score: 80, remark: "Bus delay." };
 }
- 
+
 // Attendance is derived per classroom + date, so paging through dates actually
 // filters to a different (but consistent, re-visitable) set of records.
-function buildAttendance(roster, classroom, dateISO, overrides) {
+function buildAttendance(
+  roster: RosterStudent[],
+  classroom: string,
+  dateISO: string,
+  overrides: Overrides
+): AttendanceRecord[] {
   return roster.map((student) => {
     const key = `${classroom}|${dateISO}|${student.id}`;
     const base = overrides[key] || statusFromHash(hashCode(key));
@@ -97,14 +136,23 @@ function buildAttendance(roster, classroom, dateISO, overrides) {
     };
   });
 }
- 
-const statusStyles = {
+
+const statusStyles: Record<Status, string> = {
   Present: "bg-emerald-50 text-emerald-600",
   Absent: "bg-rose-50 text-rose-600",
   Late: "bg-slate-100 text-slate-600",
 };
- 
-function StatCard({ icon, iconBg, label, value, active, onClick }) {
+
+interface StatCardProps {
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  value: number;
+  active: boolean;
+  onClick: () => void;
+}
+
+function StatCard({ icon, iconBg, label, value, active, onClick }: StatCardProps) {
   return (
     <button
       onClick={onClick}
@@ -122,59 +170,59 @@ function StatCard({ icon, iconBg, label, value, active, onClick }) {
     </button>
   );
 }
- 
-function formatDate(d) {
+
+function formatDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
- 
-function toISODate(d) {
+
+function toISODate(d: Date): string {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
- 
-function fromISODate(s) {
+
+function fromISODate(s: string): Date {
   const [year, month, day] = s.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
- 
-function isSameDay(a, b) {
+
+function isSameDay(a: Date, b: Date): boolean {
   return a.toDateString() === b.toDateString();
 }
- 
+
 export default function DailyAttendancePage() {
-  const [rosters, setRosters] = useState(initialRosters);
-  const [overrides, setOverrides] = useState({});
+  const [rosters, setRosters] = useState<Rosters>(initialRosters);
+  const [overrides, setOverrides] = useState<Overrides>({});
   const [nextId, setNextId] = useState(1000);
   const [selectedClassroom, setSelectedClassroom] = useState("AP Physics - Section B");
   const [classroomOpen, setClassroomOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date(2026, 9, 24));
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
   const [page, setPage] = useState(1);
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const [form, setForm] = useState({ name: "", studentId: "", status: "Present", score: 100, remark: "" });
-  const dateInputRef = useRef(null);
- 
-  function handleDateInputChange(e) {
+  const [form, setForm] = useState<FormState>({ name: "", studentId: "", status: "Present", score: 100, remark: "" });
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  function handleDateInputChange(e: ChangeEvent<HTMLInputElement>) {
     if (!e.target.value) return;
     setSelectedDate(fromISODate(e.target.value));
     setPage(1);
   }
- 
+
   const today = new Date(2026, 9, 24);
   const classroomNames = Object.keys(rosters);
   const dateISO = toISODate(selectedDate);
   const students = buildAttendance(rosters[selectedClassroom], selectedClassroom, dateISO, overrides);
- 
+
   const counts = {
     total: students.length,
     Present: students.filter((s) => s.status === "Present").length,
     Absent: students.filter((s) => s.status === "Absent").length,
     Late: students.filter((s) => s.status === "Late").length,
   };
- 
+
   const filtered = statusFilter === "all" ? students : students.filter((s) => s.status === statusFilter);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -182,35 +230,35 @@ export default function DailyAttendancePage() {
   const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
   const rangeStart = filtered.length === 0 ? 0 : startIdx + 1;
   const rangeEnd = Math.min(startIdx + PAGE_SIZE, filtered.length);
- 
-  function showToast(message) {
+
+  function showToast(message: string) {
     setToast(message);
     setTimeout(() => setToast(null), 3000);
   }
- 
-  function changeDate(delta) {
+
+  function changeDate(delta: number) {
     const next = new Date(selectedDate);
     next.setDate(next.getDate() + delta);
     setSelectedDate(next);
     setPage(1);
   }
- 
-  function selectClassroom(name) {
+
+  function selectClassroom(name: string) {
     setSelectedClassroom(name);
     setClassroomOpen(false);
     setStatusFilter("all");
     setPage(1);
   }
- 
-  function selectStatFilter(key) {
+
+  function selectStatFilter(key: Status | "all") {
     setStatusFilter(key);
     setPage(1);
   }
- 
+
   function handleSubmitSheet() {
     showToast(`Attendance submitted for ${formatDate(selectedDate)} — ${selectedClassroom}.`);
   }
- 
+
   function handleDownloadTemplate() {
     const header = "Student Name,Student ID,Classroom,Date,Status,Score,Remark\n";
     const sampleRow = `Jane Doe,STU20260000,${selectedClassroom},${formatDate(selectedDate)},Present,100,\n`;
@@ -226,12 +274,12 @@ export default function DailyAttendancePage() {
     URL.revokeObjectURL(url);
     showToast("Template downloaded.");
   }
- 
+
   function handleAddRecord() {
     if (!form.name.trim()) return;
     const id = nextId;
     setNextId((n) => n + 1);
-    const newStudent = {
+    const newStudent: RosterStudent = {
       id,
       name: form.name.trim(),
       studentId: form.studentId.trim() || `STU2026${String(1000 + id)}`,
@@ -253,23 +301,25 @@ export default function DailyAttendancePage() {
     setForm({ name: "", studentId: "", status: "Present", score: 100, remark: "" });
     showToast(`Added ${newStudent.name} to ${selectedClassroom} for ${formatDate(selectedDate)}.`);
   }
- 
+
   return (
     <div
       className="min-h-screen bg-slate-50"
-      style={{
-        "--font-sans": "var(--font-geist-sans)",
-        "--font-mono": "var(--font-geist-mono)",
-        fontFamily: "var(--font-sans)",
-        fontSize: "18px",
-      }}
+      style={
+        {
+          "--font-sans": "var(--font-geist-sans)",
+          "--font-mono": "var(--font-geist-mono)",
+          fontFamily: "var(--font-sans)",
+          fontSize: "18px",
+        } as React.CSSProperties
+      }
     >
       {toast && (
         <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
           {toast}
         </div>
       )}
- 
+
       <main className="mx-auto max-w-6xl px-6 py-8">
         {/* Page header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -279,7 +329,7 @@ export default function DailyAttendancePage() {
               Manage student presence and participation records.
             </p>
           </div>
- 
+
           <div className="flex items-center gap-3">
             {/* Date navigator */}
             <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
@@ -316,7 +366,7 @@ export default function DailyAttendancePage() {
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
- 
+
             {/* Classroom dropdown */}
             <div className="relative">
               <button
@@ -342,7 +392,7 @@ export default function DailyAttendancePage() {
                 </div>
               )}
             </div>
- 
+
             <button
               onClick={handleSubmitSheet}
               className="flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-800"
@@ -352,7 +402,7 @@ export default function DailyAttendancePage() {
             </button>
           </div>
         </div>
- 
+
         {/* Stat cards */}
         <div className="mb-6 grid grid-cols-4 gap-4">
           <StatCard
@@ -388,7 +438,7 @@ export default function DailyAttendancePage() {
             onClick={() => selectStatFilter("Late")}
           />
         </div>
- 
+
         {/* Table */}
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
@@ -437,7 +487,7 @@ export default function DailyAttendancePage() {
               ))}
             </tbody>
           </table>
- 
+
           <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3 text-sm">
             <span className="text-slate-400">
               Showing {rangeStart}-{rangeEnd} of {filtered.length} students
@@ -463,7 +513,7 @@ export default function DailyAttendancePage() {
             </div>
           </div>
         </div>
- 
+
         {/* Bulk add */}
         <div className="mt-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-white px-6 py-10 text-center">
           <button
@@ -485,7 +535,7 @@ export default function DailyAttendancePage() {
           </button>
         </div>
       </main>
- 
+
       {/* Bulk add modal */}
       {showBulkModal && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-4">
@@ -520,7 +570,7 @@ export default function DailyAttendancePage() {
                   <label className="mb-1 block text-xs font-medium text-slate-500">Status</label>
                   <select
                     value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    onChange={(e) => setForm({ ...form, status: e.target.value as Status })}
                     className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-900 focus:outline-none"
                   >
                     <option>Present</option>

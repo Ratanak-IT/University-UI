@@ -54,15 +54,15 @@ const sections: NavSection[] = [
   {
     title: "Manage",
     items: [
-      { label: "Attendance", href: "/attendance", icon: UserCheck },
-      { label: "Grades", href: "/grades", icon: Star },
+      { label: "Attendance", href: "/dashboard/teacher/attendance", icon: UserCheck },
+      { label: "Grades", href: "/dashboard/teacher/grades", icon: Star },
     ],
   },
   {
     title: "Profile",
     items: [
-      { label: "Notifications", href: "/notifications", icon: Bell },
-      { label: "My Profile", href: "/profile", icon: User },
+      { label: "Notifications", href: "/dashboard/teacher/notifications", icon: Bell },
+      { label: "My Profile", href: "/dashboard/teacher/profile", icon: User },
     ],
   },
 ];

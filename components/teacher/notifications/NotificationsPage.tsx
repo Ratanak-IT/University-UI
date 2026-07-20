@@ -1,24 +1,46 @@
-
+"use client"
 import { useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
- 
-const typeStyles = {
+
+type NotificationType = "Submission" | "Comment" | "Grade" | "Announcement" | "Attendance";
+
+interface Notification {
+  id: string;
+  actor: string;
+  action: string;
+  type: NotificationType;
+  context: string;
+  time: string;
+  initials: string;
+  avatarColor: string;
+  unread: boolean;
+  group: "Today" | "Earlier this week";
+}
+
+interface Settings {
+  emailAlerts: boolean;
+  pushNotifications: boolean;
+  submissionAlerts: boolean;
+  weeklyDigest: boolean;
+}
+
+const typeStyles: Record<NotificationType, string> = {
   Submission: "bg-indigo-100 text-indigo-700",
   Comment: "bg-sky-100 text-sky-700",
   Grade: "bg-emerald-100 text-emerald-700",
   Announcement: "bg-orange-100 text-orange-700",
   Attendance: "bg-teal-100 text-teal-700",
 };
- 
-const typeDot = {
+
+const typeDot: Record<NotificationType, string> = {
   Submission: "bg-indigo-600",
   Comment: "bg-sky-500",
   Grade: "bg-emerald-500",
   Announcement: "bg-orange-500",
   Attendance: "bg-teal-500",
 };
- 
-const initialNotifications = [
+
+const initialNotifications: Notification[] = [
   {
     id: "1",
     actor: "Emma Chen",
@@ -92,28 +114,30 @@ const initialNotifications = [
     group: "Earlier this week",
   },
 ];
- 
-const typeCounts = [
+
+const typeCounts: { type: NotificationType; count: number }[] = [
   { type: "Submission", count: 12 },
   { type: "Comment", count: 8 },
   { type: "Grade", count: 3 },
   { type: "Announcement", count: 2 },
   { type: "Attendance", count: 4 },
 ];
- 
+
+type FilterKey = "All" | "Unread" | NotificationType;
+
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(initialNotifications);
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [settings, setSettings] = useState({
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [activeFilter, setActiveFilter] = useState<FilterKey>("All");
+  const [settings, setSettings] = useState<Settings>({
     emailAlerts: true,
     pushNotifications: true,
     submissionAlerts: true,
     weeklyDigest: false,
   });
- 
+
   const unreadCount = notifications.filter((n) => n.unread).length;
- 
-  const filters = [
+
+  const filters: { key: FilterKey; label: string; count: number }[] = [
     { key: "All", label: "All", count: notifications.length },
     { key: "Unread", label: "Unread", count: unreadCount },
     { key: "Submission", label: "Submission", count: notifications.filter((n) => n.type === "Submission").length },
@@ -122,28 +146,28 @@ export default function NotificationsPage() {
     { key: "Announcement", label: "Announcement", count: notifications.filter((n) => n.type === "Announcement").length },
     { key: "Attendance", label: "Attendance", count: notifications.filter((n) => n.type === "Attendance").length },
   ];
- 
+
   const filtered = useMemo(() => {
     if (activeFilter === "All") return notifications;
     if (activeFilter === "Unread") return notifications.filter((n) => n.unread);
     return notifications.filter((n) => n.type === activeFilter);
   }, [notifications, activeFilter]);
- 
+
   const grouped = useMemo(() => {
     const today = filtered.filter((n) => n.group === "Today");
     const earlier = filtered.filter((n) => n.group === "Earlier this week");
     return { today, earlier };
   }, [filtered]);
- 
+
   function markAllRead() {
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
   }
- 
-  function toggleSetting(key) {
+
+  function toggleSetting(key: keyof Settings) {
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
   }
- 
-  function NotificationRow({ n }) {
+
+  function NotificationRow({ n }: { n: Notification }) {
     return (
       <div
         className={`flex items-center gap-3 px-5 py-3.5 ${n.unread ? "bg-indigo-50/50" : "bg-white"}`}
@@ -173,8 +197,8 @@ export default function NotificationsPage() {
       </div>
     );
   }
- 
-  function Toggle({ on, onClick }) {
+
+  function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
     return (
       <button
         type="button"
@@ -183,7 +207,7 @@ export default function NotificationsPage() {
         className={`relative box-border inline-flex h-5 w-9 shrink-0 items-center rounded-full border-0 p-0 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1 ${
           on ? "bg-indigo-600" : "bg-slate-200"
         }`}
-        style={{ appearance: "none", WebkitAppearance: "none" }}
+        style={{ appearance: "none", WebkitAppearance: "none" } as React.CSSProperties}
       >
         <span
           className={`pointer-events-none absolute left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
@@ -193,7 +217,7 @@ export default function NotificationsPage() {
       </button>
     );
   }
- 
+
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-6 font-sans" style={{ fontSize: "18px" }}>
       {/* Header */}
@@ -211,7 +235,7 @@ export default function NotificationsPage() {
           Mark all as read
         </button>
       </div>
- 
+
       {/* Filter pills */}
       <div className="mb-5 flex flex-wrap gap-2">
         {filters.map((f) => {
@@ -238,7 +262,7 @@ export default function NotificationsPage() {
           );
         })}
       </div>
- 
+
       <div className="grid grid-cols-3 gap-6">
         {/* Notification list */}
         <div className="col-span-2 min-w-0 space-y-5">
@@ -254,7 +278,7 @@ export default function NotificationsPage() {
               </div>
             </div>
           )}
- 
+
           {grouped.earlier.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <p className="px-5 pt-4 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -267,14 +291,14 @@ export default function NotificationsPage() {
               </div>
             </div>
           )}
- 
+
           {filtered.length === 0 && (
             <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-400 shadow-sm">
               No notifications in this filter.
             </div>
           )}
         </div>
- 
+
         {/* Right column */}
         <div className="flex flex-col gap-6">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -291,7 +315,7 @@ export default function NotificationsPage() {
               ))}
             </div>
           </div>
- 
+
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="mb-3 text-sm font-semibold text-slate-900">Notification settings</h3>
             <div className="space-y-4">
@@ -318,4 +342,3 @@ export default function NotificationsPage() {
     </div>
   );
 }
- 
