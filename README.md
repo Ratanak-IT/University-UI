@@ -37,22 +37,10 @@ Designed to deliver an interactive experience for higher education institutions,
 
 ---
 
-##  3. Project Achievements & Completion Metrics
+##  3. Tech Stack & Dependencies
 
-| Domain / Layer | Completion Status | Percentage | Key Deliverables Completed |
-| :--- | :---: | :---: | :--- |
-| **UX Design & User Flows** | Completed | **95%** | User mapping for Student & Teacher dashboards, responsive page layouts, and wireframes. |
-| **UI Design System** | Completed | **90%** | Tailwind theme system, Framer Motion animations, Lucide icons, and component libraries. |
-| **Student Workspace** | Completed | **85%** | Next.js App Router pages for course management, timetable, grades, and profile views. |
-| **Teacher Workspace** | Completed | **85%** | Quiz creation tools, lesson publishing, assignment management, and gradebook tables. |
-| **Overall Frontend Status** | **MVP Stable** | **88.75%** | **Core student and teacher portals operational and ready for midterm evaluation.** |
-
----
-
-##  4. Tech Stack & Dependencies
-
-* **Framework:** Next.js 15+ (App Router)
-* **Language:** TypeScript 5.x
+* **Framework:** Next.js (App Router)
+* **Language:** TypeScript
 * **Styling & Layout:** Tailwind CSS, PostCSS
 * **Animation Engine:** Framer Motion
 * **Iconography:** Lucide React Icons, React Icons
