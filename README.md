@@ -1,14 +1,8 @@
-# 🎓 University Management System — Student & Teacher Web Portal
-
-![Next.js](https://img.shields.io/badge/Next.js-15+-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![Framer Motion](https://img.shields.io/badge/Framer_Motion-11.x-0055FF?style=for-the-badge&logo=framer&logoColor=white)
-![Lucide Icons](https://img.shields.io/badge/Icons-Lucide_React-F05032?style=for-the-badge&logo=react&logoColor=white)
+#  University Management System — Student & Teacher Web Portal
 
 ---
 
-## 📖 1. Project Overview & Goal
+##  1. Project Overview & Goal
 
 The **University Management System (UMS) Student & Teacher Web Portal** is an intuitive, responsive web application engineered with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, and **Framer Motion**.
 
@@ -16,9 +10,9 @@ Designed to deliver an interactive experience for higher education institutions,
 
 ---
 
-## ✨ 2. Module & Feature Specifications
+##  2. Module & Feature Specifications
 
-### 🎓 1. Student Portal (`/dashboard/student`)
+###  1. Student Portal (`/dashboard/student`)
 * **Student Dashboard (`/dashboard/student/dashboard`):** Overview of active classes, upcoming assignment deadlines, and performance metrics.
 * **Coursework & Submissions (`/assignments`, `/courses/assignment`):** Assignment workspace featuring instructions, file dropzones, and status tracking.
 * **Lesson & Course Hub (`/courses`, `/lessons`):** Streamable lecture content, module navigation, and downloadable resources.
@@ -28,7 +22,7 @@ Designed to deliver an interactive experience for higher education institutions,
 * **Attendance Tracking (`/attendance`):** Real-time student attendance history logging.
 * **Profile & Notifications (`/profile`, `/notifications`):** Student account settings and real-time activity feed.
 
-### 👨‍🏫 2. Teacher Portal (`/dashboard/teacher`)
+###  2. Teacher Portal (`/dashboard/teacher`)
 * **Teacher Overview (`/overview`):** Central dashboard tracking class attendance snapshots, deadline reminders, and engagement analytics.
 * **Assignment Engine (`/assignments`, `/assignments/create`, `/[assignmentId]`):** Creation tool for publishing coursework with file attachments, deadlines, and criteria.
 * **Lesson Studio (`/lessons`, `/lessons/create-lesson`, `/[id]`):** Rich-text lesson builder and media attachment management.
@@ -37,13 +31,13 @@ Designed to deliver an interactive experience for higher education institutions,
 * **Quiz Creation & Preview (`/quiz`, `/create-quiz`, `/preview-quiz`):** Tool for building question banks, assigning score weighting, and testing timed attempts.
 * **Gradebook & Attendance (`/grades`, `/attendance`):** Grading portal for evaluating coursework and logging attendance.
 
-### 🌐 3. Public Marketing & Landing Pages (`/homepage`, `/about-us`)
+###  3. Public Marketing & Landing Pages (`/homepage`, `/about-us`)
 * **Interactive Homepage (`/homepage`):** Hero section, category browser, featured courses, curriculum preview, instructor directory, and testimonials.
 * **About Us Hub (`/about-us`):** Institutional mission, vision, team directory, and faculty introductions.
 
 ---
 
-## 📈 3. Project Achievements & Completion Metrics
+##  3. Project Achievements & Completion Metrics
 
 | Domain / Layer | Completion Status | Percentage | Key Deliverables Completed |
 | :--- | :---: | :---: | :--- |
@@ -55,7 +49,7 @@ Designed to deliver an interactive experience for higher education institutions,
 
 ---
 
-## 🛠️ 4. Tech Stack & Dependencies
+##  4. Tech Stack & Dependencies
 
 * **Framework:** Next.js 15+ (App Router)
 * **Language:** TypeScript 5.x
