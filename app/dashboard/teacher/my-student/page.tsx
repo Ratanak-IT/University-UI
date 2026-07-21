@@ -10,7 +10,7 @@ export const metadata = {
 // page content that sits inside that shell.
 export default function Page() {
   return (
-    <main className="flex-1 bg-background p-6">
+    <main className="px-8 py-8 flex-1 bg-background p-6">
       <StudentsPage />
     </main>
   );

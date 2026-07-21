@@ -64,12 +64,12 @@ const names = [
 ];
  
 const avatarColors = [
-  "bg-amber-200 text-amber-800",
-  "bg-sky-200 text-sky-800",
-  "bg-rose-200 text-rose-800",
-  "bg-violet-200 text-violet-800",
-  "bg-emerald-200 text-emerald-800",
-  "bg-orange-200 text-orange-800",
+  "bg-amber-200 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
+  "bg-sky-200 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300",
+  "bg-rose-200 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300",
+  "bg-violet-200 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300",
+  "bg-emerald-200 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300",
+  "bg-orange-200 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300",
 ];
  
 function gradeFromTotal(total: number): Grade {
@@ -119,17 +119,17 @@ const allStudents: StudentGrade[] = names.map((name, i) => {
 });
  
 const gradeStyles: Record<Grade, string> = {
-  A: "bg-emerald-100 text-emerald-700",
-  B: "bg-sky-100 text-sky-700",
-  C: "bg-amber-100 text-amber-700",
-  D: "bg-orange-100 text-orange-700",
-  F: "bg-rose-100 text-rose-700",
+  A: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
+  B: "bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300",
+  C: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
+  D: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300",
+  F: "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300",
 };
  
 const statusStyles: Record<Status, string> = {
-  Passed: "text-emerald-600",
-  Failed: "text-rose-600",
-  Pending: "text-slate-400",
+  Passed: "text-emerald-600 dark:text-emerald-400",
+  Failed: "text-rose-600 dark:text-rose-400",
+  Pending: "text-muted-foreground",
 };
  
 function StatCard({
@@ -144,13 +144,13 @@ function StatCard({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
         {icon}
       </div>
       <div>
-        <p className="text-xs text-slate-400">{label}</p>
-        <p className="text-lg font-semibold text-slate-900">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-lg font-semibold text-card-foreground">{value}</p>
       </div>
     </div>
   );
@@ -185,30 +185,30 @@ export default function Attendan2Grades() {
   const pageNumbers = getPageNumbers(page, totalPages);
  
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-6">
+    <div className="min-h-screen bg-background px-6 py-6">
       {/* Stat cards */}
       <div className="mb-6 grid grid-cols-4 gap-4">
         <StatCard
-          icon={<Users className="h-5 w-5 text-white" />}
-          iconBg="bg-blue-900"
+          icon={<Users className="h-5 w-5 text-primary-foreground" />}
+          iconBg="bg-primary"
           label="Total Students"
           value="42"
         />
         <StatCard
-          icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
-          iconBg="bg-emerald-100"
+          icon={<CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+          iconBg="bg-emerald-100 dark:bg-emerald-900/40"
           label="Pass Rate"
           value="92.8%"
         />
         <StatCard
-          icon={<TrendingUp className="h-5 w-5 text-amber-600" />}
-          iconBg="bg-amber-100"
+          icon={<TrendingUp className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
+          iconBg="bg-amber-100 dark:bg-amber-900/40"
           label="Class Avg."
           value="B (78.4)"
         />
         <StatCard
-          icon={<AlertTriangle className="h-5 w-5 text-rose-500" />}
-          iconBg="bg-rose-100"
+          icon={<AlertTriangle className="h-5 w-5 text-rose-500 dark:text-rose-400" />}
+          iconBg="bg-rose-100 dark:bg-rose-900/40"
           label="At Risk"
           value="3 Students"
         />
@@ -218,42 +218,42 @@ export default function Attendan2Grades() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Classroom</label>
-            <button className="flex w-56 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Classroom</label>
+            <button className="flex w-56 items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm hover:bg-muted">
               CS202 - Web Development
-              <ChevronDown className="h-4 w-4 text-slate-400" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Semester</label>
-            <button className="flex w-28 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Semester</label>
+            <button className="flex w-28 items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm hover:bg-muted">
               2
-              <ChevronDown className="h-4 w-4 text-slate-400" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">Status</label>
-            <button className="flex w-36 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:bg-slate-50">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+            <button className="flex w-36 items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm hover:bg-muted">
               All Statuses
-              <ChevronDown className="h-4 w-4 text-slate-400" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
         </div>
  
-        <button className="flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-800">
+        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:opacity-90">
           <SlidersHorizontal className="h-4 w-4" />
           Apply Filters
         </button>
       </div>
  
       {/* Grade book table */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5">
+      <div className="rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Grade Book</h2>
-            <p className="text-xs text-slate-400">Class: Web Development II (CS202-A)</p>
+            <h2 className="text-base font-semibold text-card-foreground">Grade Book</h2>
+            <p className="text-xs text-muted-foreground">Class: Web Development II (CS202-A)</p>
           </div>
-          <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 shadow-sm hover:bg-slate-50">
+          <button className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-card-foreground shadow-sm hover:bg-muted">
             <Download className="h-4 w-4" />
             Export to CSV
           </button>
@@ -262,7 +262,7 @@ export default function Attendan2Grades() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead>
-              <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
+              <tr className="bg-muted text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-5 py-3 font-medium">Student</th>
                 <th className="px-3 py-3 font-medium">Classroom</th>
                 <th className="px-3 py-3 font-medium">Semester</th>
@@ -283,7 +283,7 @@ export default function Attendan2Grades() {
               {pageStudents.map((s, i) => (
                 <tr
                   key={`${s.id}-${page}-${i}`}
-                  className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60"
+                  className="border-b border-border last:border-0 hover:bg-muted/60"
                 >
                   <td className="flex items-center gap-3 px-5 py-3.5">
                     <div
@@ -291,16 +291,16 @@ export default function Attendan2Grades() {
                     >
                       {s.initials}
                     </div>
-                    <span className="font-medium text-slate-800">{s.name}</span>
+                    <span className="font-medium text-card-foreground">{s.name}</span>
                   </td>
-                  <td className="px-3 py-3.5 text-slate-500">{s.classroom}</td>
-                  <td className="px-3 py-3.5 text-slate-500">{s.semester}</td>
-                  <td className="px-3 py-3.5 text-slate-500">{s.midterm}</td>
-                  <td className="px-3 py-3.5 text-slate-500">{s.final}</td>
-                  <td className="px-3 py-3.5 text-slate-500">{s.assign}</td>
-                  <td className="px-3 py-3.5 text-slate-500">{s.quiz}</td>
-                  <td className="px-3 py-3.5 text-slate-500">{s.attend}</td>
-                  <td className="px-3 py-3.5 font-medium text-slate-800">{s.total}</td>
+                  <td className="px-3 py-3.5 text-muted-foreground">{s.classroom}</td>
+                  <td className="px-3 py-3.5 text-muted-foreground">{s.semester}</td>
+                  <td className="px-3 py-3.5 text-muted-foreground">{s.midterm}</td>
+                  <td className="px-3 py-3.5 text-muted-foreground">{s.final}</td>
+                  <td className="px-3 py-3.5 text-muted-foreground">{s.assign}</td>
+                  <td className="px-3 py-3.5 text-muted-foreground">{s.quiz}</td>
+                  <td className="px-3 py-3.5 text-muted-foreground">{s.attend}</td>
+                  <td className="px-3 py-3.5 font-medium text-card-foreground">{s.total}</td>
                   <td className="px-3 py-3.5">
                     <span
                       className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold ${gradeStyles[s.grade]}`}
@@ -308,7 +308,7 @@ export default function Attendan2Grades() {
                       {s.grade}
                     </span>
                   </td>
-                  <td className="px-3 py-3.5 text-slate-500">{s.gpa.toFixed(1)}</td>
+                  <td className="px-3 py-3.5 text-muted-foreground">{s.gpa.toFixed(1)}</td>
                   <td className="px-3 py-3.5">
                     <span className={`flex items-center gap-1.5 text-xs font-medium ${statusStyles[s.status]}`}>
                       <span
@@ -317,15 +317,15 @@ export default function Attendan2Grades() {
                             ? "bg-emerald-500"
                             : s.status === "Failed"
                             ? "bg-rose-500"
-                            : "bg-slate-300"
+                            : "bg-muted-foreground/40"
                         }`}
                       />
                       {s.status}
                     </span>
                   </td>
-                  <td className="px-3 py-3.5 text-slate-500">{s.gradedBy}</td>
+                  <td className="px-3 py-3.5 text-muted-foreground">{s.gradedBy}</td>
                   <td className="px-3 py-3.5">
-                    <button aria-label="More actions" className="text-slate-400 hover:text-slate-600">
+                    <button aria-label="More actions" className="text-muted-foreground hover:text-card-foreground">
                       <MoreVertical className="h-4 w-4" />
                     </button>
                   </td>
@@ -336,8 +336,8 @@ export default function Attendan2Grades() {
         </div>
  
         {/* Pagination */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-6 py-3 text-sm">
-          <span className="text-slate-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-3 text-sm">
+          <span className="text-muted-foreground">
             Showing {showingFrom}-{showingTo} of {totalStudents} students
           </span>
           <div className="flex items-center gap-1">
@@ -345,14 +345,14 @@ export default function Attendan2Grades() {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
               aria-label="Previous page"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
  
             {pageNumbers.map((n, i) =>
               n === "…" ? (
-                <span key={`ellipsis-${i}`} className="px-2 text-slate-400">
+                <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">
                   …
                 </span>
               ) : (
@@ -361,8 +361,8 @@ export default function Attendan2Grades() {
                   onClick={() => setPage(n)}
                   className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium ${
                     n === page
-                      ? "bg-blue-900 text-white"
-                      : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border text-card-foreground hover:bg-muted"
                   }`}
                 >
                   {n}
@@ -374,7 +374,7 @@ export default function Attendan2Grades() {
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
               aria-label="Next page"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

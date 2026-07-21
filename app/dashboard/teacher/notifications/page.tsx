@@ -2,5 +2,10 @@ import NotificationsPage from "@/components/teacher/notifications/NotificationsP
 
 
 export default function Page() {
-  return <NotificationsPage />;
+  return (
+
+      <NotificationsPage />
+    
+  )
+  
 }

@@ -18,12 +18,12 @@ import {
 const PAGE_SIZE = 4;
 
 const avatarPalette = [
-  "bg-amber-200 text-amber-800",
-  "bg-rose-200 text-rose-800",
-  "bg-sky-200 text-sky-800",
-  "bg-violet-200 text-violet-800",
-  "bg-emerald-200 text-emerald-800",
-  "bg-cyan-200 text-cyan-800",
+  "bg-amber-200 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
+  "bg-rose-200 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300",
+  "bg-sky-200 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300",
+  "bg-violet-200 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300",
+  "bg-emerald-200 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300",
+  "bg-cyan-200 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300",
 ];
 
 type Status = "Present" | "Absent" | "Late";
@@ -138,9 +138,9 @@ function buildAttendance(
 }
 
 const statusStyles: Record<Status, string> = {
-  Present: "bg-emerald-50 text-emerald-600",
-  Absent: "bg-rose-50 text-rose-600",
-  Late: "bg-slate-100 text-slate-600",
+  Present: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
+  Absent: "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400",
+  Late: "bg-muted text-muted-foreground",
 };
 
 interface StatCardProps {
@@ -156,16 +156,16 @@ function StatCard({ icon, iconBg, label, value, active, onClick }: StatCardProps
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 rounded-xl border bg-white p-4 text-left shadow-sm transition ${
-        active ? "border-blue-900 ring-2 ring-blue-900/20" : "border-slate-200 hover:border-slate-300"
+      className={`flex items-center gap-3 rounded-xl border bg-card p-4 text-left shadow-sm transition ${
+        active ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-muted-foreground/40"
       }`}
     >
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
         {icon}
       </div>
       <div>
-        <p className="text-xs font-medium tracking-wide text-slate-400">{label}</p>
-        <p className="text-xl font-semibold text-slate-800">{value}</p>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-xl font-semibold text-card-foreground">{value}</p>
       </div>
     </button>
   );
@@ -304,7 +304,7 @@ export default function DailyAttendancePage() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50"
+      className="min-h-screen bg-background"
       style={
         {
           "--font-sans": "var(--font-geist-sans)",
@@ -315,7 +315,7 @@ export default function DailyAttendancePage() {
       }
     >
       {toast && (
-        <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
+        <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background shadow-lg">
           {toast}
         </div>
       )}
@@ -324,24 +324,24 @@ export default function DailyAttendancePage() {
         {/* Page header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold text-slate-900">Daily Attendance</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <h2 className="text-2xl font-semibold text-foreground">Daily Attendance</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
               Manage student presence and participation records.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             {/* Date navigator */}
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm">
               <button
                 aria-label="Previous day"
                 onClick={() => changeDate(-1)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-muted-foreground hover:text-card-foreground"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               {isSameDay(selectedDate, today) && (
-                <span className="font-medium text-slate-700">Today,</span>
+                <span className="font-medium text-card-foreground">Today,</span>
               )}
               <input
                 ref={dateInputRef}
@@ -349,19 +349,19 @@ export default function DailyAttendancePage() {
                 value={toISODate(selectedDate)}
                 onChange={handleDateInputChange}
                 onClick={(e) => e.currentTarget.showPicker?.()}
-                className="w-[110px] cursor-pointer border-none bg-transparent p-0 text-sm font-medium text-slate-700 focus:outline-none focus:ring-0 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0"
+                className="w-[110px] cursor-pointer border-none bg-transparent p-0 text-sm font-medium text-card-foreground focus:outline-none focus:ring-0 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0"
               />
               <button
                 aria-label="Open date picker"
                 onClick={() => dateInputRef.current?.showPicker?.()}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-muted-foreground hover:text-card-foreground"
               >
                 <Calendar className="h-4 w-4" />
               </button>
               <button
                 aria-label="Next day"
                 onClick={() => changeDate(1)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-muted-foreground hover:text-card-foreground"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -371,19 +371,19 @@ export default function DailyAttendancePage() {
             <div className="relative">
               <button
                 onClick={() => setClassroomOpen((o) => !o)}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-card-foreground shadow-sm hover:bg-muted"
               >
                 {selectedClassroom}
-                <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${classroomOpen ? "rotate-180" : ""}`} />
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${classroomOpen ? "rotate-180" : ""}`} />
               </button>
               {classroomOpen && (
-                <div className="absolute right-0 z-10 mt-1 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                <div className="absolute right-0 z-10 mt-1 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
                   {classroomNames.map((name) => (
                     <button
                       key={name}
                       onClick={() => selectClassroom(name)}
-                      className={`block w-full px-4 py-2 text-left text-sm hover:bg-slate-50 ${
-                        name === selectedClassroom ? "bg-slate-50 font-medium text-blue-900" : "text-slate-700"
+                      className={`block w-full px-4 py-2 text-left text-sm hover:bg-muted ${
+                        name === selectedClassroom ? "bg-muted font-medium text-primary" : "text-card-foreground"
                       }`}
                     >
                       {name}
@@ -395,7 +395,7 @@ export default function DailyAttendancePage() {
 
             <button
               onClick={handleSubmitSheet}
-              className="flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-800"
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:opacity-90"
             >
               <Upload className="h-4 w-4" />
               Submit Sheet
@@ -406,32 +406,32 @@ export default function DailyAttendancePage() {
         {/* Stat cards */}
         <div className="mb-6 grid grid-cols-4 gap-4">
           <StatCard
-            icon={<Users className="h-5 w-5 text-violet-600" />}
-            iconBg="bg-violet-100"
+            icon={<Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />}
+            iconBg="bg-violet-100 dark:bg-violet-900/40"
             label="TOTAL STUDENTS"
             value={counts.total}
             active={statusFilter === "all"}
             onClick={() => selectStatFilter("all")}
           />
           <StatCard
-            icon={<CheckCircle2 className="h-5 w-5 text-emerald-600" />}
-            iconBg="bg-emerald-100"
+            icon={<CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+            iconBg="bg-emerald-100 dark:bg-emerald-900/40"
             label="PRESENT"
             value={counts.Present}
             active={statusFilter === "Present"}
             onClick={() => selectStatFilter("Present")}
           />
           <StatCard
-            icon={<XCircle className="h-5 w-5 text-rose-600" />}
-            iconBg="bg-rose-100"
+            icon={<XCircle className="h-5 w-5 text-rose-600 dark:text-rose-400" />}
+            iconBg="bg-rose-100 dark:bg-rose-900/40"
             label="ABSENT"
             value={counts.Absent}
             active={statusFilter === "Absent"}
             onClick={() => selectStatFilter("Absent")}
           />
           <StatCard
-            icon={<Clock className="h-5 w-5 text-slate-600" />}
-            iconBg="bg-slate-200"
+            icon={<Clock className="h-5 w-5 text-muted-foreground" />}
+            iconBg="bg-muted"
             label="LATE"
             value={counts.Late}
             active={statusFilter === "Late"}
@@ -440,10 +440,10 @@ export default function DailyAttendancePage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-6 py-3 font-medium">Student</th>
                 <th className="px-4 py-3 font-medium">Student ID</th>
                 <th className="px-4 py-3 font-medium">Classroom</th>
@@ -456,24 +456,24 @@ export default function DailyAttendancePage() {
             <tbody>
               {pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
                     No students match this filter.
                   </td>
                 </tr>
               )}
               {pageItems.map((r) => (
-                <tr key={r.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
+                <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/60">
                   <td className="flex items-center gap-3 px-6 py-4">
                     <div
                       className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${r.avatarColor}`}
                     >
                       {r.initials}
                     </div>
-                    <span className="font-medium text-slate-800">{r.name}</span>
+                    <span className="font-medium text-card-foreground">{r.name}</span>
                   </td>
-                  <td className="px-4 py-4 text-slate-500">{r.studentId}</td>
-                  <td className="px-4 py-4 text-slate-500">{r.classroom}</td>
-                  <td className="px-4 py-4 text-slate-500">{formatDate(selectedDate)}</td>
+                  <td className="px-4 py-4 text-muted-foreground">{r.studentId}</td>
+                  <td className="px-4 py-4 text-muted-foreground">{r.classroom}</td>
+                  <td className="px-4 py-4 text-muted-foreground">{formatDate(selectedDate)}</td>
                   <td className="px-4 py-4">
                     <span
                       className={`inline-block rounded-md px-2.5 py-1 text-xs font-medium ${statusStyles[r.status]}`}
@@ -481,32 +481,32 @@ export default function DailyAttendancePage() {
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-4 py-4 text-slate-700">{r.score}</td>
-                  <td className="px-4 py-4 text-slate-500">{r.remark}</td>
+                  <td className="px-4 py-4 text-card-foreground/80">{r.score}</td>
+                  <td className="px-4 py-4 text-muted-foreground">{r.remark}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-3 text-sm">
-            <span className="text-slate-400">
+          <div className="flex items-center justify-between border-t border-border px-6 py-3 text-sm">
+            <span className="text-muted-foreground">
               Showing {rangeStart}-{rangeEnd} of {filtered.length} students
             </span>
             <div className="flex items-center gap-2">
               <button
                 disabled={safePage === 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded-md border border-slate-200 px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:text-slate-300"
+                className="rounded-md border border-border px-3 py-1.5 text-card-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/50"
               >
                 Previous
               </button>
-              <span className="text-slate-400">
+              <span className="text-muted-foreground">
                 Page {safePage} of {totalPages}
               </span>
               <button
                 disabled={safePage === totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="rounded-md bg-blue-900 px-3 py-1.5 font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Next
               </button>
@@ -515,21 +515,21 @@ export default function DailyAttendancePage() {
         </div>
 
         {/* Bulk add */}
-        <div className="mt-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-white px-6 py-10 text-center">
+        <div className="mt-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card px-6 py-10 text-center">
           <button
             onClick={() => setShowBulkModal(true)}
-            className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900 text-white hover:bg-blue-800"
+            className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:opacity-90"
           >
             <Plus className="h-5 w-5" />
           </button>
-          <h3 className="text-sm font-semibold text-slate-800">Bulk Add Attendance</h3>
-          <p className="mt-1 max-w-sm text-sm text-slate-400">
+          <h3 className="text-sm font-semibold text-card-foreground">Bulk Add Attendance</h3>
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
             Import attendance records from a CSV file or scan student ID badges to speed up the
             marking process.
           </p>
           <button
             onClick={handleDownloadTemplate}
-            className="mt-3 text-sm font-medium text-blue-700 hover:underline"
+            className="mt-3 text-sm font-medium text-primary hover:underline"
           >
             Download Template
           </button>
@@ -538,40 +538,40 @@ export default function DailyAttendancePage() {
 
       {/* Bulk add modal */}
       {showBulkModal && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-slate-900">Add Attendance Record</h3>
-              <button onClick={() => setShowBulkModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h3 className="text-base font-semibold text-card-foreground">Add Attendance Record</h3>
+              <button onClick={() => setShowBulkModal(false)} className="text-muted-foreground hover:text-card-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">Student Name</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Student Name</label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-900 focus:outline-none"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
                   placeholder="e.g. Jamie Foster"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">Student ID (optional)</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Student ID (optional)</label>
                 <input
                   value={form.studentId}
                   onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-                  className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-900 focus:outline-none"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
                   placeholder="STU20260099"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-500">Status</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
                   <select
                     value={form.status}
                     onChange={(e) => setForm({ ...form, status: e.target.value as Status })}
-                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-900 focus:outline-none"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
                   >
                     <option>Present</option>
                     <option>Absent</option>
@@ -579,21 +579,21 @@ export default function DailyAttendancePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-500">Score</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Score</label>
                   <input
                     type="number"
                     value={form.score}
                     onChange={(e) => setForm({ ...form, score: e.target.value })}
-                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-900 focus:outline-none"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">Remark</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Remark</label>
                 <input
                   value={form.remark}
                   onChange={(e) => setForm({ ...form, remark: e.target.value })}
-                  className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-blue-900 focus:outline-none"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
                   placeholder="Optional note"
                 />
               </div>
@@ -601,13 +601,13 @@ export default function DailyAttendancePage() {
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setShowBulkModal(false)}
-                className="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-card-foreground hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddRecord}
-                className="rounded-md bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
               >
                 Add Record
               </button>
