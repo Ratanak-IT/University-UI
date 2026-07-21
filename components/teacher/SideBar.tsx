@@ -34,34 +34,56 @@ type NavSection = {
 const sections: NavSection[] = [
   {
     title: "Overview",
-    items: [{ label: "Dashboard", href: "/dashboard/teacher", icon: LayoutGrid }],
+    items: [
+      { label: "Dashboard", href: "/dashboard/teacher", icon: LayoutGrid },
+    ],
   },
   {
     title: "My Teaching",
     items: [
-      { label: "My Classrooms", href: "/dashboard/teacher/my-classroom", icon: GraduationCap },
-      { label: "My students", href: "/dashboard/teacher/my-student", icon: Users },
+      {
+        label: "My Classrooms",
+        href: "/dashboard/teacher/my-classroom",
+        icon: GraduationCap,
+      },
+      {
+        label: "My students",
+        href: "/dashboard/teacher/my-student",
+        icon: Users,
+      },
     ],
   },
   {
     title: "Content",
     items: [
       { label: "Lessons", href: "/dashboard/teacher/lessons", icon: Package },
-      { label: "Assignments", href: "/dashboard/teacher/assignments", icon: BookOpen },
+      {
+        label: "Assignments",
+        href: "/dashboard/teacher/assignments",
+        icon: BookOpen,
+      },
       { label: "Quizzes", href: "/dashboard/teacher/quiz", icon: Trophy },
     ],
   },
   {
     title: "Manage",
     items: [
-      { label: "Attendance", href: "/dashboard/teacher/attendance", icon: UserCheck },
+      {
+        label: "Attendance",
+        href: "/dashboard/teacher/attendance",
+        icon: UserCheck,
+      },
       { label: "Grades", href: "/dashboard/teacher/grades", icon: Star },
     ],
   },
   {
     title: "Profile",
     items: [
-      { label: "Notifications", href: "/dashboard/teacher/notifications", icon: Bell },
+      {
+        label: "Notifications",
+        href: "/dashboard/teacher/notifications",
+        icon: Bell,
+      },
       { label: "My Profile", href: "/dashboard/teacher/profile", icon: User },
     ],
   },
@@ -86,23 +108,30 @@ export default function Sidebar() {
       </button>
 
       {/* Logo Header */}
-      <div className="flex items-center gap-3 bg-muted/60 px-6 py-5.5">
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
-          <Image
-            src="/logo-rm.png"
-            alt="UMS Logo"
-            width={48}
-            height={48}
-            className="object-contain"
-          />
-        </div>
-        {!isCollapsed && (
-          <div className="min-w-0 animate-in fade-in zoom-in-95 duration-300">
-            <p className="text-xl font-black tracking-tight text-primary">UMS</p>
-            <p className="text-xs font-medium text-muted-foreground">Teacher Portal</p>
+      <Link href="/">
+        <div className="flex items-center gap-3 bg-muted/60 px-6 py-5.5">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
+            <Image
+              src="/logo-rm.png"
+              alt="UMS Logo"
+              width={48}
+              height={48}
+              className="object-contain"
+            />
           </div>
-        )}
-      </div>
+
+          {!isCollapsed && (
+            <div className="min-w-0 animate-in fade-in zoom-in-95 duration-300">
+              <p className="text-xl font-black tracking-tight text-primary">
+                UMS
+              </p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Teacher Portal
+              </p>
+            </div>
+          )}
+        </div>
+      </Link>
 
       {/* Navigation Links */}
       <nav className="custom-scrollbar flex-1 overflow-y-auto px-4 py-6">
@@ -162,14 +191,23 @@ export default function Sidebar() {
         }`}
       >
         <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border">
-          <Image src="/davin.jpg" alt="Chhay Davin profile" fill className="object-cover" />
+          <Image
+            src="/davin.jpg"
+            alt="Chhay Davin profile"
+            fill
+            className="object-cover"
+          />
         </div>
 
         {!isCollapsed && (
           <>
             <div className="min-w-0 flex-1 animate-in fade-in zoom-in-95 duration-300">
-              <p className="truncate text-xs font-medium text-muted-foreground">Teacher</p>
-              <p className="truncate text-lg font-semibold text-foreground">Chhay Davin</p>
+              <p className="truncate text-xs font-medium text-muted-foreground">
+                Teacher
+              </p>
+              <p className="truncate text-lg font-semibold text-foreground">
+                Chhay Davin
+              </p>
             </div>
             <button
               type="button"
