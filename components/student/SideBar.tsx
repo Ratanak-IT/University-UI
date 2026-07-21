@@ -89,7 +89,7 @@ export default function Sidebar() {
                             : "text-slate-400 group-hover:text-slate-600"
                         }`}
                         strokeWidth={isActive ? 2 : 1.75}
-                      />
+                      />;
                       <span>{item.label}</span>
                     </Link>
                   </li>
