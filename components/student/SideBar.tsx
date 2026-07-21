@@ -89,7 +89,7 @@ export default function SidebarStudent() {
                             : "text-slate-400 group-hover:text-slate-600"
                         }`}
                         strokeWidth={isActive ? 2 : 1.75}
-                      />
+                      />;
                       <span>{item.label}</span>
                     </Link>
                   </li>
@@ -108,7 +108,7 @@ export default function SidebarStudent() {
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium text-slate-400">Student</p>
           <p className="truncate text-sm font-semibold text-slate-800">
-            Sok Maly
+           Chhay Davin
           </p>
         </div>
         <button
