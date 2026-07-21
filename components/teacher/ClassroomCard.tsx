@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type ClassroomCardProps = {
   title: string;
   code: string;
@@ -28,7 +30,10 @@ export default function ClassroomCard({
   badgeClass,
 }: ClassroomCardProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+    <Link
+      href={`/dashboard/teacher/my-classroom/${classCode}`}
+      className="block overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
+    >
       {/* Colored header */}
       <div className={`relative px-5 py-5 ${headerClass}`}>
         <h3 className="text-lg font-bold text-white">{title}</h3>
@@ -44,27 +49,24 @@ export default function ClassroomCard({
 
       {/* Body */}
       <div className="px-5 py-4">
-        <p className="text-sm text-slate-700">
+        <p className="text-sm text-card-foreground">
           {students} students · {year}
         </p>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-muted-foreground">
           {room} · Code {classCode}
         </p>
 
-        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+        <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
           <span
             className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}
           >
             {toGrade} to grade
           </span>
-          <a
-            href="#"
-            className="text-sm font-semibold text-indigo-700 hover:underline"
-          >
+          <span className="text-sm font-semibold text-primary group-hover:underline">
             Open
-          </a>
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
