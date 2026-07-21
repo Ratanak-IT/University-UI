@@ -11,7 +11,7 @@ type FormState = {
 };
 
 const initialForm: FormState = {
-  fullName: "Sok Maly",
+  fullName: "Chhay Davin",
   phone: "+855 12 987 654",
   language: "English (Academic)",
   major: "Computer Science · Software Engineering Track",
@@ -68,7 +68,6 @@ export default function ProfilePage() {
       return objectUrl;
     });
 
-    // reset the input so selecting the same file again still fires onChange
     e.target.value = "";
   }
 

@@ -108,7 +108,7 @@ export default function SidebarStudent() {
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium text-slate-400">Student</p>
           <p className="truncate text-sm font-semibold text-slate-800">
-            Sok Maly
+           Chhay Davin
           </p>
         </div>
         <button

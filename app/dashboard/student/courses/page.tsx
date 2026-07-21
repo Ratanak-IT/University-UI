@@ -114,42 +114,6 @@ export default function CourseLessons() {
     <div className={`flex h-screen w-full overflow-hidden ${pageBg}`}>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-        {/* Top bar */}
-        <header
-          className={`sticky top-0 z-10 flex items-center gap-3 border-b ${headerBorder} ${headerBg} px-4 py-3 sm:px-6`}
-        >
-          <button
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open menu"
-            className={`rounded-md border p-2 md:hidden ${iconBtn}`}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-
-          <p className={`truncate text-sm font-medium ${textMuted}`}>
-            <span className={textBase}>Dashboard</span> / <span className={textBase}>My Courses</span> /{" "}
-            <span className={textBase}>UX &amp; UI Design</span>
-          </p>
-
-          <div className="ml-auto flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={() => setIsDark((d) => !d)}
-              aria-label="Toggle dark mode"
-              className={`rounded-md border p-2 transition-colors ${iconBtn}`}
-            >
-              {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-            </button>
-
-            <div className="hidden text-right sm:block">
-              <p className={`text-sm font-semibold ${textBase}`}>Student</p>
-              <p className={`text-xs ${textMuted}`}>Active</p>
-            </div>
-
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white">
-              M
-            </div>
-          </div>
-        </header>
 
         {/* Main content */}
         <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 px-4 py-6 sm:px-6 lg:px-8">
