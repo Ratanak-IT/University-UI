@@ -2,52 +2,42 @@ import type { Metadata } from "next";
 
 import Navbar from "@/components/layout/Navbar";
 import Hero from "@/components/landing/Hero";
-import Institutions from "@/components/landing/Institutions";
-import Features from "@/components/landing/Features";
+import WhyChoose from "@/components/landing/WhyChoose";
+import Categories from "@/components/landing/Categories";
+import About from "@/components/landing/About";
+import FeaturedCourses from "@/components/landing/FeaturedCourses";
 import HowItWorks from "@/components/landing/HowItWorks";
-import Roles from "@/components/landing/Roles";
+import Curriculum from "@/components/landing/Curriculum";
+import CTABanner from "@/components/landing/CTABanner";
+import Instructors from "@/components/landing/Instructors";
 import Testimonials from "@/components/landing/Testimonials";
-import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
 
-const title = "UMS — Run the whole term from one place";
-const description =
-  "Timetables, enrollment, attendance, and grades for universities. Built for registrars who are tired of spreadsheets.";
+const title = "UML — Every Course, Every Skill, One Powerful Platform";
+const description = "Learn Information Technology with UML: courses, curriculum, instructors, and a full university management system in one place.";
 
 export const metadata: Metadata = {
   title,
   description,
-  openGraph: {
-    type: "website",
-    siteName: "UMS",
-    title,
-    description,
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: title }],
-  },
+  openGraph: { type: "website", siteName: "UML", title, description },
 };
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <Navbar />
-
       <main className="flex-1">
-        {/* Hook */}
         <Hero />
-        <Institutions />
-
-        {/* Value */}
-        <Features />
+        <WhyChoose />
+        <Categories />
+        <About />
+        <FeaturedCourses />
         <HowItWorks />
-        <Roles />
-
-        {/* Proof */}
+        <Curriculum />
+        <CTABanner />
+        <Instructors />
         <Testimonials />
-
-        {/* Convert */}
-        <FinalCTA />
       </main>
-
       <Footer />
     </div>
   );

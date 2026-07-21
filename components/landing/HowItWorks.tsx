@@ -1,80 +1,55 @@
-import { RotateCcw } from "lucide-react";
+import Image from "next/image";
+import { LogIn, LayoutGrid, TrendingUp } from "lucide-react";
 
-/**
- * Numbered because a term genuinely is a sequence — each stage depends on the
- * one before it, and stage 04 feeds back into 01.
- */
-const STAGES = [
-  {
-    n: "01",
-    when: "Weeks -6 to -2",
-    title: "Set up the term",
-    body: "Import courses, assign teachers, build the timetable. Clashes get caught here, while they're still cheap to fix.",
-  },
-  {
-    n: "02",
-    when: "Weeks -3 to 0",
-    title: "Open enrollment",
-    body: "Students pick classes against live capacity. Prerequisites are checked on the way in, so nobody lands in a class they can't take.",
-  },
-  {
-    n: "03",
-    when: "Weeks 1 to 15",
-    title: "Teach the term",
-    body: "Attendance, lesson files, assignments, submissions. Teachers work from one screen; you watch the whole institution from another.",
-  },
-  {
-    n: "04",
-    when: "Weeks 16 to 17",
-    title: "Close the books",
-    body: "Grades finalize, transcripts generate, the term archives. Next term's setup starts from this one instead of a blank sheet.",
-  },
+const STEPS = [
+  { bg: "bg-teal", icon: LogIn, title: "Login Securely", body: "Students, teachers, and administrators access the platform using their accounts." },
+  { bg: "bg-cyan", icon: LayoutGrid, title: "Manage Academic Activities", body: "View courses, attendance, schedules, assignments, and grades in one place." },
+  { bg: "bg-[#f59e0b]", icon: TrendingUp, title: "Track Progress & Performance", body: "Monitor GPA, attendance records, and academic achievements in real time." },
 ];
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="border-b border-slate-100 bg-white">
-      <div className="mx-auto max-w-6xl px-8 py-20">
-        <div className="max-w-2xl">
-          <p className="text-xs font-bold tracking-wide text-indigo-700">
-            THE TERM CYCLE
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-            Four stages, and then it starts again.
-          </h2>
+    <section id="how-it-works" className="bg-white py-20">
+      <div className="mx-auto grid max-w-[1320px] items-center gap-14 px-6 lg:grid-cols-2 lg:px-8">
+        <div className="relative flex h-[460px] w-full items-end justify-center">
+          {/* hatched circle behind (the element you circled) */}
+          <Image
+            src="/images/deco-circle.png"
+            alt=""
+            aria-hidden
+            width={564}
+            height={564}
+            className="pointer-events-none absolute left-8 top-6 w-44 select-none opacity-90"
+          />
+          <div aria-hidden className="absolute bottom-6 left-1/2 h-10 w-3/5 -translate-x-1/2 rounded-full bg-slate-400/20 blur-xl" />
+          {/* real student */}
+          <Image
+            src="/images/how-it-works.png"
+            alt="Student sitting with a laptop"
+            width={1172}
+            height={1514}
+            className="relative z-10 h-[440px] w-auto object-contain"
+          />
         </div>
 
-        <ol className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {STAGES.map((s, i) => (
-            <li
-              key={s.n}
-              className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm"
-            >
-              <div className="mb-5 flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-xs font-bold text-indigo-700">
-                  {s.n}
+        <div>
+          <h2 className="max-w-lg text-[32px] font-bold leading-tight text-ink sm:text-[38px]">
+            <span className="ums-underline">How</span> Our University Management System Works
+          </h2>
+          <div className="mt-12 space-y-8">
+            {STEPS.map((s, i) => (
+              <div key={s.title} className={`flex gap-5 ${i < STEPS.length - 1 ? "border-b border-[#eaf2ff] pb-8" : ""}`}>
+                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${s.bg} text-white`}>
+                  <s.icon className="h-6 w-6" strokeWidth={2} />
                 </span>
-                <span aria-hidden className="h-px flex-1 bg-slate-100" />
-                {i === STAGES.length - 1 && (
-                  <RotateCcw className="h-4 w-4 text-slate-400" strokeWidth={1.75} />
-                )}
+                <div>
+                  <h3 className="text-xl text-ink">{s.title}</h3>
+                  <p className="mt-2 max-w-md text-[17px] leading-[1.4] text-ink3">{s.body}</p>
+                </div>
               </div>
-
-              <p className="text-xs font-semibold tracking-wide text-slate-400">
-                {s.when.toUpperCase()}
-              </p>
-              <h3 className="mt-1 text-lg font-bold text-slate-900">{s.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                {s.body}
-              </p>
-            </li>
-          ))}
-        </ol>
-
-        <p className="mt-8 flex items-center gap-2 text-xs font-medium text-slate-400">
-          <RotateCcw className="h-3.5 w-3.5" strokeWidth={2} />
-          Stage 04 feeds stage 01. Nothing is retyped.
-        </p>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
