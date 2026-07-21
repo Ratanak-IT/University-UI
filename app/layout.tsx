@@ -35,7 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar/>
+          {/* <Navbar/> */}
           {children}
         </ThemeProvider>
       </body>
