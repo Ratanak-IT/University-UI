@@ -1,27 +1,62 @@
 "use client";
 
-import { Link as LinkIcon, Mail } from "lucide-react";
-import { motion, Variants } from "framer-motion"; // <-- Imported Variants
+import { motion, Variants } from "framer-motion";
+import { FaFacebook, FaGithub, FaTelegramPlane } from "react-icons/fa";
 
 const leads = [
-  { name: "Thai Ratanak", role: "Leader", img: "/teams/thairatanak.jpg" },
-  { name: "Kev Minea", role: "Sub Leader", img: "/teams/minea.png" },
+  {
+    name: "Thai Ratanak",
+    role: "Leader",
+    img: "/teams/thairatanak.jpg",
+    links: { fb: "#", gh: "#", tg: "#" },
+  },
+  {
+    name: "Kev Minea",
+    role: "Sub Leader",
+    img: "/teams/minea.png",
+    links: { fb: "#", gh: "#", tg: "#" },
+  },
 ];
 
 const members = [
-  { name: "Chhay Davin", role: "Frontend Developer", img: "/teams/chhaydavin.jpg" },
-  { name: "Chit Chimy", role: "Frontend Developer", img: "/teams/chimy.jpg" },
-  { name: "Kiry Ratanak", role: "Frontend Developer", img: "/teams/kiryratanak.jpg" },
+  {
+    name: "Chhay Davin",
+    role: "Frontend Developer",
+    img: "/teams/chhaydavin.jpg",
+    links: { fb: "#", gh: "#", tg: "#" },
+  },
+  {
+    name: "Chit Chimy",
+    role: "Frontend Developer",
+    img: "/teams/chimy.jpg",
+    links: { fb: "#", gh: "#", tg: "#" },
+  },
+  {
+    name: "Kiry Ratanak",
+    role: "Frontend Developer",
+    img: "/teams/kiryratanak.jpg",
+    links: { fb: "#", gh: "#", tg: "#" },
+  },
   {
     name: "Chantol VireakRatanak",
     role: "Frontend Developer",
     img: "/teams/vireakratanak.jpg",
+    links: { fb: "#", gh: "#", tg: "#" },
   },
-  { name: "Chhom Titsela", role: "Frontend Developer", img: "/teams/sila.jpg" },
-  { name: "Yorn Kannika", role: "Frontend Developer", img: "/teams/kanika.jpg" },
+  {
+    name: "Chhom Titsela",
+    role: "Frontend Developer",
+    img: "/teams/sila.jpg",
+    links: { fb: "#", gh: "#", tg: "#" },
+  },
+  {
+    name: "Yorn Kannika",
+    role: "Frontend Developer",
+    img: "/teams/kanika.jpg",
+    links: { fb: "#", gh: "#", tg: "#" },
+  },
 ];
 
-// Added Variants type here
 const container: Variants = {
   hidden: {},
   show: {
@@ -31,7 +66,6 @@ const container: Variants = {
   },
 };
 
-// Added Variants type here
 const item: Variants = {
   hidden: {
     opacity: 0,
@@ -51,10 +85,12 @@ function MemberCard({
   name,
   role,
   img,
+  links,
 }: {
   name: string;
   role: string;
   img: string;
+  links: { fb: string; gh: string; tg: string };
 }) {
   return (
     <motion.div
@@ -81,32 +117,49 @@ function MemberCard({
           className="h-40 w-40 rounded-full border-4 border-primary/20 object-cover shadow-lg"
         />
 
-        <h4 className="mt-6 text-xl font-bold text-foreground">
-          {name}
-        </h4>
+        <h4 className="mt-6 text-xl font-bold text-foreground">{name}</h4>
 
-        <p className="mt-2 text-primary font-medium">
-          {role}
-        </p>
+        <p className="mt-2 text-primary font-medium">{role}</p>
 
         <div className="mt-6 flex gap-3">
-          <motion.button
-            whileHover={{ scale: 1.15 }}
+          {/* Facebook */}
+          <motion.a
+            href={links.fb}
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.15, rotate: 5 }}
             whileTap={{ scale: 0.9 }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
-            aria-label={`${name}'s Profile`}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-blue-600"
+            aria-label={`${name}'s Facebook`}
           >
-            <LinkIcon className="h-5 w-5" />
-          </motion.button>
+            <FaFacebook className="h-5 w-5" />
+          </motion.a>
 
-          <motion.button
-            whileHover={{ scale: 1.15 }}
+          {/* GitHub */}
+          <motion.a
+            href={links.gh}
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.15, rotate: -5 }}
             whileTap={{ scale: 0.9 }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
-            aria-label={`Email ${name}`}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-gray-800"
+            aria-label={`${name}'s GitHub`}
           >
-            <Mail className="h-5 w-5" />
-          </motion.button>
+            <FaGithub className="h-5 w-5" />
+          </motion.a>
+
+          {/* Telegram */}
+          <motion.a
+            href={links.tg}
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.15, rotate: 5 }}
+            whileTap={{ scale: 0.9 }}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-blue-400"
+            aria-label={`${name}'s Telegram`}
+          >
+            <FaTelegramPlane className="h-5 w-5" />
+          </motion.a>
         </div>
       </div>
     </motion.div>
@@ -134,10 +187,10 @@ export default function Team() {
           </h2>
 
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Meet the talented developers behind the University Management
-            System (UMS). We are passionate about building a secure,
-            user-friendly, and modern platform that enhances teaching,
-            learning, and university administration.
+            Meet the talented developers behind the University Management System
+            (UMS). We are passionate about building a secure, user-friendly, and
+            modern platform that enhances teaching, learning, and university
+            administration.
           </p>
         </motion.div>
 
