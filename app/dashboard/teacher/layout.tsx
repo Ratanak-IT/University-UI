@@ -21,6 +21,7 @@
 import DashboardNavbar from "@/components/teacher/DashboardNavbar";
 import Sidebar from "@/components/teacher/SideBar";
 
+
 export default function TeacherLayout({
   children,
 }: {

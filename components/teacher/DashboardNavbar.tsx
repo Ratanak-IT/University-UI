@@ -1,21 +1,19 @@
-// components/teacher/DashboardNavbar.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { Search, Bell, Moon, Sun } from "lucide-react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
+import Link from "next/link";
 
 export default function DashboardNavbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Avoid hydration mismatch: icon depends on theme, which isn't known on server
   useEffect(() => setMounted(true), []);
 
   return (
     <header className="flex w-full items-center justify-between border-b border-gray-100 bg-white px-8 py-4 dark:border-slate-800 dark:bg-slate-900">
-      {/* Left Section: Title & Academic Period */}
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-bold text-[#004071] dark:text-sky-400">
           Dashboard
@@ -25,7 +23,6 @@ export default function DashboardNavbar() {
         </p>
       </div>
 
-      {/* Middle Section: Search Bar */}
       <div className="relative w-full max-w-xl mx-8">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
           <Search className="h-5 w-5 text-[#5c6f84] dark:text-slate-400" />
@@ -37,14 +34,15 @@ export default function DashboardNavbar() {
         />
       </div>
 
-      {/* Right Section: Actions & Profile */}
       <div className="flex items-center gap-6">
-        {/* Notification Bell */}
-        <button className="relative rounded-full p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white">
+        <Link
+          href="/dashboard/teacher/notifications"
+          aria-label="Notifications"
+          className="relative rounded-full p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+        >
           <Bell className="h-6 w-6 stroke-[1.75]" />
-        </button>
+        </Link>
 
-        {/* Dark Mode Toggle */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           aria-label="Toggle theme"
@@ -57,7 +55,6 @@ export default function DashboardNavbar() {
           )}
         </button>
 
-        {/* User Profile Avatar */}
         <button className="relative h-10 w-10 overflow-hidden rounded-full border border-gray-200 ring-2 ring-transparent transition-all hover:ring-gray-300 dark:border-slate-700 dark:hover:ring-slate-600">
           <Image
             src="/davin.jpg"

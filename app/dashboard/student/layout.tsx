@@ -1,4 +1,3 @@
-import DashboardNavbar from "@/components/student/DashboardNavbar";
 import Sidebar from "@/components/student/SideBar";
 
 export default function StudentLayout({

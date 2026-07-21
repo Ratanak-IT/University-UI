@@ -27,7 +27,7 @@ const sections: NavSection[] = [
   {
     title: "Overview",
     items: [
-      { label: "Dashboard", href: "/dashboard/student/dashboard", icon: LayoutGrid },
+      { label: "Dashboard", href: "/dashboard/student", icon: LayoutGrid },
       { label: "My Courses", href: "/dashboard/student/courses", icon: BookOpen },
       { label: "Grades", href: "/dashboard/student/grades", icon: Star },
       { label: "Notifications", href: "/dashboard/student/notifications", icon: Bell },
