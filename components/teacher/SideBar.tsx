@@ -88,6 +88,9 @@ export default function Sidebar() {
       {/* Logo Header */}
       <div className="flex items-center gap-3 bg-muted/60 px-6 py-5.5">
         <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
+         <Link
+         href="/"
+         >
           <Image
             src="/logo-rm.png"
             alt="UMS Logo"
@@ -95,6 +98,7 @@ export default function Sidebar() {
             height={48}
             className="object-contain"
           />
+         </Link>
         </div>
         {!isCollapsed && (
           <div className="min-w-0 animate-in fade-in zoom-in-95 duration-300">
