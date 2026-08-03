@@ -337,7 +337,7 @@ export function InstructionsEditor({
   // Keep editor content synchronized if 'value' changes externally
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value, false);
+      editor.commands.setContent(value, { emitUpdate: false });
     }
   }, [value, editor]);
 

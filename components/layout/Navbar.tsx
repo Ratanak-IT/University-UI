@@ -33,8 +33,11 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <div className="hidden items-center lg:flex">
-          <Link href="/dashboard/teacher" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary">
+        <div className="hidden items-center gap-4 lg:flex">
+          <Link href="/login" className="text-[15px] font-semibold text-slate-600 transition-colors hover:text-primary">
+            Login
+          </Link>
+          <Link href="/login" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700">
             Get Started
           </Link>
         </div>
@@ -54,8 +57,11 @@ export default function Navbar() {
                 </Link>
               </li>
             ))}
-            <li className="pt-1">
-              <Link href="/dashboard/teacher" onClick={() => setOpen(false)} className="block rounded-xl bg-brandblue px-4 py-2.5 text-center text-sm font-semibold text-white">
+            <li className="pt-1 flex flex-col gap-2">
+              <Link href="/login" onClick={() => setOpen(false)} className="block rounded-xl border border-slate-200 py-2.5 text-center text-sm font-semibold text-slate-700">
+                Login
+              </Link>
+              <Link href="/login" onClick={() => setOpen(false)} className="block rounded-xl bg-brandblue px-4 py-2.5 text-center text-sm font-semibold text-white">
                 Get Started
               </Link>
             </li>

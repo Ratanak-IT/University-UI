@@ -1,150 +1,112 @@
 "use client";
 
-import { useState } from "react";
-import { TrendingUp, Star, Calendar, Hourglass, Download, ChevronDown, FileSpreadsheet } from "lucide-react";
+import { useEffect, useState } from "react";
+import { TrendingUp, Star, Calendar, Hourglass, Download, ChevronDown, FileSpreadsheet, Loader2 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
 import { openTranscript } from "@/lib/transcript";
-
-const STUDENT = {
-  fullName: "Sok Maly",
-  studentId: "STU-2026-142",
-  nationalId: "***-**-1234",
-  degreeProgram: "Computer Science · Software Engineering Track",
-};
-
-const CUMULATIVE_CGPA = 3.78;
-
-const gradeDistribution = [
-  { name: "Grade A", value: 5, color: "#10b981" },
-  { name: "Grade B", value: 4, color: "#4f46e5" },
-  { name: "Grade C", value: 1, color: "#cbd5e1" },
-];
+import { fetchMyProfile, fetchStudentGpa, GpaResponse, GradeResponse, StudentProfile } from "@/lib/api/student";
 
 const yearOptions = ["Year 1", "Year 2", "Year 3", "Year 4"];
 
-const semester1Grades = [
-  {
-    code: "SE301",
-    subject: "Spring Boot",
-    professor: "Dr. Dara Kim",
-    credits: 4,
-    midterm: 90,
-    finalProject: 94,
-    average: 92.0,
-    grade: "A",
-    gradeClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
-  },
-  {
-    code: "CS210",
-    subject: "Data Structure",
-    professor: "Sokha Rin",
-    credits: 4,
-    midterm: 86,
-    finalProject: 89,
-    average: 87.5,
-    grade: "B+",
-    gradeClass: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
-  },
-  {
-    code: "CN220",
-    subject: "Computer Network",
-    professor: "Elena Rossi",
-    credits: 5,
-    midterm: 84,
-    finalProject: 88,
-    average: 86.0,
-    grade: "B+",
-    gradeClass: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
-  },
-  {
-    code: "SE315",
-    subject: "Software Engineering",
-    professor: "Marcus Reed",
-    credits: 4,
-    midterm: 91,
-    finalProject: 93,
-    average: 92.0,
-    grade: "A",
-    gradeClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
-  },
-  {
-    code: "OS230",
-    subject: "Operating System",
-    professor: "Linda Park",
-    credits: 3,
-    midterm: 80,
-    finalProject: 85,
-    average: 82.5,
-    grade: "B",
-    gradeClass: "bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300",
-  },
-];
-
-const semester2Grades = [
-  {
-    code: "CC340",
-    subject: "Cloud Computing",
-    professor: "Dr. Dara Kim",
-    credits: 4,
-    midterm: 88,
-    finalProject: null,
-    average: 88.0,
-    grade: "Pending",
-    gradeClass: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  },
-  {
-    code: "CS320",
-    subject: "Algorithms",
-    professor: "Sokha Rin",
-    credits: 4,
-    midterm: 91,
-    finalProject: null,
-    average: 91.0,
-    grade: "Pending",
-    gradeClass: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  },
-  {
-    code: "MD310",
-    subject: "Mobile Development",
-    professor: "Elena Rossi",
-    credits: 4,
-    midterm: 85,
-    finalProject: null,
-    average: 85.0,
-    grade: "Pending",
-    gradeClass: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  },
-];
-
 export default function GradesPage() {
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [gpaData, setGpaData] = useState<GpaResponse | null>(null);
+  
   const [semester, setSemester] = useState<"1" | "2">("1");
   const [year, setYear] = useState("Year 2");
   const [isYearOpen, setIsYearOpen] = useState(false);
-  const subjectGrades = semester === "1" ? semester1Grades : semester2Grades;
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const p = await fetchMyProfile();
+      if (p) {
+        setProfile(p);
+        // Map year level to text
+        const yrText = `Year ${p.yearLevel}`;
+        if (yearOptions.includes(yrText)) {
+          setYear(yrText);
+        }
+        
+        const gpa = await fetchStudentGpa(p.id);
+        if (gpa) {
+          setGpaData(gpa);
+        }
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  // Filter subjects by the current active year level and semester
+  const selectedYearNum = parseInt(year.replace("Year ", "")) || 2;
+  const selectedSemesterNum = parseInt(semester);
+
+  // Group and filter subjects based on selection
+  const allSubjects = gpaData?.subjects ?? [];
+  
+  const subjectGrades = allSubjects.filter((s) => {
+    // If backend doesn't provide yearLevel in GradeResponse, we map semester and academic year
+    const matchesSemester = s.semester === selectedSemesterNum;
+    return matchesSemester;
+  });
+
+  // Calculate grade distribution dynamically for the chart
+  const gradeCounts: Record<string, number> = {};
+  allSubjects.forEach((s) => {
+    const l = s.letterGrade || "Pending";
+    let group = "Grade C/Other";
+    if (l.startsWith("A")) group = "Grade A";
+    else if (l.startsWith("B")) group = "Grade B";
+    else if (l === "Pending") group = "Pending";
+    gradeCounts[group] = (gradeCounts[group] || 0) + 1;
+  });
+
+  const gradeDistribution = [
+    { name: "Grade A", value: gradeCounts["Grade A"] || 0, color: "#10b981" },
+    { name: "Grade B", value: gradeCounts["Grade B"] || 0, color: "#4f46e5" },
+    { name: "Grade C", value: gradeCounts["Grade C/Other"] || 0, color: "#cbd5e1" },
+  ].filter(d => d.value > 0);
+
+  // Fallback if empty
+  if (gradeDistribution.length === 0) {
+    gradeDistribution.push({ name: "No Grades", value: 1, color: "#cbd5e1" });
+  }
+
+  // Calculate average scores per semester
+  const sem1Subjects = allSubjects.filter(s => s.semester === 1);
+  const sem2Subjects = allSubjects.filter(s => s.semester === 2);
+
+  const sem1Avg = sem1Subjects.length > 0
+    ? Math.round(sem1Subjects.reduce((sum, s) => sum + (s.scorePercent || 0), 0) / sem1Subjects.length)
+    : 0;
+
+  const sem2Avg = sem2Subjects.length > 0
+    ? Math.round(sem2Subjects.reduce((sum, s) => sum + (s.scorePercent || 0), 0) / sem2Subjects.length)
+    : 0;
+
+  const completedSubjectsCount = allSubjects.filter(s => s.letterGrade && s.letterGrade !== "Pending").length;
 
   function exportToExcel() {
     const rows = subjectGrades.map((row) => ({
-      "Subject Code": row.code,
-      "Subject Name": row.subject,
-      Professor: row.professor,
-      Credits: row.credits,
-      Midterm: row.midterm,
-      "Final Project": row.finalProject ?? "-",
-      Average: row.average.toFixed(1),
-      Grade: row.grade,
+      "Subject Code": row.subjectCode,
+      "Subject Name": row.subjectName,
+      Credits: row.credit,
+      "Score Percent": row.scorePercent !== null ? `${row.scorePercent}%` : "Pending",
+      Grade: row.letterGrade || "Pending",
+      "Grade Point": row.gradePoint !== null ? row.gradePoint : "Pending",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     worksheet["!cols"] = [
-      { wch: 12 }, // Subject Code
-      { wch: 24 }, // Subject Name
-      { wch: 18 }, // Professor
-      { wch: 9 },  // Credits
-      { wch: 10 }, // Midterm
-      { wch: 14 }, // Final Project
-      { wch: 10 }, // Average
+      { wch: 15 }, // Subject Code
+      { wch: 30 }, // Subject Name
+      { wch: 10 }, // Credits
+      { wch: 15 }, // Score Percent
       { wch: 10 }, // Grade
+      { wch: 12 }, // Grade Point
     ];
 
     const workbook = XLSX.utils.book_new();
@@ -156,23 +118,32 @@ export default function GradesPage() {
   }
 
   function exportTranscript() {
+    if (!profile) return;
     openTranscript(
       {
-        fullName: STUDENT.fullName,
-        studentId: STUDENT.studentId,
-        nationalId: STUDENT.nationalId,
-        degreeProgram: STUDENT.degreeProgram,
-        academicYear: "2025-2026",
-        semester,
+        fullName: `${profile.firstName} ${profile.lastName}`,
+        studentId: profile.studentCode,
+        nationalId: "***-**-1234",
+        degreeProgram: "Undergraduate Program",
+        academicYear: profile.academicYear,
+        semester: semester,
       },
       subjectGrades.map((row) => ({
-        code: row.code,
-        subject: row.subject,
-        credits: row.credits,
-        score: Math.round(row.average),
-        grade: row.grade,
+        code: row.subjectCode,
+        subject: row.subjectName,
+        credits: row.credit,
+        score: Math.round(row.scorePercent || 0),
+        grade: row.letterGrade || "Pending",
       })),
-      CUMULATIVE_CGPA
+      gpaData?.cumulativeGpa ?? 0
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
     );
   }
 
@@ -182,11 +153,11 @@ export default function GradesPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-slate-400 dark:text-slate-500">
-            <span className="text-indigo-600 dark:text-indigo-400">Academic Records</span> / Year 2
+            <span className="text-indigo-600 dark:text-indigo-400">Academic Records</span> / {year}
           </p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">Grades Overview</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            tracking and module results for the current academic year.
+            Tracking and module results for the current academic year.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -237,15 +208,19 @@ export default function GradesPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-500/15">
               <TrendingUp className="h-4 w-4 text-indigo-600 dark:text-indigo-400" strokeWidth={2} />
             </div>
-            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
-              + 3%
-            </span>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Year 2 Cumulative GPA</p>
-          <p className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-50">3.78</p>
-          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Current GPA based on 10 subjects</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Cumulative GPA</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-50">
+            {gpaData?.cumulativeGpa !== undefined ? gpaData.cumulativeGpa.toFixed(2) : "0.00"}
+          </p>
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+            Current GPA based on {completedSubjectsCount} graded subject{completedSubjectsCount !== 1 ? "s" : ""}
+          </p>
           <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div className="h-full w-[75%] rounded-full bg-indigo-600 dark:bg-indigo-500" />
+            <div 
+              className="h-full rounded-full bg-indigo-600 dark:bg-indigo-500" 
+              style={{ width: `${gpaData?.cumulativeGpa ? (gpaData.cumulativeGpa / 4.0) * 100 : 0}%` }}
+            />
           </div>
         </div>
 
@@ -254,15 +229,17 @@ export default function GradesPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-500/15">
               <Star className="h-4 w-4 text-rose-500 dark:text-rose-400" strokeWidth={2} />
             </div>
-            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
-              + 5%
-            </span>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">Total Credits</p>
-          <p className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-50">52</p>
-          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Earned out of 80 required</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-50">
+            {gpaData?.totalCredits !== undefined ? gpaData.totalCredits : "0"}
+          </p>
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Earned credits</p>
           <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div className="h-full w-[65%] rounded-full bg-indigo-600 dark:bg-indigo-500" />
+            <div 
+              className="h-full rounded-full bg-indigo-600 dark:bg-indigo-500" 
+              style={{ width: `${gpaData?.totalCredits ? Math.min((gpaData.totalCredits / 120) * 100, 100) : 0}%` }}
+            />
           </div>
         </div>
 
@@ -288,7 +265,9 @@ export default function GradesPage() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute flex flex-col items-center">
-                <p className="text-base font-bold text-slate-900 dark:text-slate-50">10</p>
+                <p className="text-base font-bold text-slate-900 dark:text-slate-50">
+                  {allSubjects.length}
+                </p>
                 <p className="text-[9px] font-semibold tracking-wide text-slate-400 dark:text-slate-500">
                   SUBJECTS
                 </p>
@@ -322,14 +301,13 @@ export default function GradesPage() {
                 Completed
               </span>
             </div>
-            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">October 2024 - December 2024</p>
           </div>
           <div className="shrink-0 text-right">
             <p className="text-[10px] font-semibold tracking-wide text-slate-400 dark:text-slate-500">
-              AVG SCORE / RANK
+              AVG SCORE
             </p>
             <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              88 / <span className="font-medium text-slate-500 dark:text-slate-400">8th of 120</span>
+              {sem1Avg > 0 ? `${sem1Avg}%` : "—"}
             </p>
           </div>
         </div>
@@ -342,17 +320,16 @@ export default function GradesPage() {
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Semester 2</p>
               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
-                In Progress
+                Active
               </span>
             </div>
-            <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">January 2025 - June 2025</p>
           </div>
           <div className="shrink-0 text-right">
             <p className="text-[10px] font-semibold tracking-wide text-slate-400 dark:text-slate-500">
-              PROJECTED / STATUS
+              AVG SCORE
             </p>
             <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
-              89 / <span className="font-medium">Pending</span>
+              {sem2Avg > 0 ? `${sem2Avg}%` : "—"}
             </p>
           </div>
         </div>
@@ -414,38 +391,55 @@ export default function GradesPage() {
             <thead>
               <tr className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500">
                 <th className="px-4 py-3">SUBJECT NAME</th>
-                <th className="px-4 py-3">PROFESSOR</th>
+                <th className="px-4 py-3">SUBJECT CODE</th>
                 <th className="px-4 py-3">CREDITS</th>
-                <th className="px-4 py-3">MIDTERM</th>
-                <th className="px-4 py-3">FINAL PROJECT</th>
-                <th className="px-4 py-3">AVERAGE</th>
-                <th className="px-4 py-3">GRADE</th>
+                <th className="px-4 py-3">CLASS NAME</th>
+                <th className="px-4 py-3">SCORE PERCENT</th>
+                <th className="px-4 py-3">GRADE POINT</th>
+                <th className="px-4 py-3">LETTER GRADE</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {subjectGrades.map((row) => (
-                <tr key={row.subject}>
-                  <td className="px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    {row.subject}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{row.professor}</td>
-                  <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{row.credits}</td>
-                  <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{row.midterm}</td>
-                  <td className="px-4 py-4 text-sm text-slate-400 dark:text-slate-500">
-                    {row.finalProject ?? "—"}
-                  </td>
-                  <td className="px-4 py-4 text-sm font-semibold text-indigo-700 dark:text-indigo-400">
-                    {row.average.toFixed(1)}
-                  </td>
-                  <td className="px-4 py-4">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${row.gradeClass}`}
-                    >
-                      {row.grade}
-                    </span>
+              {subjectGrades.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
+                    No subject grades recorded for Semester {semester}.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                subjectGrades.map((row) => {
+                  let badgeCls = "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400";
+                  if (row.letterGrade?.startsWith("A")) {
+                    badgeCls = "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400";
+                  } else if (row.letterGrade?.startsWith("B")) {
+                    badgeCls = "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300";
+                  } else if (row.letterGrade?.startsWith("C") || row.letterGrade?.startsWith("D")) {
+                    badgeCls = "bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300";
+                  }
+
+                  return (
+                    <tr key={row.classroomId}>
+                      <td className="px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {row.subjectName}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{row.subjectCode}</td>
+                      <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{row.credit}</td>
+                      <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{row.className}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-indigo-700 dark:text-indigo-400">
+                        {row.scorePercent !== null ? `${row.scorePercent.toFixed(1)}%` : "—"}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
+                        {row.gradePoint !== null ? row.gradePoint.toFixed(2) : "—"}
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeCls}`}>
+                          {row.letterGrade || "Pending"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -456,19 +450,19 @@ export default function GradesPage() {
         <div className="max-w-xl">
           <h3 className="text-base font-bold text-white">Dean&apos;s List Qualification</h3>
           <p className="mt-1 text-sm text-indigo-100">
-            You are currently on track to qualify for the Dean&apos;s List for the academic
-            year 2024-2025. Maintaining a GPA above 3.75 across all modules is required.
-            Keep up the excellent performance!
+            You are currently on track to qualify for the Dean&apos;s List. Maintaining a Cumulative GPA above 3.50 across all modules is required. Keep up the excellent performance!
           </p>
         </div>
         <div className="shrink-0 rounded-xl bg-white/10 px-5 py-3 text-center">
           <p className="text-[10px] font-semibold tracking-wide text-indigo-100">
             REQUIRED GPA
           </p>
-          <p className="text-lg font-bold text-white">3.75+</p>
-          <p className="mt-1 text-[10px] font-semibold text-emerald-300">
-            ● ACTIVE QUALIFIER
-          </p>
+          <p className="text-lg font-bold text-white">3.50+</p>
+          {gpaData && gpaData.cumulativeGpa >= 3.50 && (
+            <p className="mt-1 text-[10px] font-semibold text-emerald-300">
+              ● ACTIVE QUALIFIER
+            </p>
+          )}
         </div>
       </div>
     </div>
