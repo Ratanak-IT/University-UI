@@ -1,63 +1,139 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
+import { Moon, Sun } from "lucide-react";
 
-const LINKS = [
+const navLinks = [
   { label: "Home", href: "/" },
   { label: "About Us", href: "/about-us" },
-  { label: "Our Courses", href: "#courses" },
-  { label: "Instructors", href: "#instructors" },
-  { label: "Contact Us", href: "#contact" },
+  { label: "Curriculum", href: "/curriculum" },
+  { label: "FQA", href: "/fqa" },
 ];
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+
+  // Avoid hydration mismatch: icon depends on theme, which isn't known on server
+  useEffect(() => setMounted(true), []);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur">
-      <nav aria-label="Main" className="mx-auto flex max-w-[1320px] items-center justify-between px-6 py-3.5 lg:px-8">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo-rm.png" alt="UML logo" width={44} height={40} className="h-10 w-auto object-contain" />
-          <span className="text-2xl font-bold tracking-tight text-primary">UML</span>
-        </Link>
-
-        <ul className="hidden items-center gap-9 lg:flex">
-          {LINKS.map((l) => (
-            <li key={l.label}>
-              <Link href={l.href} className="text-[15px] font-medium text-slate-600 transition-colors hover:text-primary">
-                {l.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-
-        <div className="hidden items-center lg:flex">
-          <Link href="/dashboard/teacher" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary">
-            Get Started
-          </Link>
+    <header className="bg-primary text-primary-foreground">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10">
+            <img src="/logo-rm.png"/>
+          </div>
+          <span className="text-xl font-bold tracking-wide">UMS</span>
         </div>
 
-        <button type="button" onClick={() => setOpen((v) => !v)} className="inline-flex items-center justify-center rounded-lg p-2 text-slate-700 lg:hidden" aria-label="Toggle menu">
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {/* Desktop Navigation */}
+        <ul className="hidden items-center gap-10 text-sm font-medium md:flex">
+          {navLinks.map((link) => {
+            const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+            return (
+              <li key={link.label}>
+                <Link
+                  href={link.href}
+                  className={
+                    isActive
+                      ? "border-b-2 border-secondary pb-1 text-secondary"
+                      : "text-primary-foreground/90 transition hover:text-secondary"
+                  }
+                >
+                  {link.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Desktop Right Section: Theme Toggle + Apply Button */}
+        <div className="hidden items-center gap-4 md:flex">
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+            className="rounded-full p-2 text-primary-foreground/90 transition hover:bg-primary-foreground/10 hover:text-secondary"
+          >
+            {mounted && theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
+
+          <button className="rounded-md bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
+            Apply Now
+          </button>
+        </div>
+
+        {/* Mobile Menu Toggle Button */}
+        <button
+          className="md:hidden p-2 text-primary-foreground focus:outline-none"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle navigation menu"
+        >
+          {isMobileMenuOpen ? (
+            // Close (X) Icon
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            // Hamburger Menu Icon
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
         </button>
       </nav>
 
-      {open && (
-        <div className="border-t border-slate-100 bg-white lg:hidden">
-          <ul className="mx-auto flex max-w-[1320px] flex-col gap-1 px-6 py-3">
-            {LINKS.map((l) => (
-              <li key={l.label}>
-                <Link href={l.href} onClick={() => setOpen(false)} className="block rounded-lg px-2 py-2.5 text-[15px] font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-            <li className="pt-1">
-              <Link href="/dashboard/teacher" onClick={() => setOpen(false)} className="block rounded-xl bg-brandblue px-4 py-2.5 text-center text-sm font-semibold text-white">
-                Get Started
-              </Link>
+      {/* Mobile Navigation Dropdown */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-card text-card-foreground border-t border-border px-6 py-4">
+          <ul className="flex flex-col gap-4 text-sm font-medium">
+            {navLinks.map((link) => {
+              const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+              return (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={
+                      isActive
+                        ? "block border-l-4 border-secondary pl-3 text-secondary"
+                        : "block pl-4 text-muted-foreground transition hover:text-foreground"
+                    }
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
+            <li className="flex items-center justify-between pl-4">
+              <span className="text-muted-foreground">Theme</span>
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+                className="rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              >
+                {mounted && theme === "dark" ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </button>
+            </li>
+            <li>
+              <button className="mt-4 w-full rounded-md bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
+                Apply Now
+              </button>
             </li>
           </ul>
         </div>
