@@ -75,7 +75,7 @@ export default function LessonsBoard() {
   const [page, setPage] = useState(1);
 
   const classroomOptions = useMemo(() => {
-    const names = new Set(lessons.map((l) => classroomFromLabel(l.courseLabel)));
+    const names = new Set(lessons.map((l) => classroomFromLabel(l.courseLabel || "")));
     return Array.from(names).sort();
   }, []);
 
@@ -89,7 +89,7 @@ export default function LessonsBoard() {
     }
 
     if (classroom !== "all") {
-      result = result.filter((l) => classroomFromLabel(l.courseLabel) === classroom);
+      result = result.filter((l) => classroomFromLabel(l.courseLabel || "") === classroom);
     }
 
     return result;

@@ -1,20 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { ShieldCheck, Calendar, IdCard, Plus, X, Check, Camera } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { ShieldCheck, Calendar, IdCard, Plus, X, Check, Camera, Loader2 } from "lucide-react";
+import { fetchMyProfile, fetchStudentGpa, GpaResponse, StudentProfile } from "@/lib/api/student";
 
 type FormState = {
   fullName: string;
   phone: string;
   language: string;
   major: string;
-};
-
-const initialForm: FormState = {
-  fullName: "Chhay Davin",
-  phone: "+855 12 987 654",
-  language: "English (Academic)",
-  major: "Computer Science · Software Engineering Track",
 };
 
 const initialClubs = [
@@ -32,8 +26,22 @@ const clubColors = [
 ];
 
 export default function ProfilePage() {
-  const [form, setForm] = useState<FormState>(initialForm);
-  const [draft, setDraft] = useState<FormState>(initialForm);
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [gpaData, setGpaData] = useState<GpaResponse | null>(null);
+
+  const [form, setForm] = useState<FormState>({
+    fullName: "",
+    phone: "",
+    language: "English (Academic)",
+    major: "",
+  });
+  const [draft, setDraft] = useState<FormState>({
+    fullName: "",
+    phone: "",
+    language: "English (Academic)",
+    major: "",
+  });
   const [isEditing, setIsEditing] = useState(false);
 
   const [clubs, setClubs] = useState<string[]>(initialClubs);
@@ -43,6 +51,38 @@ export default function ProfilePage() {
   const [photoUrl, setPhotoUrl] = useState("/davin.jpg");
   const [photoError, setPhotoError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const p = await fetchMyProfile();
+      if (p) {
+        setProfile(p);
+        const name = `${p.firstName} ${p.lastName}`;
+        const majorText = `Year ${p.yearLevel} · Semester ${p.semester} (${p.academicYear})`;
+        
+        const initialData = {
+          fullName: name,
+          phone: p.studentCode, // Using studentCode or other identifiers
+          language: "English (Academic)",
+          major: majorText,
+        };
+        setForm(initialData);
+        setDraft(initialData);
+
+        if (p.avatarUrl) {
+          setPhotoUrl(p.avatarUrl);
+        }
+
+        const gpa = await fetchStudentGpa(p.id);
+        if (gpa) {
+          setGpaData(gpa);
+        }
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
 
   function handlePhotoClick() {
     fileInputRef.current?.click();
@@ -99,13 +139,30 @@ export default function ProfilePage() {
     setClubs((prev) => prev.filter((c) => c !== club));
   }
 
+  if (loading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex h-[80vh] flex-col items-center justify-center gap-2">
+        <p className="text-lg font-semibold text-slate-700">Failed to load profile</p>
+        <p className="text-sm text-slate-500">Please make sure you are logged in.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="px-8 py-8">
       {/* Breadcrumb header */}
       <div className="mb-6">
         <p className="text-sm font-bold text-indigo-700">My Profile</p>
         <p className="mt-0.5 text-sm text-slate-500">
-          Academic Year 2024–2025 · Semester 2
+          Academic Year {profile.academicYear} · Semester {profile.semester}
         </p>
       </div>
 
@@ -113,7 +170,7 @@ export default function ProfilePage() {
         {/* Left / main column */}
         <div className="space-y-6 lg:col-span-2">
           {/* Identity card */}
-          <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap gap-4 items-center justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="relative">
                 <button
@@ -125,7 +182,7 @@ export default function ProfilePage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={photoUrl}
-                    alt="Sok Maly profile"
+                    alt={`${profile.firstName} profile`}
                     className="h-full w-full object-cover"
                   />
                   <span className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/40 group-hover:opacity-100">
@@ -155,14 +212,13 @@ export default function ProfilePage() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-slate-900">
-                  Ms. {form.fullName.split(" ").slice(-1)[0]}{" "}
-                  {form.fullName.split(" ")[0]}
+                  {profile.firstName} {profile.lastName}
                 </h1>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                    ID: STU-2026-142
+                    ID: {profile.studentCode}
                   </span>
-                  <span className="text-xs text-slate-400">· Joined 2 years ago</span>
+                  <span className="text-xs text-slate-400">· Active Student</span>
                 </div>
               </div>
             </div>
@@ -222,7 +278,7 @@ export default function ProfilePage() {
                   className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-slate-700 ${
                     isEditing
                       ? "border-indigo-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                      : "border-slate-200"
+                      : "border-slate-200 bg-slate-50"
                   }`}
                 />
               </div>
@@ -232,7 +288,7 @@ export default function ProfilePage() {
                 </label>
                 <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5">
                   <span id="email" className="text-sm text-slate-400">
-                    maly.sok@university.edu
+                    {profile.email}
                   </span>
                   <IdCard className="h-4 w-4 text-slate-300" />
                 </div>
@@ -240,19 +296,14 @@ export default function ProfilePage() {
               </div>
               <div>
                 <label htmlFor="phone" className="mb-1.5 block text-xs font-semibold text-slate-500">
-                  Phone Number
+                  Student Code Reference
                 </label>
                 <input
                   id="phone"
                   name="phone"
-                  readOnly={!isEditing}
-                  value={isEditing ? draft.phone : form.phone}
-                  onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-                  className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-slate-700 ${
-                    isEditing
-                      ? "border-indigo-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                      : "border-slate-200"
-                  }`}
+                  readOnly={true}
+                  value={form.phone}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-400"
                 />
               </div>
               <div>
@@ -268,7 +319,7 @@ export default function ProfilePage() {
                   className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-slate-700 ${
                     isEditing
                       ? "border-indigo-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                      : "border-slate-200 bg-white"
+                      : "border-slate-200 bg-slate-50"
                   }`}
                 >
                   <option>English (Academic)</option>
@@ -283,19 +334,14 @@ export default function ProfilePage() {
             <h2 className="mb-5 text-base font-bold text-slate-900">Academic Program</h2>
             <div>
               <label htmlFor="major" className="mb-1.5 block text-xs font-semibold text-slate-500">
-                Primary Major
+                Primary Major &amp; Semester
               </label>
               <input
                 id="major"
                 name="major"
-                readOnly={!isEditing}
-                value={isEditing ? draft.major : form.major}
-                onChange={(e) => setDraft((d) => ({ ...d, major: e.target.value }))}
-                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm text-slate-700 ${
-                  isEditing
-                    ? "border-indigo-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                    : "border-slate-200"
-                }`}
+                readOnly={true}
+                value={form.major}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-400"
               />
             </div>
             <div className="mt-5">
@@ -365,7 +411,7 @@ export default function ProfilePage() {
               <span className="text-sm font-medium text-slate-600">System Status</span>
               <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Active
+                {profile.enabled ? "Active" : "Disabled"}
               </span>
             </div>
             <div className="flex items-start gap-3 rounded-xl bg-indigo-50 p-4">
@@ -390,8 +436,8 @@ export default function ProfilePage() {
                 <Calendar className="h-4 w-4 text-slate-600" />
               </div>
               <div>
-                <p className="text-xs text-slate-400">Enrollment Date</p>
-                <p className="text-sm font-semibold text-slate-800">Sept 3, 2024</p>
+                <p className="text-xs text-slate-400">Academic Year</p>
+                <p className="text-sm font-semibold text-slate-800">{profile.academicYear}</p>
               </div>
             </div>
             <div className="mt-4 flex items-start gap-3">
@@ -405,12 +451,12 @@ export default function ProfilePage() {
             </div>
             <div className="mt-4 space-y-1 border-t border-slate-100 pt-4">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Keycloak Sub Claim ID</span>
-                <span className="text-slate-500">771ac920-f31b-52c5</span>
+                <span className="text-slate-400">Username Claim</span>
+                <span className="text-slate-500">{profile.username}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Internal User ID</span>
-                <span className="text-slate-500">6672048</span>
+                <span className="text-slate-400">Graduation Status</span>
+                <span className="text-slate-500 font-bold text-indigo-700">{profile.graduationStatus}</span>
               </div>
             </div>
           </div>
@@ -418,11 +464,15 @@ export default function ProfilePage() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-2xl border border-slate-100 bg-sky-50 p-4 text-center">
-              <p className="text-2xl font-bold text-sky-700">5</p>
+              <p className="text-2xl font-bold text-sky-700">
+                {gpaData?.subjects?.length ?? 0}
+              </p>
               <p className="text-xs font-medium text-sky-600">Courses</p>
             </div>
             <div className="rounded-2xl border border-slate-100 bg-rose-50 p-4 text-center">
-              <p className="text-2xl font-bold text-rose-600">3.78</p>
+              <p className="text-2xl font-bold text-rose-600">
+                {gpaData?.cumulativeGpa !== undefined ? gpaData.cumulativeGpa.toFixed(2) : "0.00"}
+              </p>
               <p className="text-xs font-medium text-rose-500">GPA</p>
             </div>
           </div>

@@ -68,10 +68,11 @@ export default function Navbar() {
               <Moon className="h-5 w-5" />
             )}
           </button>
-
+            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
           <button className="rounded-md bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
             Apply Now
           </button>
+          </Link>
         </div>
 
         {/* Mobile Menu Toggle Button */}
@@ -131,9 +132,11 @@ export default function Navbar() {
               </button>
             </li>
             <li>
+              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
               <button className="mt-4 w-full rounded-md bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
                 Apply Now
               </button>
+              </Link>
             </li>
           </ul>
         </div>

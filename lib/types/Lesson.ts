@@ -51,12 +51,12 @@ export interface Lesson {
   status: LessonStatus;
   thumbnail: ThumbnailKind;
 
-  courseLabel: string; // e.g. "Database Systems 301 • Module 1"
-  videoUrl: string;
-  duration: string;
-  objectives: string[];
-  moduleProgress: number;
-  moduleItems: ModuleItem[];
+  courseLabel?: string; // e.g. "Database Systems 301 • Module 1"
+  videoUrl?: string;
+  duration?: string;
+  objectives?: string[];
+  moduleProgress?: number;
+  moduleItems?: ModuleItem[];
 }
 
 export type LessonFilter = "all" | "published" | "drafts";

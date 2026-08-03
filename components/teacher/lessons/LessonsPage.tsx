@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import LessonsFilterBar from "./LessonsFilterBar";
 import LessonCard from "./LessonCard";
-import { Lesson, LessonFilter } from "@/lib/types/Lesson";
+import { Lesson, LessonFilter, ClassroomFilter } from "@/lib/types/Lesson";
 
 // TODO: replace with real data fetching once the backend is wired up.
 const lessons: Lesson[] = [
@@ -60,14 +60,16 @@ const lessons: Lesson[] = [
 
 export default function LessonsPage() {
   const [activeFilter, setActiveFilter] = useState<LessonFilter>("all");
+  const [classroom, setClassroom] = useState<ClassroomFilter>("all");
 
   const filteredLessons = useMemo(() => {
-    if (activeFilter === "all") return lessons;
-    const statusMap: Record<Exclude<LessonFilter, "all">, Lesson["status"]> = {
-      published: "published",
-      drafts: "draft",
-    };
-    return lessons.filter((lesson) => lesson.status === statusMap[activeFilter]);
+    let result = lessons;
+    if (activeFilter === "published") {
+      result = result.filter((lesson) => lesson.status === "published");
+    } else if (activeFilter === "drafts") {
+      result = result.filter((lesson) => lesson.status === "draft");
+    }
+    return result;
   }, [activeFilter]);
 
   return (
@@ -75,6 +77,9 @@ export default function LessonsPage() {
       <LessonsFilterBar
         active={activeFilter}
         onChange={setActiveFilter}
+        classroom={classroom}
+        onClassroomChange={setClassroom}
+        classroomOptions={[]}
         shownCount={filteredLessons.length}
         totalCount={lessons.length}
       />
