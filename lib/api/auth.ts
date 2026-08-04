@@ -1,6 +1,6 @@
-// Auth API Service
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  "https://api.careerpatch.site";
 
 export interface LoginResponse {
   accessToken: string;
@@ -8,6 +8,12 @@ export interface LoginResponse {
   tokenType: string;
   expiresIn: number;
   scope: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
 }
 
 export interface UserProfileResponse {
@@ -22,46 +28,81 @@ export interface UserProfileResponse {
   isActive: boolean;
 }
 
-export async function loginUser(email: string, password: String): Promise<LoginResponse | null> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
+export async function loginUser(
+  email: string,
+  password: string
+): Promise<LoginResponse> {
+  const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: email.trim(),
+      password,
+    }),
+  });
 
-    if (!res.ok) {
-      console.warn(`Login failed: status ${res.status}`);
-      return null;
-    }
+  const contentType = res.headers.get("content-type");
+  const responseBody = contentType?.includes("application/json")
+    ? await res.json()
+    : await res.text();
 
-    return await res.json();
-  } catch (error) {
-    console.error("Error during login:", error);
-    return null;
+  if (!res.ok) {
+    const message =
+      typeof responseBody === "object"
+        ? responseBody.message
+        : responseBody;
+
+    throw new Error(
+      message || `Login failed with status ${res.status}`
+    );
   }
+
+  // Support both:
+  // { accessToken: "..." }
+  // and { success: true, data: { accessToken: "..." } }
+  if (
+    responseBody &&
+    typeof responseBody === "object" &&
+    "data" in responseBody
+  ) {
+    return (responseBody as ApiResponse<LoginResponse>).data;
+  }
+
+  return responseBody as LoginResponse;
 }
 
-export async function fetchUserProfile(token: string): Promise<UserProfileResponse | null> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+export async function fetchUserProfile(
+  token: string
+): Promise<UserProfileResponse> {
+  const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-    if (!res.ok) {
-      console.warn(`Failed to fetch user profile: status ${res.status}`);
-      return null;
-    }
+  const responseBody = await res.json();
 
-    return await res.json();
-  } catch (error) {
-    console.error("Error fetching user profile:", error);
-    return null;
+  if (!res.ok) {
+    throw new Error(
+      responseBody.message ||
+        `Failed to fetch profile: ${res.status}`
+    );
   }
+
+  if (
+    responseBody &&
+    typeof responseBody === "object" &&
+    "data" in responseBody
+  ) {
+    return (
+      responseBody as ApiResponse<UserProfileResponse>
+    ).data;
+  }
+
+  return responseBody as UserProfileResponse;
 }

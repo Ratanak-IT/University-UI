@@ -31,7 +31,7 @@ export default function Home() {
         <WhyChoose />
         <Categories />
         <About />
-        <FeaturedCourses />
+        {/* <FeaturedCourses /> */}
         <HowItWorks />
         <Curriculum />
         {/* <CTABanner /> */}
