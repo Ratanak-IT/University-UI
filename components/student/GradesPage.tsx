@@ -1,11 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { TrendingUp, Star, Calendar, Hourglass, Download, ChevronDown, FileSpreadsheet, Loader2 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import {
+  TrendingUp,
+  Star,
+  Calendar,
+  Hourglass,
+  Download,
+  ChevronDown,
+  FileSpreadsheet,
+  Loader2,
+  Award,
+} from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
 import { openTranscript } from "@/lib/transcript";
-import { fetchMyProfile, fetchStudentGpa, GpaResponse, GradeResponse, StudentProfile } from "@/lib/api/student";
+import { fetchMyProfile, fetchStudentGpa, GpaResponse, StudentProfile } from "@/lib/api/student";
 
 const yearOptions = ["Year 1", "Year 2", "Year 3", "Year 4"];
 
@@ -13,10 +23,11 @@ export default function GradesPage() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [gpaData, setGpaData] = useState<GpaResponse | null>(null);
-  
+
   const [semester, setSemester] = useState<"1" | "2">("1");
   const [year, setYear] = useState("Year 2");
   const [isYearOpen, setIsYearOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -24,12 +35,11 @@ export default function GradesPage() {
       const p = await fetchMyProfile();
       if (p) {
         setProfile(p);
-        // Map year level to text
         const yrText = `Year ${p.yearLevel}`;
         if (yearOptions.includes(yrText)) {
           setYear(yrText);
         }
-        
+
         const gpa = await fetchStudentGpa(p.studentId);
         if (gpa) {
           setGpaData(gpa);
@@ -40,22 +50,33 @@ export default function GradesPage() {
     load();
   }, []);
 
-  // Filter subjects by the current active year level and semester
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsYearOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const selectedYearNum = parseInt(year.replace("Year ", "")) || 2;
   const selectedSemesterNum = parseInt(semester);
 
-  // Group and filter subjects based on selection
   const allSubjects = gpaData?.subjects ?? [];
-  
-  const subjectGrades = allSubjects.filter((s) => {
-    // If backend doesn't provide yearLevel in GradeResponse, we map semester and academic year
-    const matchesSemester = s.semester === selectedSemesterNum;
-    return matchesSemester;
+
+  // Filter subjects by active year AND active semester
+  const yearSubjects = allSubjects.filter((s) => {
+    // Falls back to true if backend doesn't provide yearLevel on GradeResponse
+    return s.yearLevel ? s.yearLevel === selectedYearNum : true;
   });
 
-  // Calculate grade distribution dynamically for the chart
+  const subjectGrades = yearSubjects.filter((s) => s.semester === selectedSemesterNum);
+
+  // Grade distribution dynamically for the chart
   const gradeCounts: Record<string, number> = {};
-  allSubjects.forEach((s) => {
+  yearSubjects.forEach((s) => {
     const l = s.letterGrade || "Pending";
     let group = "Grade C/Other";
     if (l.startsWith("A")) group = "Grade A";
@@ -68,26 +89,28 @@ export default function GradesPage() {
     { name: "Grade A", value: gradeCounts["Grade A"] || 0, color: "#10b981" },
     { name: "Grade B", value: gradeCounts["Grade B"] || 0, color: "#4f46e5" },
     { name: "Grade C", value: gradeCounts["Grade C/Other"] || 0, color: "#cbd5e1" },
-  ].filter(d => d.value > 0);
+  ].filter((d) => d.value > 0);
 
-  // Fallback if empty
   if (gradeDistribution.length === 0) {
     gradeDistribution.push({ name: "No Grades", value: 1, color: "#cbd5e1" });
   }
 
-  // Calculate average scores per semester
-  const sem1Subjects = allSubjects.filter(s => s.semester === 1);
-  const sem2Subjects = allSubjects.filter(s => s.semester === 2);
+  // Calculate average scores per semester for selected year
+  const sem1Subjects = yearSubjects.filter((s) => s.semester === 1);
+  const sem2Subjects = yearSubjects.filter((s) => s.semester === 2);
 
-  const sem1Avg = sem1Subjects.length > 0
-    ? Math.round(sem1Subjects.reduce((sum, s) => sum + (s.scorePercent || 0), 0) / sem1Subjects.length)
-    : 0;
+  const sem1Avg =
+    sem1Subjects.length > 0
+      ? Math.round(sem1Subjects.reduce((sum, s) => sum + (s.scorePercent || 0), 0) / sem1Subjects.length)
+      : 0;
 
-  const sem2Avg = sem2Subjects.length > 0
-    ? Math.round(sem2Subjects.reduce((sum, s) => sum + (s.scorePercent || 0), 0) / sem2Subjects.length)
-    : 0;
+  const sem2Avg =
+    sem2Subjects.length > 0
+      ? Math.round(sem2Subjects.reduce((sum, s) => sum + (s.scorePercent || 0), 0) / sem2Subjects.length)
+      : 0;
 
-  const completedSubjectsCount = allSubjects.filter(s => s.letterGrade && s.letterGrade !== "Pending").length;
+  const completedSubjectsCount = yearSubjects.filter((s) => s.letterGrade && s.letterGrade !== "Pending").length;
+  const isDeansList = (gpaData?.cumulativeGpa ?? 0) >= 3.5;
 
   function exportToExcel() {
     const rows = subjectGrades.map((row) => ({
@@ -101,12 +124,12 @@ export default function GradesPage() {
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     worksheet["!cols"] = [
-      { wch: 15 }, // Subject Code
-      { wch: 30 }, // Subject Name
-      { wch: 10 }, // Credits
-      { wch: 15 }, // Score Percent
-      { wch: 10 }, // Grade
-      { wch: 12 }, // Grade Point
+      { wch: 15 },
+      { wch: 30 },
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 12 },
     ];
 
     const workbook = XLSX.utils.book_new();
@@ -148,8 +171,8 @@ export default function GradesPage() {
   }
 
   return (
-    <div className="px-8 py-8">
-      {/* Breadcrumb + header */}
+    <div className="min-h-screen px-8 py-8 bg-slate-50 dark:bg-[#0b1329] text-slate-900 dark:text-slate-100 transition-colors">
+      {/* Header */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-slate-400 dark:text-slate-500">
@@ -161,7 +184,7 @@ export default function GradesPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsYearOpen((v) => !v)}
@@ -201,7 +224,7 @@ export default function GradesPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
+      {/* Stats Section */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-4 flex items-center justify-between">
@@ -217,8 +240,8 @@ export default function GradesPage() {
             Current GPA based on {completedSubjectsCount} graded subject{completedSubjectsCount !== 1 ? "s" : ""}
           </p>
           <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div 
-              className="h-full rounded-full bg-indigo-600 dark:bg-indigo-500" 
+            <div
+              className="h-full rounded-full bg-indigo-600 dark:bg-indigo-500"
               style={{ width: `${gpaData?.cumulativeGpa ? (gpaData.cumulativeGpa / 4.0) * 100 : 0}%` }}
             />
           </div>
@@ -236,15 +259,15 @@ export default function GradesPage() {
           </p>
           <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Earned credits</p>
           <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div 
-              className="h-full rounded-full bg-indigo-600 dark:bg-indigo-500" 
+            <div
+              className="h-full rounded-full bg-indigo-600 dark:bg-indigo-500"
               style={{ width: `${gpaData?.totalCredits ? Math.min((gpaData.totalCredits / 120) * 100, 100) : 0}%` }}
             />
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="mb-2 text-sm text-slate-500 dark:text-slate-400">Grades Distribution</p>
+          <p className="mb-2 text-sm text-slate-500 dark:text-slate-400">Grades Distribution ({year})</p>
           <div className="flex items-center gap-4">
             <div className="relative flex h-24 w-24 shrink-0 items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
@@ -266,7 +289,7 @@ export default function GradesPage() {
               </ResponsiveContainer>
               <div className="pointer-events-none absolute flex flex-col items-center">
                 <p className="text-base font-bold text-slate-900 dark:text-slate-50">
-                  {allSubjects.length}
+                  {yearSubjects.length}
                 </p>
                 <p className="text-[9px] font-semibold tracking-wide text-slate-400 dark:text-slate-500">
                   SUBJECTS
@@ -288,7 +311,7 @@ export default function GradesPage() {
         </div>
       </div>
 
-      {/* Semester cards */}
+      {/* Semester Averages */}
       <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-500/15">
@@ -303,9 +326,7 @@ export default function GradesPage() {
             </div>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-[10px] font-semibold tracking-wide text-slate-400 dark:text-slate-500">
-              AVG SCORE
-            </p>
+            <p className="text-[10px] font-semibold tracking-wide text-slate-400 dark:text-slate-500">AVG SCORE</p>
             <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
               {sem1Avg > 0 ? `${sem1Avg}%` : "—"}
             </p>
@@ -325,9 +346,7 @@ export default function GradesPage() {
             </div>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-[10px] font-semibold tracking-wide text-slate-400 dark:text-slate-500">
-              AVG SCORE
-            </p>
+            <p className="text-[10px] font-semibold tracking-wide text-slate-400 dark:text-slate-500">AVG SCORE</p>
             <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
               {sem2Avg > 0 ? `${sem2Avg}%` : "—"}
             </p>
@@ -335,7 +354,7 @@ export default function GradesPage() {
         </div>
       </div>
 
-      {/* Subject grades table */}
+      {/* Subject Grades Table */}
       <div className="mt-5 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -403,7 +422,7 @@ export default function GradesPage() {
               {subjectGrades.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
-                    No subject grades recorded for Semester {semester}.
+                    No subject grades recorded for {year}, Semester {semester}.
                   </td>
                 </tr>
               ) : (
@@ -418,7 +437,7 @@ export default function GradesPage() {
                   }
 
                   return (
-                    <tr key={row.classroomId}>
+                    <tr key={row.classroomId || row.subjectCode}>
                       <td className="px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {row.subjectName}
                       </td>
@@ -445,23 +464,23 @@ export default function GradesPage() {
         </div>
       </div>
 
-      {/* Dean's list banner */}
+      {/* Dynamic Dean's List Banner */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-indigo-700 to-indigo-600 p-6 shadow-sm dark:from-indigo-800 dark:to-indigo-700">
         <div className="max-w-xl">
-          <h3 className="text-base font-bold text-white">Dean&apos;s List Qualification</h3>
+          <h3 className="text-base font-bold text-white">Dean&apos;s List Status</h3>
           <p className="mt-1 text-sm text-indigo-100">
-            You are currently on track to qualify for the Dean&apos;s List. Maintaining a Cumulative GPA above 3.50 across all modules is required. Keep up the excellent performance!
+            {isDeansList
+              ? "You are currently qualifying for the Dean's List! Maintain a Cumulative GPA of 3.50+ across your modules to receive honors at graduation."
+              : "Maintaining a Cumulative GPA above 3.50 across all modules is required to qualify for the Dean's List. Keep working hard!"}
           </p>
         </div>
         <div className="shrink-0 rounded-xl bg-white/10 px-5 py-3 text-center">
-          <p className="text-[10px] font-semibold tracking-wide text-indigo-100">
-            REQUIRED GPA
-          </p>
+          <p className="text-[10px] font-semibold tracking-wide text-indigo-100">REQUIRED GPA</p>
           <p className="text-lg font-bold text-white">3.50+</p>
-          {gpaData && gpaData.cumulativeGpa >= 3.50 && (
-            <p className="mt-1 text-[10px] font-semibold text-emerald-300">
-              ● ACTIVE QUALIFIER
-            </p>
+          {isDeansList ? (
+            <p className="mt-1 text-[10px] font-semibold text-emerald-300">● ACTIVE QUALIFIER</p>
+          ) : (
+            <p className="mt-1 text-[10px] font-semibold text-amber-200">● CURRENT: {gpaData?.cumulativeGpa.toFixed(2)}</p>
           )}
         </div>
       </div>
