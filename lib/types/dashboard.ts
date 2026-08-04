@@ -22,6 +22,7 @@ export type EngagementPoint = { day: string; value: number };
 export type ContentLibrarySlice = { name: string; value: number; color: string };
 
 export type Classroom = {
+  id?: string;
   title: string;
   code: string;
   track: string;

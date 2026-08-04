@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 type ClassroomCardProps = {
+  id?: string;
   title: string;
   code: string;
   track: string;
@@ -16,6 +17,7 @@ type ClassroomCardProps = {
 };
 
 export default function ClassroomCard({
+  id,
   title,
   code,
   track,
@@ -31,7 +33,7 @@ export default function ClassroomCard({
 }: ClassroomCardProps) {
   return (
     <Link
-      href={`/dashboard/teacher/my-classroom/${classCode}`}
+      href={`/dashboard/teacher/my-classroom/${id || classCode}`}
       className="block overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
     >
       {/* Colored header */}

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
+import Image from "next/image";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -33,7 +34,7 @@ export default function Navbar() {
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10">
-            <img src="/logo-rm.png" alt="UMS Logo" className="h-6 w-6 object-contain" />
+            <Image src="/logo-rm.png" alt="UMS Logo" width={100} height={100} className="h-6 w-6 object-contain" />
           </div>
           <span className="text-xl font-bold tracking-wide">UMS</span>
         </div>
@@ -70,7 +71,7 @@ export default function Navbar() {
           </button>
           <Link href="/login">
             <button className="rounded-md bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
-              Apply Now
+              Login
             </button>
           </Link>
         </div>

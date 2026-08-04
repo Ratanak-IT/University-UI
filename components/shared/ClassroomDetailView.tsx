@@ -6,6 +6,7 @@ import {
   fetchClassroomStudents,
   fetchClassroomLessons,
   fetchClassroomAssignments,
+  fetchMyClassrooms,
   ClassroomResponse,
   ClassroomStudentResponse,
   LessonResponse,
@@ -34,18 +35,45 @@ export default function ClassroomDetailView({
   useEffect(() => {
     if (!classroomId) return;
     setLoading(true);
-    Promise.all([
-      fetchClassroomById(classroomId),
-      fetchClassroomStudents(classroomId),
-      fetchClassroomLessons(classroomId),
-      fetchClassroomAssignments(classroomId),
-    ]).then(([cr, st, le, as]) => {
-      if (cr) setClassroom(cr);
-      if (st) setStudents(st);
-      if (le) setLessons(le);
-      if (as) setAssignments(as);
+
+    async function loadData() {
+      if (!classroomId) return;
+      let targetId = classroomId;
+
+      // UUID Regex check
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(targetId)) {
+        // Resolve classCode to UUID
+        const myClassrooms = await fetchMyClassrooms();
+        if (myClassrooms) {
+          const matched = myClassrooms.find(
+            (c) => c.classCode?.toLowerCase() === targetId.toLowerCase()
+          );
+          if (matched) {
+            targetId = matched.classroomId;
+          }
+        }
+      }
+
+      // Fetch detail using resolved UUID
+      try {
+        const [cr, st, le, as] = await Promise.all([
+          fetchClassroomById(targetId),
+          fetchClassroomStudents(targetId),
+          fetchClassroomLessons(targetId),
+          fetchClassroomAssignments(targetId),
+        ]);
+        if (cr) setClassroom(cr);
+        if (st) setStudents(st);
+        if (le) setLessons(le);
+        if (as) setAssignments(as);
+      } catch (err) {
+        console.error("Error loading classroom details:", err);
+      }
       setLoading(false);
-    });
+    }
+
+    loadData();
   }, [classroomId]);
 
   if (loading) {
