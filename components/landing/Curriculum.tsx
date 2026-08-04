@@ -20,9 +20,9 @@ function Semester({ label, courses }: { label: string; courses: Course[] }) {
       <h4 className="font-hanken text-base font-bold text-accent">{label}</h4>
       <div className="mt-4 space-y-4">
         {courses.map((c) => (
-          <div key={c.name} className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-            <span className="font-hanken text-[18px] text-ink2">{c.name}</span>
-            <span className="font-hanken text-[18px] font-bold text-linkblue">{c.credits}</span>
+          <div key={c.name} className="flex items-center justify-between border-b border-border pb-2">
+            <span className="font-hanken text-[18px] text-foreground">{c.name}</span>
+            <span className="font-hanken text-[18px] font-bold text-primary">{c.credits}</span>
           </div>
         ))}
       </div>
@@ -32,18 +32,22 @@ function Semester({ label, courses }: { label: string; courses: Course[] }) {
 
 export default function Curriculum() {
   return (
-    <section className="bg-[#f7f9fb] py-24">
+    <section className="bg-background py-24 text-foreground transition-colors duration-200">
       <div className="mx-auto max-w-[1320px] px-6 lg:px-8">
         <div className="text-center">
           <p className="font-hanken text-2xl font-bold text-secondary">PROGRAM STRUCTURE</p>
           <h2 className="font-hanken mt-3 text-[40px] font-bold text-primary sm:text-[48px]">CURRICULUM</h2>
-          <p className="font-hanken mx-auto mt-3 max-w-2xl text-lg text-[#45464d]">A comprehensive roadmap designed to take you from foundational concepts to advanced industry expertise.</p>
+          <p className="font-hanken mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">
+            A comprehensive roadmap designed to take you from foundational concepts to advanced industry expertise.
+          </p>
         </div>
         <div className="mt-14 space-y-16">
           {YEARS.map((y) => (
             <div key={y.year}>
-              <div className="rounded-t-2xl bg-primary px-8 py-4"><h3 className="text-[28px] font-bold text-white">{y.year}</h3></div>
-              <div className="flex flex-col gap-8 rounded-b-2xl border border-slate-200/40 bg-[#f2f4f6] px-8 py-8 md:flex-row md:gap-8">
+              <div className="rounded-t-2xl bg-primary px-8 py-4">
+                <h3 className="text-[28px] font-bold text-primary-foreground">{y.year}</h3>
+              </div>
+              <div className="flex flex-col gap-8 rounded-b-2xl border border-border bg-muted/40 dark:bg-card px-8 py-8 md:flex-row md:gap-8">
                 <Semester label={y.sem1.label} courses={y.sem1.courses} />
                 <Semester label={y.sem2.label} courses={y.sem2.courses} />
               </div>

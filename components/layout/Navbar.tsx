@@ -15,21 +15,25 @@ const navLinks = [
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  // Avoid hydration mismatch: icon depends on theme, which isn't known on server
   useEffect(() => setMounted(true), []);
 
+  const isDark = mounted && (resolvedTheme === "dark" || theme === "dark");
+
+  const toggleTheme = () => {
+    setTheme(isDark ? "light" : "dark");
+  };
+
   return (
-    <header className="bg-primary text-primary-foreground">
+    <header className="bg-primary text-primary-foreground transition-colors duration-200">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10">
-            <img src="/logo-rm.png"/>
+            <img src="/logo-rm.png" alt="UMS Logo" className="h-6 w-6 object-contain" />
           </div>
           <span className="text-xl font-bold tracking-wide">UMS</span>
         </div>
@@ -55,39 +59,33 @@ export default function Navbar() {
           })}
         </ul>
 
-        {/* Desktop Right Section: Theme Toggle + Apply Button */}
+        {/* Desktop Right Section */}
         <div className="hidden items-center gap-4 md:flex">
           <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={toggleTheme}
             aria-label="Toggle theme"
             className="rounded-full p-2 text-primary-foreground/90 transition hover:bg-primary-foreground/10 hover:text-secondary"
           >
-            {mounted && theme === "dark" ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
-            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-          <button className="rounded-md bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
-            Apply Now
-          </button>
+          <Link href="/login">
+            <button className="rounded-md bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
+              Apply Now
+            </button>
           </Link>
         </div>
 
         {/* Mobile Menu Toggle Button */}
         <button
-          className="md:hidden p-2 text-primary-foreground focus:outline-none"
+          className="p-2 text-primary-foreground focus:outline-none md:hidden"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Toggle navigation menu"
         >
           {isMobileMenuOpen ? (
-            // Close (X) Icon
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           ) : (
-            // Hamburger Menu Icon
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
@@ -97,7 +95,7 @@ export default function Navbar() {
 
       {/* Mobile Navigation Dropdown */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-card text-card-foreground border-t border-border px-6 py-4">
+        <div className="border-t border-border bg-card px-6 py-4 text-card-foreground md:hidden">
           <ul className="flex flex-col gap-4 text-sm font-medium">
             {navLinks.map((link) => {
               const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
@@ -120,22 +118,18 @@ export default function Navbar() {
             <li className="flex items-center justify-between pl-4">
               <span className="text-muted-foreground">Theme</span>
               <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                onClick={toggleTheme}
                 aria-label="Toggle theme"
                 className="rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
               >
-                {mounted && theme === "dark" ? (
-                  <Sun className="h-5 w-5" />
-                ) : (
-                  <Moon className="h-5 w-5" />
-                )}
+                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
             </li>
             <li>
               <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <button className="mt-4 w-full rounded-md bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
-                Apply Now
-              </button>
+                <button className="mt-4 w-full rounded-md bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
+                  Apply Now
+                </button>
               </Link>
             </li>
           </ul>
