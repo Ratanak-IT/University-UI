@@ -1,10 +1,10 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { Google_Sans_Flex, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import ScrollToTopButton from "@/components/layout/ScrollToTopButton"; // <--- 1. Import component
 
 const googleSans = Google_Sans_Flex({
   variable: "--font-geist-sans",
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${googleSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${googleSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider
@@ -38,13 +38,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         >
           {/* <Navbar/> */}
           {children}
-          <Footer/>
+          <Footer />
+          <ScrollToTopButton /> {/* <--- 2. Add component here */}
         </ThemeProvider>
       </body>
     </html>
   );
 }
-
 
 // import type { Metadata } from "next";
 // import { Google_Sans_Flex, Geist_Mono } from "next/font/google";
