@@ -44,7 +44,7 @@ export default function QuizzesPage() {
       const p = await fetchMyProfile();
       if (p) {
         setProfile(p);
-        const data = await fetchStudentQuizzes(p.id);
+        const data = await fetchStudentQuizzes(p.studentId);
         if (data) setQuizzes(data);
       }
       setLoading(false);

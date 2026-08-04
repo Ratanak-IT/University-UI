@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { ShieldCheck, Calendar, IdCard, Plus, X, Check, Camera, Loader2 } from "lucide-react";
-import { fetchMyProfile, fetchStudentGpa, GpaResponse, StudentProfile } from "@/lib/api/student";
+import { fetchMyProfile, fetchStudentGpa, uploadAvatar, GpaResponse, StudentProfile } from "@/lib/api/student";
 
 type FormState = {
   fullName: string;
@@ -50,6 +50,7 @@ export default function ProfilePage() {
 
   const [photoUrl, setPhotoUrl] = useState("/davin.jpg");
   const [photoError, setPhotoError] = useState("");
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function ProfilePage() {
           setPhotoUrl(p.avatarUrl);
         }
 
-        const gpa = await fetchStudentGpa(p.id);
+        const gpa = await fetchStudentGpa(p.studentId);
         if (gpa) {
           setGpaData(gpa);
         }
@@ -88,7 +89,7 @@ export default function ProfilePage() {
     fileInputRef.current?.click();
   }
 
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -102,12 +103,30 @@ export default function ProfilePage() {
     }
 
     setPhotoError("");
+    setUploading(true);
+
+    // Show preview immediately
     const objectUrl = URL.createObjectURL(file);
     setPhotoUrl((prev) => {
       if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
       return objectUrl;
     });
 
+    // Upload to MinIO via backend
+    const updated = await uploadAvatar(file);
+    if (updated) {
+      setProfile(updated);
+      if (updated.avatarUrl) {
+        setPhotoUrl((prev) => {
+          if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return updated.avatarUrl!;
+        });
+      }
+    } else {
+      setPhotoError("Upload failed. Please try again.");
+    }
+
+    setUploading(false);
     e.target.value = "";
   }
 
@@ -176,6 +195,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={handlePhotoClick}
+                  disabled={uploading}
                   className="group relative block h-20 w-20 overflow-hidden rounded-full border border-slate-200 bg-indigo-600"
                   aria-label="Change profile picture"
                 >
@@ -185,9 +205,15 @@ export default function ProfilePage() {
                     alt={`${profile.firstName} profile`}
                     className="h-full w-full object-cover"
                   />
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/40 group-hover:opacity-100">
-                    <Camera className="h-5 w-5 text-white" strokeWidth={2} />
-                  </span>
+                  {uploading ? (
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <Loader2 className="h-6 w-6 animate-spin text-white" />
+                    </span>
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/40 group-hover:opacity-100">
+                      <Camera className="h-5 w-5 text-white" strokeWidth={2} />
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"

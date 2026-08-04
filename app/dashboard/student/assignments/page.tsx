@@ -43,7 +43,7 @@ export default function AssignmentsPage() {
       const p = await fetchMyProfile();
       if (p) {
         setProfile(p);
-        const data = await fetchStudentAssignments(p.id, 0, 100);
+        const data = await fetchStudentAssignments(p.studentId, 0, 100);
         if (data?.content) setAssignments(data.content);
       }
       setLoading(false);

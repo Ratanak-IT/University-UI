@@ -1,6 +1,3 @@
-// ─── Centralized Student API Service ─────────────────────────────────
-// All fetch calls for the student dashboard go through here.
-// Backend base: Spring Boot at /api/v1
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081";
 
@@ -30,10 +27,10 @@ async function apiFetch<T>(path: string): Promise<T | null> {
   }
 }
 
-// ─── Response Types (mirrors backend records) ────────────────────────
 
 export interface StudentProfile {
   id: string;
+  studentId: string;
   username: string;
   email: string;
   firstName: string;
@@ -204,6 +201,27 @@ export function fetchMyProfile() {
   return apiFetch<StudentProfile>("/api/v1/students/me");
 }
 
+/** POST /api/v1/students/me/avatar (multipart/form-data → MinIO) */
+export async function uploadAvatar(file: File): Promise<StudentProfile | null> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}/api/v1/students/me/avatar`, {
+      method: "POST",
+      headers: { ...getAuthHeader() },
+      body: formData,
+    });
+    if (!res.ok) {
+      console.warn(`uploadAvatar → ${res.status}`);
+      return null;
+    }
+    return (await res.json()) as StudentProfile;
+  } catch (err) {
+    console.error("uploadAvatar:", err);
+    return null;
+  }
+}
+
 /** GET /api/v1/classrooms/my-classrooms */
 export function fetchMyClassrooms() {
   return apiFetch<ClassroomResponse[]>("/api/v1/classrooms/my-classrooms");
@@ -298,6 +316,78 @@ export async function submitAssignment(assignmentId: string, files: File[]) {
     return await res.json();
   } catch (err) {
     console.error("submitAssignment:", err);
+    return null;
+  }
+}
+// ─── Quiz Attempt Types ──────────────────────────────────────────────
+
+export interface QuizQuestionItem {
+  questionId: string;
+  questionText: string;
+  options: string[];
+  score: number;
+  questionOrder: number;
+}
+
+export interface AnswerResultItem {
+  questionId: string;
+  answer: string;
+  isCorrect: boolean;
+  earnedScore: number;
+}
+
+export interface QuizAttemptResponse {
+  attemptId: string;
+  quizId: string;
+  quizTitle: string;
+  status: "IN_PROGRESS" | "SUBMITTED" | "EXPIRED";
+  startedAt: string;
+  expiresAt: string;
+  submittedAt: string | null;
+  earnedScore: number | null;
+  totalScore: number | null;
+  questions: QuizQuestionItem[];
+  answers: AnswerResultItem[] | null;
+}
+
+/** POST /api/v1/students/{id}/quizzes/{quizId}/attempts */
+export async function startQuizAttempt(
+  studentId: string,
+  quizId: string
+): Promise<QuizAttemptResponse | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/students/${studentId}/quizzes/${quizId}/attempts`,
+      { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeader() } }
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error("startQuizAttempt:", err);
+    return null;
+  }
+}
+
+/** PUT /api/v1/students/{id}/quizzes/{quizId}/attempts/{attemptId} */
+export async function submitQuizAttempt(
+  studentId: string,
+  quizId: string,
+  attemptId: string,
+  answers: { questionId: string; answer: string }[]
+): Promise<QuizAttemptResponse | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/students/${studentId}/quizzes/${quizId}/attempts/${attemptId}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
+        body: JSON.stringify({ answers }),
+      }
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error("submitQuizAttempt:", err);
     return null;
   }
 }

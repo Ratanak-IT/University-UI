@@ -26,6 +26,7 @@ export interface LessonFormData {
 }
 
 export interface CreateLessonPayload {
+  classroomId: string;
   title: string;
   category: EntryCategory;
   description: string;

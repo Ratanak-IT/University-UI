@@ -34,7 +34,7 @@ export default function AttendancePage() {
       const p = await fetchMyProfile();
       if (p) {
         setProfile(p);
-        const attendanceList = await fetchStudentAttendance(p.id);
+        const attendanceList = await fetchStudentAttendance(p.studentId);
         if (attendanceList && attendanceList.length > 0) {
           // Group by classroom/subject
           const groups: Record<string, { course: string; code: string; attended: number; total: number }> = {};

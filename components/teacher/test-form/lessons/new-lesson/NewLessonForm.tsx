@@ -31,11 +31,17 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+interface NewLessonFormProps {
+  classroomId?: string;
+}
+
 function buildPayload(
   form: LessonFormData,
-  status: "draft" | "published"
+  status: "draft" | "published",
+  classroomId: string
 ): CreateLessonPayload {
   return {
+    classroomId,
     title: form.title,
     category: (form.category || "lecture") as EntryCategory,
     description: form.description,
@@ -47,7 +53,7 @@ function buildPayload(
   };
 }
 
-export default function NewLessonForm() {
+export default function NewLessonForm({ classroomId = "" }: NewLessonFormProps) {
   const [form, setForm] = useState<LessonFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -89,7 +95,7 @@ export default function NewLessonForm() {
     setIsSavingDraft(true);
     try {
       await saveLessonDraft(
-        buildPayload(form, "draft"),
+        buildPayload(form, "draft", classroomId),
         form.attachments.map((a) => a.file)
       );
       setLastSavedLabel(
@@ -119,7 +125,7 @@ export default function NewLessonForm() {
     setIsSubmitting(true);
     try {
       await createLesson(
-        buildPayload(form, "published"),
+        buildPayload(form, "published", classroomId),
         form.attachments.map((a) => a.file)
       );
       setForm(INITIAL_FORM);

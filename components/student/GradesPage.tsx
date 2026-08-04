@@ -30,7 +30,7 @@ export default function GradesPage() {
           setYear(yrText);
         }
         
-        const gpa = await fetchStudentGpa(p.id);
+        const gpa = await fetchStudentGpa(p.studentId);
         if (gpa) {
           setGpaData(gpa);
         }

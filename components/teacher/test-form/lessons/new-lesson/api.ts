@@ -2,12 +2,17 @@ import type { CreateLessonPayload, CreateLessonResponse } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
+function getAuthToken(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("access_token") ?? "";
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let message = `Request failed with status ${res.status}`;
     try {
       const body = await res.json();
-      message = body?.message ?? message;
+      message = body?.message ?? body?.detail ?? message;
     } catch {
       // response had no JSON body — keep default message
     }
@@ -20,14 +25,26 @@ export async function createLesson(
   payload: CreateLessonPayload,
   attachments: File[]
 ): Promise<CreateLessonResponse> {
+  const token = getAuthToken();
   const formData = new FormData();
-  formData.append("data", JSON.stringify(payload));
-  attachments.forEach((file) => formData.append("attachments", file));
+  formData.append(
+    "lesson",
+    new Blob([JSON.stringify(payload)], { type: "application/json" })
+  );
+  attachments.forEach((file) => formData.append("file", file));
 
-  const res = await fetch(`${API_BASE}/api/lessons`, {
-    method: "POST",
-    body: formData,
-  });
+  const classroomId = payload.classroomId;
+
+  const res = await fetch(
+    `${API_BASE}/api/v1/classrooms/${classroomId}/lessons`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    }
+  );
 
   return handleResponse<CreateLessonResponse>(res);
 }
@@ -36,14 +53,7 @@ export async function saveLessonDraft(
   payload: CreateLessonPayload,
   attachments: File[]
 ): Promise<CreateLessonResponse> {
-  const formData = new FormData();
-  formData.append("data", JSON.stringify({ ...payload, status: "draft" }));
-  attachments.forEach((file) => formData.append("attachments", file));
-
-  const res = await fetch(`${API_BASE}/api/lessons/draft`, {
-    method: "POST",
-    body: formData,
-  });
-
-  return handleResponse<CreateLessonResponse>(res);
+  // Draft saving uses the same create endpoint with a draft status
+  const draftPayload: CreateLessonPayload = { ...payload, status: "draft" };
+  return createLesson(draftPayload, attachments);
 }
