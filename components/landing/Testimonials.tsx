@@ -40,7 +40,7 @@ export default function Testimonials() {
   const next = () => setI((v) => (v + 1) % ITEMS.length);
 
   return (
-    <section id="contact" className="bg-background py-28 text-foreground transition-colors duration-200 dark:bg-background dark:text-foreground">
+    <section id="fqa" className="bg-background py-28 text-foreground transition-colors duration-200 dark:bg-background dark:text-foreground">
       <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
         <div className="text-center">
           <p className="font-hanken text-xs font-bold tracking-[0.1em] text-testired">TESTIMONIALS</p>

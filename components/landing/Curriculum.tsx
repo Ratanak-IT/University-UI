@@ -32,7 +32,7 @@ function Semester({ label, courses }: { label: string; courses: Course[] }) {
 
 export default function Curriculum() {
   return (
-    <section className="bg-background py-24 text-foreground transition-colors duration-200">
+    <section id="curriculum" className="bg-background py-24 text-foreground transition-colors duration-200">
       <div className="mx-auto max-w-[1320px] px-6 lg:px-8">
         <div className="text-center">
           <p className="font-hanken text-2xl font-bold text-secondary">PROGRAM STRUCTURE</p>
