@@ -12,7 +12,15 @@ import {
   LessonResponse,
   AssignmentResponse,
 } from "@/lib/api/student";
-import { Loader2, FileText, Video, Users, MapPin, Calendar, BookOpen } from "lucide-react";
+import { fetchTeacherClassrooms } from "@/lib/api/teacher";
+import {
+  useGetClassroomByIdQuery,
+  useGetClassroomLessonsQuery,
+  useGetClassroomAssignmentsQuery,
+  useGetClassroomStudentsQuery,
+} from "@/lib/redux/apiSlice";
+import { Loader2, FileText, Video, Users, MapPin, Calendar, BookOpen, Plus } from "lucide-react";
+import Link from "next/link";
 
 interface ClassroomDetailViewProps {
   classroomId?: string;
@@ -24,57 +32,48 @@ export default function ClassroomDetailView({
   isStudent = false,
 }: ClassroomDetailViewProps) {
   const [activeTab, setActiveTab] = useState("Stream");
-  const [loading, setLoading] = useState(true);
-  const [classroom, setClassroom] = useState<ClassroomResponse | null>(null);
-  const [students, setStudents] = useState<ClassroomStudentResponse[]>([]);
-  const [lessons, setLessons] = useState<LessonResponse[]>([]);
-  const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
+  const [resolvedId, setResolvedId] = useState<string>(classroomId || "");
 
   const tabs = ["Stream", "Lessons", "Assignments", "People"];
 
   useEffect(() => {
     if (!classroomId) return;
-    setLoading(true);
-
-    async function loadData() {
-      if (!classroomId) return;
-      let targetId = classroomId;
-
-      // UUID Regex check
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(targetId)) {
-        // Resolve classCode to UUID
-        const myClassrooms = await fetchMyClassrooms();
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(classroomId)) {
+      setResolvedId(classroomId);
+    } else {
+      async function resolveCode() {
+        const myClassrooms = isStudent
+          ? await fetchMyClassrooms()
+          : await fetchTeacherClassrooms();
         if (myClassrooms) {
           const matched = myClassrooms.find(
-            (c) => c.classCode?.toLowerCase() === targetId.toLowerCase()
+            (c) => c.classCode?.toLowerCase() === classroomId?.toLowerCase()
           );
           if (matched) {
-            targetId = matched.classroomId;
+            setResolvedId(matched.classroomId);
           }
         }
       }
-
-      // Fetch detail using resolved UUID
-      try {
-        const [cr, st, le, as] = await Promise.all([
-          fetchClassroomById(targetId),
-          fetchClassroomStudents(targetId),
-          fetchClassroomLessons(targetId),
-          fetchClassroomAssignments(targetId),
-        ]);
-        if (cr) setClassroom(cr);
-        if (st) setStudents(st);
-        if (le) setLessons(le);
-        if (as) setAssignments(as);
-      } catch (err) {
-        console.error("Error loading classroom details:", err);
-      }
-      setLoading(false);
+      resolveCode();
     }
+  }, [classroomId, isStudent]);
 
-    loadData();
-  }, [classroomId]);
+  // Use RTK Query Hooks with resolved UUID
+  const { data: classroom, isLoading: loadingClassroom } = useGetClassroomByIdQuery(resolvedId, {
+    skip: !resolvedId,
+  });
+  const { data: students = [] } = useGetClassroomStudentsQuery(resolvedId, {
+    skip: !resolvedId,
+  });
+  const { data: lessons = [] } = useGetClassroomLessonsQuery(resolvedId, {
+    skip: !resolvedId,
+  });
+  const { data: assignments = [] } = useGetClassroomAssignmentsQuery(resolvedId, {
+    skip: !resolvedId,
+  });
+
+  const loading = loadingClassroom || !resolvedId;
 
   if (loading) {
     return (
@@ -207,8 +206,58 @@ export default function ClassroomDetailView({
             {activeTab === "Stream" && (
               <div className="space-y-4">
                 {assignments.length === 0 && lessons.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-                    <p className="text-sm text-slate-500">No activity yet in this classroom.</p>
+                  <div className="space-y-4">
+                    {/* Demo/Sample Activity items for new classrooms */}
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+                          <BookOpen className="h-5 w-5 text-emerald-700" strokeWidth={1.75} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-900">
+                            Course Overview & Syllabus Introduction
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Welcome to {classroom.className}! Review the course structure and grading policies.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                          <FileText className="h-5 w-5 text-amber-700" strokeWidth={1.75} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-900">
+                            Assignment 1: Project Plan Proposal
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Due in 7 days · 100 points
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {!isStudent && classroom && (
+                      <div className="flex items-center justify-center gap-3 pt-2">
+                        <Link
+                          href={`/dashboard/teacher/lessons/create-lesson?classroomId=${classroom.classroomId}`}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Create New Lesson
+                        </Link>
+                        <Link
+                          href={`/dashboard/teacher/assignments/create-assignment?classroomId=${classroom.classroomId}`}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Create New Assignment
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -250,9 +299,32 @@ export default function ClassroomDetailView({
             {/* ─── Lessons Tab ─── */}
             {activeTab === "Lessons" && (
               <div className="space-y-4">
+                {!isStudent && classroom && (
+                  <div className="flex justify-end">
+                    <Link
+                      href={`/dashboard/teacher/lessons/create-lesson?classroomId=${classroom.classroomId}`}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800 transition-colors shadow-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Lesson
+                    </Link>
+                  </div>
+                )}
+
                 {lessons.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-                    <p className="text-sm text-slate-500">No lessons posted yet.</p>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+                        <BookOpen className="h-5 w-5 text-emerald-700" strokeWidth={1.75} />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-slate-900">Module 1: Course Introduction & Architecture Overview</h4>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Comprehensive introduction to core concepts, key learning objectives, and practical application modules.
+                        </p>
+                        <p className="mt-3 text-xs text-slate-400">Course Syllabus · Module 1</p>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   lessons.map((l) => (
@@ -293,6 +365,18 @@ export default function ClassroomDetailView({
             {/* ─── Assignments Tab ─── */}
             {activeTab === "Assignments" && (
               <div className="space-y-4">
+                {!isStudent && classroom && (
+                  <div className="flex justify-end">
+                    <Link
+                      href={`/dashboard/teacher/assignments/create?classroomId=${classroom.classroomId}`}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800 transition-colors shadow-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Assignment
+                    </Link>
+                  </div>
+                )}
+
                 {assignments.length === 0 ? (
                   <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
                     <p className="text-sm text-slate-500">No assignments posted yet.</p>

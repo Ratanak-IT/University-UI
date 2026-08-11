@@ -19,17 +19,19 @@ import {
   fetchClassroomStudents,
   fetchClassroomAssignments,
   fetchAssignmentSubmissions,
+  fetchTeacherAttendanceByDate,
   mapClassroomToTeacherCard,
   TeacherProfile,
 } from "@/lib/api/teacher";
 import { fetchClassroomLessons } from "@/lib/api/student";
-import { Classroom, StatCard, Deadline } from "@/lib/types/dashboard";
+import { Classroom, StatCard, Deadline, AttendanceRow } from "@/lib/types/dashboard";
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [statsList, setStatsList] = useState<StatCard[]>([]);
   const [deadlinesList, setDeadlinesList] = useState<Deadline[]>([]);
+  const [realAttendance, setRealAttendance] = useState<AttendanceRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -1,10 +1,10 @@
 import CreateQuizPage from '@/components/teacher/quiz/form/CreateQuizPage'
-import React from 'react'
+import React, { Suspense } from 'react'
 
 export default function page() {
   return (
-    <div>
-        <CreateQuizPage/>
-    </div>
+    <Suspense fallback={<div className="p-8 text-sm text-slate-500">Loading quiz editor...</div>}>
+      <CreateQuizPage/>
+    </Suspense>
   )
 }

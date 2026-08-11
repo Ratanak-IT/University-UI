@@ -6,8 +6,10 @@ import AssignmentRow from "./AssignmentRow";
 
 export default function AssignmentGroupCard({
   group,
+  onAssign,
 }: {
   group: AssignmentGroup;
+  onAssign?: (id: string) => void;
 }) {
   return (
     <section>
@@ -25,7 +27,10 @@ export default function AssignmentGroupCard({
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         {group.items.map((item, idx) => (
           <div key={item.id} className={idx !== 0 ? "border-t border-border" : ""}>
-            <AssignmentRow item={item} />
+            <AssignmentRow
+              item={item}
+              onAssign={group.title === "Saved Templates" ? onAssign : undefined}
+            />
           </div>
         ))}
       </div>

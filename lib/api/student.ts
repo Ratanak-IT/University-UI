@@ -133,6 +133,12 @@ export interface GradeResponse {
   scorePercent: number;
   letterGrade: string;
   gradePoint: number;
+  scores?: {
+    examScoreId: string;
+    examType: "MIDTERM" | "FINAL" | "ASSIGNMENT" | "QUIZ" | "ATTENDANCE" | "OTHER";
+    score: number;
+    maxScore: number;
+  }[];
 }
 
 export interface GpaResponse {
@@ -407,3 +413,53 @@ export function fetchStudentAttendance(studentId: string, classroomId?: string) 
   const url = `/api/v1/students/${studentId}/attendance` + (classroomId ? `?classroomId=${classroomId}` : "");
   return apiFetch<AttendanceResponse[]>(url);
 }
+
+export interface CertificateRequestResponse {
+  requestId: string;
+  certificateType: "ATTENDANCE" | "ENROLLMENT" | "GRADUATION";
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  rejectReason: string | null;
+  createdAt: string;
+  processedAt: string | null;
+  downloadAvailable: boolean;
+}
+
+export interface CertificateDownloadResponse {
+  requestId: string;
+  fileName: string;
+  downloadUrl: string;
+}
+
+/** GET /api/v1/students/{id}/certificate-requests */
+export function fetchStudentCertificateRequests(studentId: string) {
+  return apiFetch<CertificateRequestResponse[]>(`/api/v1/students/${studentId}/certificate-requests`);
+}
+
+/** POST /api/v1/students/{id}/certificate-requests */
+export async function createStudentCertificateRequest(
+  studentId: string,
+  certificateType: "ENROLLMENT_CONFIRMATION" | "DEGREE" | "TRANSCRIPT" | "COMPLETION",
+  reason: string
+): Promise<CertificateRequestResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/students/${studentId}/certificate-requests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+      body: JSON.stringify({ certificateType, reason }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error("createStudentCertificateRequest:", err);
+    return null;
+  }
+}
+
+/** GET /api/v1/students/{id}/certificate-requests/{requestId}/download */
+export function downloadStudentCertificate(studentId: string, requestId: string) {
+  return apiFetch<CertificateDownloadResponse>(
+    `/api/v1/students/${studentId}/certificate-requests/${requestId}/download`
+  );
+}
+

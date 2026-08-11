@@ -111,6 +111,110 @@ export async function fetchAssignmentSubmissions(assignmentId: string): Promise<
     console.error("fetchAssignmentSubmissions:", err);
     return [];
   }
+}export type ExamType = "MIDTERM" | "FINAL" | "ASSIGNMENT" | "QUIZ" | "ATTENDANCE" | "OTHER";
+
+export interface ExamScoreResponse {
+  examScoreId: string;
+  studentId: string;
+  studentCode: string;
+  studentName?: string | null;
+  studentFullName?: string;
+  classroomId: string;
+  examType: ExamType;
+  score: number;
+  maxScore: number;
+}
+
+export interface SetExamScoreItem {
+  studentId: string;
+  score: number;
+}
+
+export interface SetExamScoresRequest {
+  examType: ExamType;
+  maxScore: number;
+  scores: SetExamScoreItem[];
+}
+
+/** GET /api/v1/classrooms/{classroomId}/scores */
+export async function fetchClassroomExamScores(classroomId: string): Promise<ExamScoreResponse[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/scores`, {
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.error("fetchClassroomExamScores:", err);
+    return [];
+  }
+}
+
+/** POST /api/v1/classrooms/{classroomId}/scores */
+export async function saveClassroomExamScores(
+  classroomId: string,
+  payload: SetExamScoresRequest
+): Promise<ExamScoreResponse[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/scores`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.error("saveClassroomExamScores:", err);
+    return [];
+  }
+}
+
+export interface AttendanceItemPayload {
+  studentId: string;
+  status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
+  remark?: string;
+}
+
+export interface RecordAttendancePayload {
+  attendanceDate: string; // YYYY-MM-DD
+  items: AttendanceItemPayload[];
+}
+
+/** POST /api/v1/classrooms/{classroomId}/attendance */
+export async function recordTeacherAttendance(
+  classroomId: string,
+  payload: RecordAttendancePayload
+): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/attendance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.error("recordTeacherAttendance:", err);
+    return [];
+  }
+}
+
+/** GET /api/v1/classrooms/{classroomId}/attendance */
+export async function fetchTeacherAttendanceByDate(
+  classroomId: string,
+  date?: string
+): Promise<any[]> {
+  try {
+    const url = `${API_BASE}/api/v1/classrooms/${classroomId}/attendance` + (date ? `?date=${date}` : "");
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.error("fetchTeacherAttendanceByDate:", err);
+    return [];
+  }
 }
 
 
@@ -146,11 +250,11 @@ export function mapClassroomToTeacherCard(
     code: item.classCode || "CS-101",
     track: item.subjectName || "General",
     initials,
-    students: 30, // default placeholder for student count
+    students: 30,
     year: yearText,
     room: item.room ? `Room ${item.room}` : "Room 204",
     classCode: item.classCode || "",
-    toGrade: 0, // default placeholder
+    toGrade: 0,
     headerClass: color.header,
     initialsTextClass: color.text,
     badgeClass: color.badge,

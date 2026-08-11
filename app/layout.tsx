@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   description: "Every Course, Every Skill — One Powerful Platform.",
 };
 
+import ReduxProvider from "@/components/providers/ReduxProvider";
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
@@ -30,17 +32,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       className={`${googleSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {/* <Navbar/> */}
-          {children}
-          <Footer />
-          <ScrollToTopButton /> {/* <--- 2. Add component here */}
-        </ThemeProvider>
+        <ReduxProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {/* <Navbar/> */}
+            {children}
+            <Footer />
+            <ScrollToTopButton /> {/* <--- 2. Add component here */}
+          </ThemeProvider>
+        </ReduxProvider>
       </body>
     </html>
   );

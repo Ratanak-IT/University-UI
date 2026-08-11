@@ -86,9 +86,35 @@ export function QuestionCard({ question, index, onChange, onDelete, canDelete }:
             </label>
             <select
               value={question.type}
-              onChange={(e) =>
-                onChange({ ...question, type: e.target.value as QuizQuestion["type"] })
-              }
+              onChange={(e) => {
+                const nextType = e.target.value as QuizQuestion["type"];
+                let newOptions = question.options;
+                let newCorrectId = question.correctOptionId;
+
+                if (nextType === "true_false") {
+                  newOptions = [
+                    { id: "true", text: "True" },
+                    { id: "false", text: "False" },
+                  ];
+                  newCorrectId = "true";
+                } else if (nextType === "short_answer") {
+                  const firstText = question.options[0]?.text || "";
+                  newOptions = [{ id: "short_1", text: firstText }];
+                  newCorrectId = "short_1";
+                } else if (nextType === "multiple_choice" && question.options.length < 2) {
+                  newOptions = [
+                    { id: makeId(), text: "" },
+                    { id: makeId(), text: "" },
+                  ];
+                }
+
+                onChange({
+                  ...question,
+                  type: nextType,
+                  options: newOptions,
+                  correctOptionId: newCorrectId,
+                });
+              }}
               className="w-full appearance-none rounded-md border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               {QUESTION_TYPES.map((t) => (
@@ -110,9 +136,12 @@ export function QuestionCard({ question, index, onChange, onDelete, canDelete }:
           </div>
         </div>
 
+        {/* Multiple Choice Options */}
         {question.type === "multiple_choice" && (
           <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">Options</label>
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              Options (Select radio button for correct answer)
+            </label>
             <div className="space-y-2.5">
               {question.options.map((option, optionIndex) => (
                 <div key={option.id} className="flex items-center gap-3">
@@ -154,6 +183,74 @@ export function QuestionCard({ question, index, onChange, onDelete, canDelete }:
               <Plus className="h-3.5 w-3.5" />
               Add more options
             </button>
+          </div>
+        )}
+
+        {/* True / False Selection */}
+        {question.type === "true_false" && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              Select Correct Answer
+            </label>
+            <div className="flex items-center gap-6">
+              {[
+                { id: "true", label: "True" },
+                { id: "false", label: "False" },
+              ].map((opt) => {
+                const isSelected = (question.correctOptionId || "true") === opt.id;
+                return (
+                  <label
+                    key={opt.id}
+                    className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`tf_${question.id}`}
+                      checked={isSelected}
+                      onChange={() =>
+                        onChange({
+                          ...question,
+                          options: [
+                            { id: "true", text: "True" },
+                            { id: "false", text: "False" },
+                          ],
+                          correctOptionId: opt.id,
+                        })
+                      }
+                      className="h-4 w-4 text-primary focus:ring-primary"
+                    />
+                    <span>{opt.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Short Answer Input */}
+        {question.type === "short_answer" && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Expected Correct Answer Key
+            </label>
+            <input
+              type="text"
+              value={question.options[0]?.text || ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                onChange({
+                  ...question,
+                  options: [{ id: "short_1", text: val }],
+                  correctOptionId: "short_1",
+                });
+              }}
+              placeholder="Type the exact expected correct answer..."
+              className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
           </div>
         )}
       </div>

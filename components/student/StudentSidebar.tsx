@@ -12,6 +12,7 @@ import {
   Trophy,
   Star,
   UserCheck,
+  Award,
   Bell,
   User,
   LogOut,
@@ -53,6 +54,7 @@ const sections: NavSection[] = [
     items: [
       { label: "Grades", href: "/dashboard/student/grades", icon: Star },
       { label: "Attendance", href: "/dashboard/student/attendance", icon: UserCheck },
+      { label: "Certificates", href: "/dashboard/student/certificates", icon: Award },
     ],
   },
   {

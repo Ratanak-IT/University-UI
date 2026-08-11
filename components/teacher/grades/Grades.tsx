@@ -1,68 +1,53 @@
 "use client";
- 
-import { useMemo, useState } from "react";
+
+import { useState, useMemo, useEffect } from "react";
 import {
   Users,
   CheckCircle2,
   TrendingUp,
   AlertTriangle,
   ChevronDown,
-  SlidersHorizontal,
   Download,
+  Save,
   MoreVertical,
   ChevronLeft,
   ChevronRight,
+  SlidersHorizontal,
+  RefreshCw,
 } from "lucide-react";
- 
-type Grade = "A" | "B" | "C" | "D" | "F";
+import {
+  useGetTeacherClassroomsQuery,
+  useGetClassroomStudentsQuery,
+  useGetExamScoresQuery,
+  useSaveExamScoresMutation,
+  useGetTeacherProfileQuery,
+} from "@/lib/redux/apiSlice";
+import { ExamType } from "@/lib/api/teacher";
+
+type GradeLetter = "A" | "B" | "C" | "D" | "F";
 type Status = "Passed" | "Failed" | "Pending";
- 
-interface StudentGrade {
-  id: string;
+
+interface StudentScoreRow {
+  studentId: string;
   name: string;
+  studentCode: string;
+  avatarUrl?: string | null;
   initials: string;
   avatarColor: string;
   classroom: string;
   semester: string;
-  midterm: number;
-  final: number;
-  assign: number;
-  quiz: number;
-  attend: number;
+  midterm: number | "";
+  final: number | "";
+  assign: number | "";
+  quiz: number | "";
+  attend: number | "";
   total: number;
-  grade: Grade;
+  grade: GradeLetter;
   gpa: number;
   status: Status;
   gradedBy: string;
 }
- 
-const names = [
-  "Chhay Davin",
-  "Arthur Davin",
-  "Sokha Chan",
-  "Bopha Ly",
-  "Rithy Sok",
-  "Sreymom Heng",
-  "Vanna Prak",
-  "Dara Chea",
-  "Kunthea Meas",
-  "Pisach Ouk",
-  "Sreyneang Kim",
-  "Vibol Ros",
-  "Chanlina Yin",
-  "Sopheak Nou",
-  "Malis Tep",
-  "Ratanak Uch",
-  "Sreypov Chum",
-  "Vuthy Long",
-  "Channary Im",
-  "Piseth Ang",
-  "Sokunthea Van",
-  "Bora Keo",
-  "Chanthou Mao",
-  "Sovann Pich",
-];
- 
+
 const avatarColors = [
   "bg-amber-200 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
   "bg-sky-200 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300",
@@ -71,67 +56,46 @@ const avatarColors = [
   "bg-emerald-200 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300",
   "bg-orange-200 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300",
 ];
- 
-function gradeFromTotal(total: number): Grade {
-  if (total >= 90) return "A";
-  if (total >= 80) return "B";
-  if (total >= 70) return "C";
-  if (total >= 60) return "D";
-  return "F";
-}
- 
-function initialsOf(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
- 
-const allStudents: StudentGrade[] = names.map((name, i) => {
-  const midterm = 75 + ((i * 7) % 25);
-  const final = 70 + ((i * 11) % 30);
-  const assign = 80 + ((i * 5) % 20);
-  const quiz = 75 + ((i * 9) % 25);
-  const attend = 85 + ((i * 3) % 16);
-  const total = Math.round((midterm + final + assign + quiz + attend) / 5 * 10) / 10;
-  const grade = gradeFromTotal(total);
-  const status: Status = grade === "F" ? "Failed" : total >= 60 ? "Passed" : "Pending";
- 
-  return {
-    id: `s-${i + 1}`,
-    name,
-    initials: initialsOf(name),
-    avatarColor: avatarColors[i % avatarColors.length],
-    classroom: "CS101-A",
-    semester: "Y2 S2",
-    midterm,
-    final,
-    assign,
-    quiz,
-    attend,
-    total,
-    grade,
-    gpa: Math.round((total / 25) * 10) / 10,
-    status,
-    gradedBy: "K. Sopheap",
-  };
-});
- 
-const gradeStyles: Record<Grade, string> = {
+
+const gradeStyles: Record<GradeLetter, string> = {
   A: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
   B: "bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300",
   C: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
   D: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300",
   F: "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300",
 };
- 
+
 const statusStyles: Record<Status, string> = {
   Passed: "text-emerald-600 dark:text-emerald-400",
   Failed: "text-rose-600 dark:text-rose-400",
   Pending: "text-muted-foreground",
 };
- 
+
+function initialsOf(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+}
+
+function calculateGradeLetter(totalPercent: number): GradeLetter {
+  if (totalPercent >= 85) return "A";
+  if (totalPercent >= 75) return "B";
+  if (totalPercent >= 65) return "C";
+  if (totalPercent >= 50) return "D";
+  return "F";
+}
+
+function calculateGpa(totalPercent: number): number {
+  if (totalPercent >= 85) return 4.0;
+  if (totalPercent >= 75) return 3.5;
+  if (totalPercent >= 65) return 3.0;
+  if (totalPercent >= 50) return 2.0;
+  return 0.0;
+}
+
 function StatCard({
   icon,
   iconBg,
@@ -155,190 +119,655 @@ function StatCard({
     </div>
   );
 }
- 
-const PAGE_SIZE = 8;
- 
-function getPageNumbers(current: number, total: number): (number | "…")[] {
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-  if (current <= 3) return [1, 2, 3, "…", total];
-  if (current >= total - 2) return [1, "…", total - 2, total - 1, total];
-  return [1, "…", current, "…", total];
-}
- 
+
+const PAGE_SIZE = 10;
+
 export default function Attendan2Grades() {
-  const [page, setPage] = useState(1);
-  const totalStudents = 256; // full dataset size (mocked beyond sample rows)
-  const totalPages = Math.ceil(totalStudents / PAGE_SIZE);
- 
-  const pageStudents = useMemo(() => {
-    // cycle through the sample data to fill each page with distinct-looking rows
-    const start = ((page - 1) * PAGE_SIZE) % allStudents.length;
-    const rows: StudentGrade[] = [];
-    for (let i = 0; i < PAGE_SIZE; i++) {
-      rows.push(allStudents[(start + i) % allStudents.length]);
+  const { data: classrooms = [], isLoading: loadingClassrooms } = useGetTeacherClassroomsQuery();
+  const { data: teacherProfile } = useGetTeacherProfileQuery();
+
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string>("");
+  const [selectedSemester, setSelectedSemester] = useState<string>("Semester 2");
+  const [statusFilter, setStatusFilter] = useState<string>("All Statuses");
+  const [page, setPage] = useState<number>(1);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Set default classroom
+  useEffect(() => {
+    if (classrooms.length > 0 && !selectedClassroomId) {
+      setSelectedClassroomId(classrooms[0].classroomId);
     }
-    return rows;
-  }, [page]);
- 
-  const showingFrom = (page - 1) * PAGE_SIZE + 1;
-  const showingTo = Math.min(page * PAGE_SIZE, totalStudents);
-  const pageNumbers = getPageNumbers(page, totalPages);
- 
+  }, [classrooms, selectedClassroomId]);
+
+  const { data: students = [], isLoading: loadingStudents } = useGetClassroomStudentsQuery(
+    selectedClassroomId,
+    { skip: !selectedClassroomId }
+  );
+
+  const { data: examScores = [], isLoading: loadingScores } = useGetExamScoresQuery(
+    selectedClassroomId,
+    { skip: !selectedClassroomId }
+  );
+
+  const [saveExamScores, { isLoading: isSaving }] = useSaveExamScoresMutation();
+
+  // Local grid matrix scores state: { [studentId]: { midterm, final, assign, quiz, attend } }
+  const [matrixScores, setMatrixScores] = useState<
+    Record<
+      string,
+      {
+        midterm: number | "";
+        final: number | "";
+        assign: number | "";
+        quiz: number | "";
+        attend: number | "";
+      }
+    >
+  >({});
+
+  // Sync existing backend examScores into matrixScores
+  useEffect(() => {
+    if (!students || students.length === 0) return;
+
+    const newMatrix: Record<
+      string,
+      {
+        midterm: number | "";
+        final: number | "";
+        assign: number | "";
+        quiz: number | "";
+        attend: number | "";
+      }
+    > = {};
+
+    students.forEach((s: any) => {
+      const studentId = s.studentId || s.id;
+      const sScores = examScores.filter((es) => es.studentId === studentId);
+
+      const findScore = (type: ExamType): number | "" => {
+        const found = sScores.find((es) => es.examType === type);
+        return found !== undefined && found.score !== null ? found.score : "";
+      };
+
+      newMatrix[studentId] = {
+        midterm: findScore("MIDTERM"),
+        final: findScore("FINAL"),
+        assign: findScore("ASSIGNMENT"),
+        quiz: findScore("QUIZ"),
+        attend: findScore("ATTENDANCE"),
+      };
+    });
+
+    setMatrixScores(newMatrix);
+  }, [students, examScores, selectedClassroomId]);
+
+  function triggerToast(msg: string) {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3500);
+  }
+
+  function handleScoreCellChange(
+    studentId: string,
+    field: "midterm" | "final" | "assign" | "quiz" | "attend",
+    val: string
+  ) {
+    let num: number | "" = val === "" ? "" : Number(val);
+    if (typeof num === "number" && isNaN(num)) return;
+
+    const maxLimits = {
+      midterm: 100,
+      final: 100,
+      assign: 20,
+      quiz: 10,
+      attend: 10,
+    };
+
+    if (typeof num === "number") {
+      num = Math.min(Math.max(0, num), maxLimits[field]);
+    }
+
+    setMatrixScores((prev) => ({
+      ...prev,
+      [studentId]: {
+        ...(prev[studentId] || {
+          midterm: "",
+          final: "",
+          assign: "",
+          quiz: "",
+          attend: "",
+        }),
+        [field]: num,
+      },
+    }));
+  }
+
+  async function handleSaveAllScores() {
+    if (!selectedClassroomId) {
+      triggerToast("Please select a classroom first.");
+      return;
+    }
+
+    const categories: { key: "midterm" | "final" | "assign" | "quiz" | "attend"; examType: ExamType; maxScore: number }[] = [
+      { key: "midterm", examType: "MIDTERM", maxScore: 100 },
+      { key: "final", examType: "FINAL", maxScore: 100 },
+      { key: "assign", examType: "ASSIGNMENT", maxScore: 20 },
+      { key: "quiz", examType: "QUIZ", maxScore: 10 },
+      { key: "attend", examType: "ATTENDANCE", maxScore: 10 },
+    ];
+
+    try {
+      for (const cat of categories) {
+        const payloadScores = Object.entries(matrixScores)
+          .filter(([_, row]) => row[cat.key] !== "")
+          .map(([studentId, row]) => ({
+            studentId,
+            score: Number(row[cat.key]),
+          }));
+
+        if (payloadScores.length > 0) {
+          await saveExamScores({
+            classroomId: selectedClassroomId,
+            payload: {
+              examType: cat.examType,
+              maxScore: cat.maxScore,
+              scores: payloadScores,
+            },
+          }).unwrap();
+        }
+      }
+      triggerToast("All grade columns saved to server successfully!");
+    } catch (err: any) {
+      triggerToast(err?.data?.message || "Failed to save grades. Please try again.");
+    }
+  }
+
+  // Calculate row metrics
+  const allRows: StudentScoreRow[] = useMemo(() => {
+    if (!students || students.length === 0) return [];
+
+    const teacherName = teacherProfile
+      ? `${teacherProfile.firstName} ${teacherProfile.lastName}`
+      : "Teacher";
+
+    const selectedClassroomObj = classrooms.find((c) => c.classroomId === selectedClassroomId);
+    const classroomName = selectedClassroomObj ? selectedClassroomObj.className : "CS202-A";
+
+    return students.map((s: any, i: number) => {
+      const studentId = s.studentId || s.id;
+      const name =
+        s.fullName ||
+        s.studentFullName ||
+        s.studentName ||
+        (s.firstName ? `${s.firstName} ${s.lastName || ""}`.trim() : null) ||
+        s.name ||
+        "Student";
+      const studentCode = s.studentCode || "STU-00";
+
+      const scores = matrixScores[studentId] || {
+        midterm: "",
+        final: "",
+        assign: "",
+        quiz: "",
+        attend: "",
+      };
+
+      const m = scores.midterm !== "" ? Number(scores.midterm) : 0;
+      const f = scores.final !== "" ? Number(scores.final) : 0;
+      const a = scores.assign !== "" ? Number(scores.assign) : 0;
+      const q = scores.quiz !== "" ? Number(scores.quiz) : 0;
+      const att = scores.attend !== "" ? Number(scores.attend) : 0;
+
+      // Weighted calculation:
+      // Midterm (100 -> 30%), Final (100 -> 40%), Assign (20 -> 15%), Quiz (10 -> 10%), Attend (10 -> 5%)
+      const totalEarned = (m / 100) * 30 + (f / 100) * 40 + (a / 20) * 15 + (q / 10) * 10 + (att / 10) * 5;
+      const totalPercent = Math.round(totalEarned * 10) / 10;
+
+      const hasAnyScore =
+        scores.midterm !== "" ||
+        scores.final !== "" ||
+        scores.assign !== "" ||
+        scores.quiz !== "" ||
+        scores.attend !== "";
+
+      const grade = calculateGradeLetter(totalPercent);
+      const gpa = calculateGpa(totalPercent);
+      const status: Status = !hasAnyScore
+        ? "Pending"
+        : grade === "F"
+        ? "Failed"
+        : "Passed";
+
+      return {
+        studentId,
+        name,
+        studentCode,
+        avatarUrl: s.avatarUrl || s.avatar || s.profileUrl || null,
+        initials: initialsOf(name),
+        avatarColor: avatarColors[i % avatarColors.length],
+        classroom: classroomName,
+        semester: "Y2 S2",
+        midterm: scores.midterm,
+        final: scores.final,
+        assign: scores.assign,
+        quiz: scores.quiz,
+        attend: scores.attend,
+        total: totalPercent,
+        grade,
+        gpa,
+        status,
+        gradedBy: teacherName,
+      };
+    });
+  }, [students, matrixScores, selectedClassroomId, classrooms, teacherProfile]);
+
+  // Filtered rows
+  const filteredRows = useMemo(() => {
+    if (statusFilter === "All Statuses") return allRows;
+    return allRows.filter((r) => r.status === statusFilter);
+  }, [allRows, statusFilter]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const currentPageRows = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredRows.slice(start, start + PAGE_SIZE);
+  }, [filteredRows, page]);
+
+  // Summary stats
+  const stats = useMemo(() => {
+    if (allRows.length === 0) return { total: 0, passRate: "0%", avgScore: "0", atRisk: "0 Students" };
+    const passed = allRows.filter((r) => r.status === "Passed").length;
+    const atRisk = allRows.filter((r) => r.status === "Failed" || r.total < 60).length;
+    const avg = Math.round(allRows.reduce((acc, r) => acc + r.total, 0) / allRows.length * 10) / 10;
+
+    return {
+      total: allRows.length,
+      passRate: `${Math.round((passed / allRows.length) * 100)}%`,
+      avgScore: `${calculateGradeLetter(avg)} (${avg})`,
+      atRisk: `${atRisk} Students`,
+    };
+  }, [allRows]);
+
+  const selectedClassroomObj = classrooms.find((c) => c.classroomId === selectedClassroomId);
+
+  function exportToCsv() {
+    if (allRows.length === 0) return;
+    const headers = [
+      "Student Code",
+      "Student Name",
+      "Classroom",
+      "Midterm (/100)",
+      "Final (/100)",
+      "Assignment (/20)",
+      "Quiz (/10)",
+      "Attendance (/10)",
+      "Total (%)",
+      "Grade",
+      "GPA",
+      "Status",
+    ];
+    const csvLines = [headers.join(",")];
+
+    allRows.forEach((r) => {
+      const line = [
+        `"${r.studentCode}"`,
+        `"${r.name}"`,
+        `"${r.classroom}"`,
+        r.midterm !== "" ? r.midterm : 0,
+        r.final !== "" ? r.final : 0,
+        r.assign !== "" ? r.assign : 0,
+        r.quiz !== "" ? r.quiz : 0,
+        r.attend !== "" ? r.attend : 0,
+        `${r.total}%`,
+        r.grade,
+        r.gpa.toFixed(1),
+        r.status,
+      ];
+      csvLines.push(line.join(","));
+    });
+
+    const blob = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Gradebook_${selectedClassroomObj?.classCode || "Class"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <div className="min-h-screen bg-background px-6 py-6">
+    <div className="min-h-screen bg-background px-6 py-6 space-y-6">
+      {toastMsg && (
+        <div className="fixed top-5 right-5 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl animate-in fade-in slide-in-from-top-2">
+          {toastMsg}
+        </div>
+      )}
+
       {/* Stat cards */}
-      <div className="mb-6 grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={<Users className="h-5 w-5 text-primary-foreground" />}
           iconBg="bg-primary"
           label="Total Students"
-          value="42"
+          value={String(stats.total)}
         />
         <StatCard
           icon={<CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
           iconBg="bg-emerald-100 dark:bg-emerald-900/40"
           label="Pass Rate"
-          value="92.8%"
+          value={stats.passRate}
         />
         <StatCard
           icon={<TrendingUp className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
           iconBg="bg-amber-100 dark:bg-amber-900/40"
           label="Class Avg."
-          value="B (78.4)"
+          value={stats.avgScore}
         />
         <StatCard
           icon={<AlertTriangle className="h-5 w-5 text-rose-500 dark:text-rose-400" />}
           iconBg="bg-rose-100 dark:bg-rose-900/40"
           label="At Risk"
-          value="3 Students"
+          value={stats.atRisk}
         />
       </div>
- 
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+
+      {/* Filters Bar */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-wrap items-end gap-4">
+          {/* Classroom Selector */}
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Classroom</label>
-            <button className="flex w-56 items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm hover:bg-muted">
-              CS202 - Web Development
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </button>
+            <div className="relative">
+              <select
+                value={selectedClassroomId}
+                onChange={(e) => {
+                  setSelectedClassroomId(e.target.value);
+                  setPage(1);
+                }}
+                disabled={loadingClassrooms}
+                className="w-64 appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-semibold text-card-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+              >
+                {classrooms.length === 0 && <option value="">No classrooms found</option>}
+                {classrooms.map((c) => (
+                  <option key={c.classroomId} value={c.classroomId}>
+                    {c.className} ({c.classCode || "Class"})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-muted-foreground" />
+            </div>
           </div>
+
+          {/* Semester Selector */}
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Semester</label>
-            <button className="flex w-28 items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm hover:bg-muted">
-              2
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </button>
+            <div className="relative">
+              <select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
+                className="w-36 appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-semibold text-card-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+              >
+                <option value="Semester 1">Semester 1</option>
+                <option value="Semester 2">Semester 2</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-muted-foreground" />
+            </div>
           </div>
+
+          {/* Status Filter */}
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
-            <button className="flex w-36 items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm hover:bg-muted">
-              All Statuses
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </button>
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="w-40 appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-semibold text-card-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+              >
+                <option value="All Statuses">All Statuses</option>
+                <option value="Passed">Passed</option>
+                <option value="Failed">Failed</option>
+                <option value="Pending">Pending</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-muted-foreground" />
+            </div>
           </div>
         </div>
- 
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:opacity-90">
-          <SlidersHorizontal className="h-4 w-4" />
-          Apply Filters
-        </button>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={handleSaveAllScores}
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? "Saving Grades..." : "Save All Scores"}
+          </button>
+        </div>
       </div>
- 
+
       {/* Grade book table */}
-      <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
           <div>
             <h2 className="text-base font-semibold text-card-foreground">Grade Book</h2>
-            <p className="text-xs text-muted-foreground">Class: Web Development II (CS202-A)</p>
+            <p className="text-xs text-muted-foreground">
+              Class: <strong>{selectedClassroomObj?.className || "Classroom"}</strong> ({selectedClassroomObj?.classCode || "Code"})
+            </p>
           </div>
-          <button className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-card-foreground shadow-sm hover:bg-muted">
+          <button
+            type="button"
+            onClick={exportToCsv}
+            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-card-foreground shadow-sm hover:bg-muted"
+          >
             <Download className="h-4 w-4" />
             Export to CSV
           </button>
         </div>
- 
+
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[1000px] text-left text-sm">
             <thead>
               <tr className="bg-muted text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-5 py-3 font-medium">Student</th>
                 <th className="px-3 py-3 font-medium">Classroom</th>
                 <th className="px-3 py-3 font-medium">Semester</th>
-                <th className="px-3 py-3 font-medium">Midterm</th>
-                <th className="px-3 py-3 font-medium">Final</th>
-                <th className="px-3 py-3 font-medium">Assign</th>
-                <th className="px-3 py-3 font-medium">Quiz</th>
-                <th className="px-3 py-3 font-medium">Attend</th>
-                <th className="px-3 py-3 font-medium">Total</th>
-                <th className="px-3 py-3 font-medium">Grade</th>
-                <th className="px-3 py-3 font-medium">GPA</th>
+                <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
+                  Midterm (/100)
+                </th>
+                <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
+                  Final (/100)
+                </th>
+                <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
+                  Assign (/20)
+                </th>
+                <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
+                  Quiz (/10)
+                </th>
+                <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
+                  Attend (/10)
+                </th>
+                <th className="px-3 py-3 font-medium text-center">Total</th>
+                <th className="px-3 py-3 font-medium text-center">Grade</th>
+                <th className="px-3 py-3 font-medium text-center">GPA</th>
                 <th className="px-3 py-3 font-medium">Status</th>
                 <th className="px-3 py-3 font-medium">Graded by</th>
-                <th className="px-3 py-3 font-medium">Actions</th>
+                <th className="px-3 py-3 font-medium text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {pageStudents.map((s, i) => (
-                <tr
-                  key={`${s.id}-${page}-${i}`}
-                  className="border-b border-border last:border-0 hover:bg-muted/60"
-                >
-                  <td className="flex items-center gap-3 px-5 py-3.5">
-                    <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${s.avatarColor}`}
-                    >
-                      {s.initials}
-                    </div>
-                    <span className="font-medium text-card-foreground">{s.name}</span>
-                  </td>
-                  <td className="px-3 py-3.5 text-muted-foreground">{s.classroom}</td>
-                  <td className="px-3 py-3.5 text-muted-foreground">{s.semester}</td>
-                  <td className="px-3 py-3.5 text-muted-foreground">{s.midterm}</td>
-                  <td className="px-3 py-3.5 text-muted-foreground">{s.final}</td>
-                  <td className="px-3 py-3.5 text-muted-foreground">{s.assign}</td>
-                  <td className="px-3 py-3.5 text-muted-foreground">{s.quiz}</td>
-                  <td className="px-3 py-3.5 text-muted-foreground">{s.attend}</td>
-                  <td className="px-3 py-3.5 font-medium text-card-foreground">{s.total}</td>
-                  <td className="px-3 py-3.5">
-                    <span
-                      className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold ${gradeStyles[s.grade]}`}
-                    >
-                      {s.grade}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3.5 text-muted-foreground">{s.gpa.toFixed(1)}</td>
-                  <td className="px-3 py-3.5">
-                    <span className={`flex items-center gap-1.5 text-xs font-medium ${statusStyles[s.status]}`}>
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          s.status === "Passed"
-                            ? "bg-emerald-500"
-                            : s.status === "Failed"
-                            ? "bg-rose-500"
-                            : "bg-muted-foreground/40"
-                        }`}
-                      />
-                      {s.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3.5 text-muted-foreground">{s.gradedBy}</td>
-                  <td className="px-3 py-3.5">
-                    <button aria-label="More actions" className="text-muted-foreground hover:text-card-foreground">
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
+              {loadingStudents || loadingScores ? (
+                <tr>
+                  <td colSpan={14} className="py-8 text-center text-sm text-muted-foreground">
+                    Loading student gradebook...
                   </td>
                 </tr>
-              ))}
+              ) : currentPageRows.length === 0 ? (
+                <tr>
+                  <td colSpan={14} className="py-8 text-center text-sm text-muted-foreground">
+                    No student rows found.
+                  </td>
+                </tr>
+              ) : (
+                currentPageRows.map((s, i) => (
+                  <tr
+                    key={`${s.studentId}-${i}`}
+                    className="border-b border-border last:border-0 hover:bg-muted/60 transition-colors"
+                  >
+                    {/* Student Info with Profile Avatar */}
+                    <td className="flex items-center gap-3.5 px-5 py-3.5">
+                      {s.avatarUrl ? (
+                        <img
+                          src={s.avatarUrl}
+                          alt={s.name}
+                          className="h-9 w-9 rounded-full object-cover ring-2 ring-indigo-500/20 shadow-sm"
+                        />
+                      ) : (
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-sm ${s.avatarColor}`}
+                        >
+                          {s.initials}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-bold text-card-foreground hover:text-indigo-600 transition-colors">
+                          {s.name}
+                        </div>
+                        <div className="text-[11px] font-medium text-muted-foreground">
+                          {s.studentCode}
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="px-3 py-3.5 text-muted-foreground">{s.classroom}</td>
+                    <td className="px-3 py-3.5 text-muted-foreground">{s.semester}</td>
+
+                    {/* Interactive Editable Midterm Cell */}
+                    <td className="px-2 py-2 text-center bg-indigo-50/20 dark:bg-indigo-950/10">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={s.midterm}
+                        onChange={(e) => handleScoreCellChange(s.studentId, "midterm", e.target.value)}
+                        placeholder="-"
+                        className="w-16 rounded-md border border-indigo-200 bg-white px-2 py-1 text-center text-sm font-bold text-slate-900 shadow-none focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/30 dark:border-indigo-800 dark:bg-slate-900 dark:text-slate-100"
+                      />
+                    </td>
+
+                    {/* Interactive Editable Final Cell */}
+                    <td className="px-2 py-2 text-center bg-indigo-50/20 dark:bg-indigo-950/10">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={s.final}
+                        onChange={(e) => handleScoreCellChange(s.studentId, "final", e.target.value)}
+                        placeholder="-"
+                        className="w-16 rounded-md border border-indigo-200 bg-white px-2 py-1 text-center text-sm font-bold text-slate-900 shadow-none focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/30 dark:border-indigo-800 dark:bg-slate-900 dark:text-slate-100"
+                      />
+                    </td>
+
+                    {/* Interactive Editable Assign Cell */}
+                    <td className="px-2 py-2 text-center bg-indigo-50/20 dark:bg-indigo-950/10">
+                      <input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={s.assign}
+                        onChange={(e) => handleScoreCellChange(s.studentId, "assign", e.target.value)}
+                        placeholder="-"
+                        className="w-16 rounded-md border border-indigo-200 bg-white px-2 py-1 text-center text-sm font-bold text-slate-900 shadow-none focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/30 dark:border-indigo-800 dark:bg-slate-900 dark:text-slate-100"
+                      />
+                    </td>
+
+                    {/* Interactive Editable Quiz Cell */}
+                    <td className="px-2 py-2 text-center bg-indigo-50/20 dark:bg-indigo-950/10">
+                      <input
+                        type="number"
+                        min={0}
+                        max={10}
+                        value={s.quiz}
+                        onChange={(e) => handleScoreCellChange(s.studentId, "quiz", e.target.value)}
+                        placeholder="-"
+                        className="w-16 rounded-md border border-indigo-200 bg-white px-2 py-1 text-center text-sm font-bold text-slate-900 shadow-none focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/30 dark:border-indigo-800 dark:bg-slate-900 dark:text-slate-100"
+                      />
+                    </td>
+
+                    {/* Interactive Editable Attend Cell */}
+                    <td className="px-2 py-2 text-center bg-indigo-50/20 dark:bg-indigo-950/10">
+                      <input
+                        type="number"
+                        min={0}
+                        max={10}
+                        value={s.attend}
+                        onChange={(e) => handleScoreCellChange(s.studentId, "attend", e.target.value)}
+                        placeholder="-"
+                        className="w-16 rounded-md border border-indigo-200 bg-white px-2 py-1 text-center text-sm font-bold text-slate-900 shadow-none focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/30 dark:border-indigo-800 dark:bg-slate-900 dark:text-slate-100"
+                      />
+                    </td>
+
+                    {/* Dynamic Total */}
+                    <td className="px-3 py-3.5 text-center font-bold text-card-foreground">
+                      {s.total}%
+                    </td>
+
+                    {/* Grade Badge */}
+                    <td className="px-3 py-3.5 text-center">
+                      <span
+                        className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold ${gradeStyles[s.grade]}`}
+                      >
+                        {s.grade}
+                      </span>
+                    </td>
+
+                    {/* GPA */}
+                    <td className="px-3 py-3.5 text-center text-muted-foreground font-semibold">
+                      {s.gpa.toFixed(1)}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-3 py-3.5">
+                      <span className={`flex items-center gap-1.5 text-xs font-medium ${statusStyles[s.status]}`}>
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            s.status === "Passed"
+                              ? "bg-emerald-500"
+                              : s.status === "Failed"
+                              ? "bg-rose-500"
+                              : "bg-muted-foreground/40"
+                          }`}
+                        />
+                        {s.status}
+                      </span>
+                    </td>
+
+                    <td className="px-3 py-3.5 text-muted-foreground">{s.gradedBy}</td>
+
+                    <td className="px-3 py-3.5 text-center">
+                      <button
+                        type="button"
+                        aria-label="More actions"
+                        className="text-muted-foreground hover:text-card-foreground"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
- 
+
         {/* Pagination */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-3 text-sm">
           <span className="text-muted-foreground">
-            Showing {showingFrom}-{showingTo} of {totalStudents} students
+            Showing {filteredRows.length > 0 ? (page - 1) * PAGE_SIZE + 1 : 0}-
+            {Math.min(page * PAGE_SIZE, filteredRows.length)} of {filteredRows.length} students
           </span>
           <div className="flex items-center gap-1">
             <button
@@ -349,27 +778,21 @@ export default function Attendan2Grades() {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
- 
-            {pageNumbers.map((n, i) =>
-              n === "…" ? (
-                <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">
-                  …
-                </span>
-              ) : (
-                <button
-                  key={n}
-                  onClick={() => setPage(n)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium ${
-                    n === page
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border text-card-foreground hover:bg-muted"
-                  }`}
-                >
-                  {n}
-                </button>
-              )
-            )}
- 
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                onClick={() => setPage(n)}
+                className={`flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium ${
+                  n === page
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-card-foreground hover:bg-muted"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}

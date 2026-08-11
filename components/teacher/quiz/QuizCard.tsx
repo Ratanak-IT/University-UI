@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { HelpCircle, Clock, MoreVertical, Copy, Trash2, Pencil } from "lucide-react";
+import { HelpCircle, Clock, MoreVertical, Copy, Trash2, Pencil, Send } from "lucide-react";
 
 import StatusBadge from "./StatusBadge";
 import { Quiz } from "@/lib/types/quiz";
@@ -10,6 +10,7 @@ interface QuizCardProps {
   quiz: Quiz;
   onPreview?: (quiz: Quiz) => void;
   onEdit?: (quiz: Quiz) => void;
+  onAssign?: (quiz: Quiz) => void;
   onDuplicate?: (quiz: Quiz) => void;
   onDelete?: (quiz: Quiz) => void;
 }
@@ -18,6 +19,7 @@ export default function QuizCard({
   quiz,
   onPreview,
   onEdit,
+  onAssign,
   onDuplicate,
   onDelete,
 }: QuizCardProps) {
@@ -52,7 +54,17 @@ export default function QuizCard({
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 z-10 mt-1 w-40 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg">
+            <div className="absolute right-0 z-10 mt-1 w-48 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onAssign?.(quiz);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/40"
+              >
+                <Send size={14} /> Assign to Classroom
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -107,20 +119,27 @@ export default function QuizCard({
       </div>
 
       {/* Actions */}
-      <div className="mt-4 flex gap-3">
+      <div className="mt-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => onAssign?.(quiz)}
+          className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-indigo-600 px-3 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700 shadow-sm"
+        >
+          <Send size={13} /> Assign
+        </button>
         <button
           type="button"
           onClick={() => onPreview?.(quiz)}
-          className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold text-card-foreground transition-colors hover:bg-muted"
+          className="flex-1 rounded-lg border border-border px-3 py-2.5 text-xs font-semibold text-card-foreground transition-colors hover:bg-muted"
         >
           Preview
         </button>
         <button
           type="button"
           onClick={() => onEdit?.(quiz)}
-          className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90"
+          className="flex-1 rounded-lg border border-border px-3 py-2.5 text-xs font-semibold text-card-foreground transition-colors hover:bg-muted"
         >
-          Edit Quiz
+          Edit
         </button>
       </div>
     </div>

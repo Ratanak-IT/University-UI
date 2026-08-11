@@ -1,8 +1,5 @@
-"use client";
-
-import { COURSES } from "@/lib/types/createEmptyQuestion";
-import { Link2 } from "lucide-react";
-
+import { useGetTeacherClassroomsQuery } from "@/lib/redux/apiSlice";
+import { Link2, Save, Send } from "lucide-react";
 
 interface CourseReferenceSidebarProps {
   courseId: string;
@@ -13,6 +10,7 @@ interface CourseReferenceSidebarProps {
   onContributesToFinalGradeChange: (value: boolean) => void;
   onSaveDraft: () => void;
   onPublish: () => void;
+  submitting?: boolean;
 }
 
 export function CourseReferenceSidebar({
@@ -24,46 +22,48 @@ export function CourseReferenceSidebar({
   onContributesToFinalGradeChange,
   onSaveDraft,
   onPublish,
+  submitting = false,
 }: CourseReferenceSidebarProps) {
+  const { data: classrooms = [] } = useGetTeacherClassroomsQuery();
+
   return (
     <>
-      <aside className="rounded-xl border border-border bg-card p-5">
+      <aside className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
-          <Link2 className="h-4 w-4 text-foreground" />
-          <h2 className="text-sm font-semibold tracking-wide text-foreground">
-            COURSE REFERENCE
+          <Link2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+          <h2 className="text-sm font-semibold tracking-wide text-foreground uppercase">
+            Classroom & Course Reference
           </h2>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm text-foreground">Associate with Course</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Assign to Classroom
+            </label>
             <select
               value={courseId}
               onChange={(e) => onCourseIdChange(e.target.value)}
-              className="w-full appearance-none rounded-md border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-600"
             >
-              <option value="">Select Course...</option>
-              {COURSES.map((course) => (
-                <option key={course} value={course}>
-                  {course}
+              <option value="">Select Classroom...</option>
+              {classrooms.map((c) => (
+                <option key={c.classroomId} value={c.classroomId}>
+                  {c.className} ({c.classCode || "Class"})
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm text-foreground">Topic/Module</label>
-            <select
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Topic / Module</label>
+            <input
+              type="text"
               value={topicId}
               onChange={(e) => onTopicIdChange(e.target.value)}
-              disabled={!courseId}
-              className="w-full appearance-none rounded-md border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <option value="">
-                {courseId ? "Select topic..." : "Select course first..."}
-              </option>
-            </select>
+              placeholder="E.g., Module 1: Introduction"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            />
           </div>
 
           <label className="flex items-center gap-2 text-sm text-foreground">
@@ -71,7 +71,7 @@ export function CourseReferenceSidebar({
               type="checkbox"
               checked={contributesToFinalGrade}
               onChange={(e) => onContributesToFinalGradeChange(e.target.checked)}
-              className="h-4 w-4 rounded border-border text-primary focus:ring-2 focus:ring-ring"
+              className="h-4 w-4 rounded border-border text-indigo-600 focus:ring-2 focus:ring-indigo-600"
             />
             Contributes to final grade
           </label>
@@ -81,17 +81,21 @@ export function CourseReferenceSidebar({
       <div className="flex items-center gap-3">
         <button
           type="button"
+          disabled={submitting}
           onClick={onSaveDraft}
-          className="flex-1 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
         >
-          Save Draft
+          <Save className="h-4 w-4" />
+          Save Draft (ទុកសិន)
         </button>
         <button
           type="button"
+          disabled={submitting}
           onClick={onPublish}
-          className="flex-1 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
         >
-          Publish Quiz
+          <Send className="h-4 w-4" />
+          Assign Immediately (assign ភ្លាមៗ)
         </button>
       </div>
     </>

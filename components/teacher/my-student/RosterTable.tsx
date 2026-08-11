@@ -3,9 +3,9 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { ChevronDown, Check } from "lucide-react";
-import { students as allStudents } from "../../../lib/data/students";
 import GradStatusBadge from "./GradStatusBadge";
 import Pagination from "./Pagination";
+import { StudentRosterItem } from "./StudentsPage";
 
 const PAGE_SIZE = 5;
 
@@ -86,44 +86,49 @@ function FilterSelect({
   );
 }
 
-export default function RosterTable() {
+export default function RosterTable({
+  students,
+  classroomNames,
+}: {
+  students: StudentRosterItem[];
+  classroomNames: string[];
+}) {
   const [page, setPage] = useState(1);
   const [classroomFilter, setClassroomFilter] = useState("all");
   const [yearFilter, setYearFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
   const classroomOptions = useMemo<FilterOption[]>(() => {
-    const unique = Array.from(new Set(allStudents.map((s) => s.className)));
     return [
       { label: "All Classrooms", value: "all" },
-      ...unique.map((c) => ({ label: c, value: c })),
+      ...classroomNames.map((c) => ({ label: c, value: c })),
     ];
-  }, []);
+  }, [classroomNames]);
 
   const yearOptions = useMemo<FilterOption[]>(() => {
-    const unique = Array.from(new Set(allStudents.map((s) => s.year))).sort();
+    const unique = Array.from(new Set(students.map((s) => s.year))).sort();
     return [
       { label: "Year Level", value: "all" },
       ...unique.map((y) => ({ label: String(y), value: String(y) })),
     ];
-  }, []);
+  }, [students]);
 
   const statusOptions = useMemo<FilterOption[]>(() => {
-    const unique = Array.from(new Set(allStudents.map((s) => s.gradStatus)));
+    const unique = Array.from(new Set(students.map((s) => s.gradStatus)));
     return [
       { label: "Status", value: "all" },
       ...unique.map((s) => ({ label: s, value: s })),
     ];
-  }, []);
+  }, [students]);
 
   const filteredStudents = useMemo(() => {
-    return allStudents.filter((s) => {
+    return students.filter((s) => {
       if (classroomFilter !== "all" && s.className !== classroomFilter) return false;
       if (yearFilter !== "all" && String(s.year) !== yearFilter) return false;
       if (statusFilter !== "all" && s.gradStatus !== statusFilter) return false;
       return true;
     });
-  }, [classroomFilter, yearFilter, statusFilter]);
+  }, [students, classroomFilter, yearFilter, statusFilter]);
 
   const totalStudents = filteredStudents.length;
   const totalPages = Math.max(1, Math.ceil(totalStudents / PAGE_SIZE));

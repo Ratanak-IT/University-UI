@@ -148,37 +148,63 @@ import { Quiz, QuizStatus, SortOption } from "@/lib/types/quiz";
 import { deleteQuiz, duplicateQuiz, getClassrooms, getQuizzes } from "@/lib/data/quizzes";
 import { useRouter } from "next/navigation";
 
+import {
+  useGetTeacherQuizzesQuery,
+  useGetQuizByIdQuery,
+  useDeleteTeacherQuizMutation,
+  useAssignQuizToClassroomMutation,
+  useGetTeacherClassroomsQuery,
+} from "@/lib/redux/apiSlice";
+
 type StatusFilter = QuizStatus | "all";
 type ClassroomFilter = string | "all";
 
 export default function QuizzesPageContent() {
   const router = useRouter();
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortOption>("dateModified");
   const [view, setView] = useState<ViewMode>("grid");
   const [classroom, setClassroom] = useState<ClassroomFilter>("all");
   const [classroomOptions, setClassroomOptions] = useState<string[]>([]);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  const loadQuizzes = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await getQuizzes({ status, sort, classroom });
-      setQuizzes(data);
-    } catch (err) {
-      setError("We couldn't load your quizzes. Please try again.");
-    } finally {
-      setIsLoading(false);
+  const { data: realQuizzes = [], isLoading, error: apiError } = useGetTeacherQuizzesQuery();
+  const { data: teacherClassrooms = [] } = useGetTeacherClassroomsQuery();
+
+  const [previewQuizId, setPreviewQuizId] = useState<string | null>(null);
+  const [assigningQuiz, setAssigningQuiz] = useState<Quiz | null>(null);
+  const [targetClassroomId, setTargetClassroomId] = useState<string>("");
+
+  const [deleteQuizMutation] = useDeleteTeacherQuizMutation();
+  const [assignQuizMutation, { isLoading: isAssigning }] = useAssignQuizToClassroomMutation();
+
+  const { data: activeQuizDetail } = useGetQuizByIdQuery(previewQuizId || "", {
+    skip: !previewQuizId,
+  });
+
+  const quizzes: Quiz[] = (() => {
+    if (!realQuizzes || realQuizzes.length === 0) return [];
+    let mapped: Quiz[] = realQuizzes.map((q) => ({
+      id: q.quizId,
+      title: q.title,
+      description: q.description || "No description provided.",
+      status: (q.status?.toLowerCase() as QuizStatus) || "published",
+      classroom: q.className || "Classroom",
+      questionCount: q.questions?.length || 0,
+      durationMinutes: q.durationMinutes || 30,
+      updatedAt: q.startAt || new Date().toISOString(),
+    }));
+
+    if (status !== "all") {
+      mapped = mapped.filter((q) => q.status === status);
     }
-  }, [status, sort, classroom]);
+    if (classroom !== "all") {
+      mapped = mapped.filter((q) => q.classroom === classroom);
+    }
+    return mapped;
+  })();
 
-  useEffect(() => {
-    loadQuizzes();
-  }, [loadQuizzes]);
+  const error = apiError ? "Failed to load quizzes from backend." : null;
 
   useEffect(() => {
     getClassrooms()
@@ -186,13 +212,39 @@ export default function QuizzesPageContent() {
       .catch((err) => console.error("Failed to load classrooms", err));
   }, []);
 
-  // --- Action handlers: wire these up to your routes / modals ------------
+  function triggerToast(msg: string) {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3500);
+  }
+
   const handlePreview = (quiz: Quiz) => {
-    console.log("Preview quiz:", quiz.id);
+    setPreviewQuizId(quiz.id);
   };
 
   const handleEdit = (quiz: Quiz) => {
-    console.log("Edit quiz:", quiz.id);
+    router.push(`/dashboard/teacher/quiz/create-quiz?editId=${quiz.id}`);
+  };
+
+  const handleAssign = (quiz: Quiz) => {
+    setAssigningQuiz(quiz);
+    setTargetClassroomId("");
+  };
+
+  const handleConfirmAssign = async () => {
+    if (!assigningQuiz || !targetClassroomId) {
+      triggerToast("Please select a classroom to assign.");
+      return;
+    }
+    try {
+      await assignQuizMutation({
+        quizId: assigningQuiz.id,
+        classroomId: targetClassroomId,
+      }).unwrap();
+      triggerToast(`Quiz "${assigningQuiz.title}" assigned successfully!`);
+      setAssigningQuiz(null);
+    } catch (err: any) {
+      triggerToast(err?.data?.message || "Failed to assign quiz to classroom.");
+    }
   };
 
   const handleCreate = () => {
@@ -200,22 +252,17 @@ export default function QuizzesPageContent() {
   };
 
   const handleDuplicate = async (quiz: Quiz) => {
-    const optimisticId = crypto.randomUUID();
     try {
-      const created = await duplicateQuiz(quiz.id);
-      setQuizzes((prev) => [created, ...prev]);
+      await duplicateQuiz(quiz.id);
     } catch (err) {
       console.error("Failed to duplicate quiz", err);
     }
   };
 
   const handleDelete = async (quiz: Quiz) => {
-    const previous = quizzes;
-    setQuizzes((prev) => prev.filter((q) => q.id !== quiz.id));
     try {
-      await deleteQuiz(quiz.id);
+      await deleteQuizMutation(quiz.id).unwrap();
     } catch (err) {
-      setQuizzes(previous);
       console.error("Failed to delete quiz", err);
     }
   };
@@ -252,6 +299,12 @@ export default function QuizzesPageContent() {
         classroomOptions={classroomOptions}
       />
 
+      {toastMsg && (
+        <div className="fixed top-5 right-5 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl animate-in fade-in slide-in-from-top-2">
+          {toastMsg}
+        </div>
+      )}
+
       {error && (
         <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -271,10 +324,173 @@ export default function QuizzesPageContent() {
           quizzes={quizzes}
           onPreview={handlePreview}
           onEdit={handleEdit}
+          onAssign={handleAssign}
           onDuplicate={handleDuplicate}
           onDelete={handleDelete}
           onCreate={handleCreate}
         />
+      )}
+
+      {/* Assign to Classroom Modal */}
+      {assigningQuiz && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-5">
+            <div>
+              <span className="rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">
+                ASSIGN TO CLASSROOM
+              </span>
+              <h2 className="mt-2 text-xl font-bold text-slate-900 dark:text-slate-100">
+                {assigningQuiz.title}
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Select a classroom to publish this quiz to students.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Select Classroom
+              </label>
+              <select
+                value={targetClassroomId}
+                onChange={(e) => setTargetClassroomId(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-100"
+              >
+                <option value="">Select Classroom...</option>
+                {teacherClassrooms.map((c) => (
+                  <option key={c.classroomId} value={c.classroomId}>
+                    {c.className} ({c.classCode || "Class"})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setAssigningQuiz(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isAssigning}
+                onClick={handleConfirmAssign}
+                className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-sm"
+              >
+                {isAssigning ? "Assigning..." : "Assign Now"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Real Backend Quiz Preview Modal */}
+      {previewQuizId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">
+                    REAL BACKEND QUIZ PREVIEW
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {activeQuizDetail?.className || "Classroom"}
+                  </span>
+                </div>
+                <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">
+                  {activeQuizDetail?.title || "Loading Quiz..."}
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPreviewQuizId(null)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <p>{activeQuizDetail?.description || "No description provided."}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500">
+                  <span>⏱ Duration: <strong>{activeQuizDetail?.durationMinutes || 30} minutes</strong></span>
+                  <span>❓ Questions: <strong>{activeQuizDetail?.questions?.length || 0} items</strong></span>
+                  <span>🏷 Status: <strong className="capitalize">{activeQuizDetail?.status || "DRAFT"}</strong></span>
+                </div>
+              </div>
+
+              {/* Real Questions List from Backend */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                  Real Question Items from Database
+                </h3>
+
+                {activeQuizDetail?.questions && activeQuizDetail.questions.length > 0 ? (
+                  activeQuizDetail.questions.map((q: any, idx: number) => (
+                    <div
+                      key={q.questionId || idx}
+                      className="rounded-xl border border-slate-200 bg-white p-5 space-y-3 dark:border-slate-800 dark:bg-slate-900/50"
+                    >
+                      <div className="flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                        <span>Question {idx + 1} of {activeQuizDetail.questions?.length}</span>
+                        <span>{q.score || 1} Point(s)</span>
+                      </div>
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                        {q.questionText}
+                      </p>
+                      <div className="space-y-2 pt-2">
+                        {(q.options || []).map((opt: any, i: number) => {
+                          const isCorrect = opt === q.correctAnswer;
+                          return (
+                            <div
+                              key={i}
+                              className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
+                                isCorrect
+                                  ? "border-emerald-600 bg-emerald-50/50 text-emerald-900 dark:border-emerald-500 dark:bg-emerald-950/30 dark:text-emerald-200"
+                                  : "border-slate-200 bg-slate-50/50 text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
+                              }`}
+                            >
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs font-bold">
+                                {String.fromCharCode(65 + i)}
+                              </span>
+                              <span>{opt}</span>
+                              {isCorrect && (
+                                <span className="ml-auto text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                  ✓ Correct Answer
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-xl border border-slate-200 p-6 text-center text-sm text-slate-500">
+                    No questions added to this quiz yet.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/50">
+              <button
+                type="button"
+                onClick={() => setPreviewQuizId(null)}
+                className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-200"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
