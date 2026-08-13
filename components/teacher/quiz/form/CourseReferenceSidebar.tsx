@@ -1,0 +1,103 @@
+import { useGetTeacherClassroomsQuery } from "@/lib/redux/apiSlice";
+import { Link2, Save, Send } from "lucide-react";
+
+interface CourseReferenceSidebarProps {
+  courseId: string;
+  onCourseIdChange: (value: string) => void;
+  topicId: string;
+  onTopicIdChange: (value: string) => void;
+  contributesToFinalGrade: boolean;
+  onContributesToFinalGradeChange: (value: boolean) => void;
+  onSaveDraft: () => void;
+  onPublish: () => void;
+  submitting?: boolean;
+}
+
+export function CourseReferenceSidebar({
+  courseId,
+  onCourseIdChange,
+  topicId,
+  onTopicIdChange,
+  contributesToFinalGrade,
+  onContributesToFinalGradeChange,
+  onSaveDraft,
+  onPublish,
+  submitting = false,
+}: CourseReferenceSidebarProps) {
+  const { data: classrooms = [] } = useGetTeacherClassroomsQuery();
+
+  return (
+    <>
+      <aside className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <Link2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+          <h2 className="text-sm font-semibold tracking-wide text-foreground uppercase">
+            Classroom & Course Reference
+          </h2>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Assign to Classroom
+            </label>
+            <select
+              value={courseId}
+              onChange={(e) => onCourseIdChange(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            >
+              <option value="">Select Classroom...</option>
+              {classrooms.map((c) => (
+                <option key={c.classroomId} value={c.classroomId}>
+                  {c.className} ({c.classCode || "Class"})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Topic / Module</label>
+            <input
+              type="text"
+              value={topicId}
+              onChange={(e) => onTopicIdChange(e.target.value)}
+              placeholder="E.g., Module 1: Introduction"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={contributesToFinalGrade}
+              onChange={(e) => onContributesToFinalGradeChange(e.target.checked)}
+              className="h-4 w-4 rounded border-border text-indigo-600 focus:ring-2 focus:ring-indigo-600"
+            />
+            Contributes to final grade
+          </label>
+        </div>
+      </aside>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={onSaveDraft}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+        >
+          <Save className="h-4 w-4" />
+          Save Draft (ទុកសិន)
+        </button>
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={onPublish}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
+        >
+          <Send className="h-4 w-4" />
+          Assign Immediately (assign ភ្លាមៗ)
+        </button>
+      </div>
+    </>
+  );
+}

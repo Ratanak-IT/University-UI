@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+#  University Management System — Student & Teacher Web Portal
 
-## Getting Started
+---
 
-First, run the development server:
+##  1. Project Overview & Goal
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The **University Management System (UMS) Student & Teacher Web Portal** is an intuitive, responsive web application engineered with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, and **Framer Motion**.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Designed to deliver an interactive experience for higher education institutions, this portal bridges students, instructors, and visitors. It features separate workspace dashboards for **Students** and **Teachers**, accompanied by public-facing marketing and information pages.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+##  2. Module & Feature Specifications
 
-## Learn More
+###  1. Student Portal (`/dashboard/student`)
+* **Student Dashboard (`/dashboard/student/dashboard`):** Overview of active classes, upcoming assignment deadlines, and performance metrics.
+* **Coursework & Submissions (`/assignments`, `/courses/assignment`):** Assignment workspace featuring instructions, file dropzones, and status tracking.
+* **Lesson & Course Hub (`/courses`, `/lessons`):** Streamable lecture content, module navigation, and downloadable resources.
+* **Quiz & Examination Portal (`/quizzes`):** Timed quiz attempt interface with real-time question navigation.
+* **Grades & Academic History (`/grades`):** Grade compilation, course score breakdowns, and semester GPAs.
+* **Schedule & Timetable (`/timetable`):** Weekly interactive class schedules.
+* **Attendance Tracking (`/attendance`):** Real-time student attendance history logging.
+* **Profile & Notifications (`/profile`, `/notifications`):** Student account settings and real-time activity feed.
 
-To learn more about Next.js, take a look at the following resources:
+###  2. Teacher Portal (`/dashboard/teacher`)
+* **Teacher Overview (`/overview`):** Central dashboard tracking class attendance snapshots, deadline reminders, and engagement analytics.
+* **Assignment Engine (`/assignments`, `/assignments/create`, `/[assignmentId]`):** Creation tool for publishing coursework with file attachments, deadlines, and criteria.
+* **Lesson Studio (`/lessons`, `/lessons/create-lesson`, `/[id]`):** Rich-text lesson builder and media attachment management.
+* **Classroom Workspace (`/my-classroom`, `/[id]`):** Classroom rosters, announcement feeds, student comment threads, and invite code generation.
+* **Student Roster & Monitoring (`/my-student`):** Directory tracking student progress and graduation statuses.
+* **Quiz Creation & Preview (`/quiz`, `/create-quiz`, `/preview-quiz`):** Tool for building question banks, assigning score weighting, and testing timed attempts.
+* **Gradebook & Attendance (`/grades`, `/attendance`):** Grading portal for evaluating coursework and logging attendance.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+###  3. Public Marketing & Landing Pages (`/homepage`, `/about-us`)
+* **Interactive Homepage (`/homepage`):** Hero section, category browser, featured courses, curriculum preview, instructor directory, and testimonials.
+* **About Us Hub (`/about-us`):** Institutional mission, vision, team directory, and faculty introductions.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+##  3. Tech Stack & Dependencies
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+* **Framework:** Next.js (App Router)
+* **Language:** TypeScript
+* **Styling & Layout:** Tailwind CSS, PostCSS
+* **Animation Engine:** Framer Motion
+* **Iconography:** Lucide React Icons, React Icons
+* **State & Data Handling:** Local mock API handlers (`lib/api`), dataset adapters (`lib/data`), and transcript calculators (`lib/transcript.ts`)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---

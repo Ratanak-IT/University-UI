@@ -1,7 +1,20 @@
-import React from 'react'
+import Hero from "@/components/about-us/Hero";
+import Teachers from "@/components/about-us/Teachers";
+import Team from "@/components/about-us/Team";
+import VisionMission from "@/components/about-us/VisionMission";
+import Navbar from "@/components/layout/Navbar";
 
-export default function page() {
+
+
+export default function AboutPage() {
   return (
-    <div>about-us</div>
-  )
+    <main className="bg-white">
+      <Navbar/>
+      <Hero />
+      {/* <Intro /> */}
+      <VisionMission />
+      <Teachers />
+      <Team />
+    </main>
+  );
 }
