@@ -24,6 +24,7 @@ import {
   StudentProfile,
 } from "@/lib/api/student";
 import Link from "next/link";
+import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 
 function AssignmentDetailInner() {
   const params = useSearchParams();
@@ -37,6 +38,7 @@ function AssignmentDetailInner() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -271,12 +273,10 @@ function AssignmentDetailInner() {
             <div className="mt-5 space-y-2">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500">ATTACHED MATERIALS</p>
               {a.assignmentFiles.map((f) => (
-                <a
+                <button
                   key={f.fileId}
-                  href={f.previewUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors"
+                  onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl })}
+                  className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-left cursor-pointer"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
                     <FileText className="h-4 w-4" />
@@ -284,7 +284,7 @@ function AssignmentDetailInner() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-900">{f.fileOriginalName}</p>
                   </div>
-                </a>
+                </button>
               ))}
             </div>
           )}
@@ -353,12 +353,10 @@ function AssignmentDetailInner() {
             {isSubmitted && a.submissionFiles && a.submissionFiles.length > 0 && (
               <div className="mt-4 space-y-2">
                 {a.submissionFiles.map((f) => (
-                  <a
+                  <button
                     key={f.fileId}
-                    href={f.previewUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors"
+                    onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl })}
+                    className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-left cursor-pointer"
                   >
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
                       <FileText className="h-4 w-4" />
@@ -366,7 +364,7 @@ function AssignmentDetailInner() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-semibold text-slate-900">{f.fileOriginalName}</p>
                     </div>
-                  </a>
+                  </button>
                 ))}
                 {a.submittedAt && (
                   <p className="flex items-center gap-1 text-xs text-slate-500 pt-1">
@@ -438,6 +436,17 @@ function AssignmentDetailInner() {
           </div>
         </div>
       </main>
+
+      {/* Secure File Viewer Modal */}
+      {viewerFile && (
+        <SecureFileViewerModal
+          isOpen={!!viewerFile}
+          onClose={() => setViewerFile(null)}
+          fileName={viewerFile.name}
+          fileUrl={viewerFile.url}
+          isVideo={viewerFile.isVideo}
+        />
+      )}
     </div>
   );
 }

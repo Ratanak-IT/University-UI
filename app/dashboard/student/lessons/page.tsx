@@ -8,6 +8,7 @@ import {
   LessonResponse,
   ClassroomResponse,
 } from "@/lib/api/student";
+import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 
 interface LessonItem extends LessonResponse {
   classCode: string;
@@ -17,6 +18,7 @@ interface LessonItem extends LessonResponse {
 export default function LessonsPage() {
   const [loading, setLoading] = useState(true);
   const [lessons, setLessons] = useState<LessonItem[]>([]);
+  const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -86,27 +88,23 @@ export default function LessonsPage() {
                     </span>
                     <span className="text-slate-500">{l.className}</span>
                     {l.videoLink && (
-                      <a
-                        href={l.videoLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1 text-indigo-600 hover:underline"
+                      <button
+                        onClick={() => setViewerFile({ name: `${l.title} (Video)`, url: l.videoLink || "", isVideo: true })}
+                        className="flex items-center gap-1 text-indigo-600 hover:underline cursor-pointer"
                       >
                         <PlayCircle className="h-3.5 w-3.5" strokeWidth={2} />
                         Video
-                      </a>
+                      </button>
                     )}
                     {l.files?.map((f) => (
-                      <a
+                      <button
                         key={f.fileId}
-                        href={f.previewUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1 text-slate-500 hover:text-indigo-600"
+                        onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl || "" })}
+                        className="flex items-center gap-1 text-slate-500 hover:text-indigo-600 cursor-pointer"
                       >
                         <FileText className="h-3.5 w-3.5" strokeWidth={2} />
                         {f.fileOriginalName}
-                      </a>
+                      </button>
                     ))}
                   </p>
                 </div>
@@ -122,6 +120,17 @@ export default function LessonsPage() {
             ))}
           </ul>
         </div>
+      )}
+
+      {/* Secure File Viewer Modal */}
+      {viewerFile && (
+        <SecureFileViewerModal
+          isOpen={!!viewerFile}
+          onClose={() => setViewerFile(null)}
+          fileName={viewerFile.name}
+          fileUrl={viewerFile.url}
+          isVideo={viewerFile.isVideo}
+        />
       )}
     </div>
   );

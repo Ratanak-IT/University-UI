@@ -35,6 +35,7 @@ export interface TeacherProfile {
   specialization: string;
   hireDate: string;
   employmentStatus: string;
+  avatarUrl?: string | null;
 }
 
 /** GET /api/v1/teachers/me */
@@ -50,6 +51,29 @@ export async function fetchTeacherProfile(): Promise<TeacherProfile | null> {
     return (await res.json()) as TeacherProfile;
   } catch (err) {
     console.error("fetchTeacherProfile:", err);
+    return null;
+  }
+}
+
+/** POST /api/v1/teachers/me/avatar */
+export async function uploadTeacherAvatar(file: File): Promise<TeacherProfile | null> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const headers = getAuthHeader();
+    const res = await fetch(`${API_BASE}/api/v1/teachers/me/avatar`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      console.warn(`uploadTeacherAvatar → ${res.status}`);
+      return null;
+    }
+    return (await res.json()) as TeacherProfile;
+  } catch (err) {
+    console.error("uploadTeacherAvatar:", err);
     return null;
   }
 }

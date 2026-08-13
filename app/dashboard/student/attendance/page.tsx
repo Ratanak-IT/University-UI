@@ -132,64 +132,6 @@ export default function StudentAttendancePage() {
         </div>
       ) : (
         <>
-          {/* Course Summary Cards */}
-          <div>
-            <h2 className="mb-4 text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-              Course Attendance Breakdown
-            </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {courseSummaries.map((c) => (
-                <div
-                  key={c.classroomId}
-                  onClick={() =>
-                    setFilterClassroom(
-                      filterClassroom === c.classroomId ? "ALL" : c.classroomId
-                    )
-                  }
-                  className={`cursor-pointer rounded-2xl border p-5 transition-all shadow-sm ${
-                    filterClassroom === c.classroomId
-                      ? "border-indigo-600 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-950/30"
-                      : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                        {c.course}
-                      </p>
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                        {c.code}
-                      </p>
-                    </div>
-                    <span className={`text-xl font-black ${rateColor(c.rate)}`}>
-                      {c.rate}%
-                    </span>
-                  </div>
-
-                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                    <div
-                      className={`h-full rounded-full ${barColor(c.rate)}`}
-                      style={{ width: `${c.rate}%` }}
-                    />
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>Attended: {c.attended} classes</span>
-                    <span>Total: {c.total} sessions</span>
-                  </div>
-
-                  {c.rate < 80 && (
-                    <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      Below 80% requirement
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Detailed Daily Attendance Table */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
@@ -197,7 +139,7 @@ export default function StudentAttendancePage() {
                 <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                 Detailed Log History
               </h2>
-
+              
               {/* Classroom filter dropdown */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">

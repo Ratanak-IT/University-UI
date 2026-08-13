@@ -21,6 +21,7 @@ import {
 } from "@/lib/redux/apiSlice";
 import { Loader2, FileText, Video, Users, MapPin, Calendar, BookOpen, Plus } from "lucide-react";
 import Link from "next/link";
+import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 
 interface ClassroomDetailViewProps {
   classroomId?: string;
@@ -33,6 +34,7 @@ export default function ClassroomDetailView({
 }: ClassroomDetailViewProps) {
   const [activeTab, setActiveTab] = useState("Stream");
   const [resolvedId, setResolvedId] = useState<string>(classroomId || "");
+  const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
 
   const tabs = ["Stream", "Lessons", "Assignments", "People"];
 
@@ -334,22 +336,25 @@ export default function ClassroomDetailView({
                         <p className="mt-2 text-sm text-slate-600 line-clamp-3">{l.content}</p>
                       )}
                       {l.videoLink && (
-                        <a href={l.videoLink} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-sm text-indigo-600 hover:underline">
+                        <button
+                          type="button"
+                          onClick={() => setViewerFile({ name: `${l.title} (Video)`, url: l.videoLink || "", isVideo: true })}
+                          className="mt-2 inline-flex items-center gap-1 text-sm text-indigo-600 hover:underline font-medium cursor-pointer"
+                        >
                           <Video className="h-4 w-4" /> Watch Video
-                        </a>
+                        </button>
                       )}
                       {l.files && l.files.length > 0 && (
                         <div className="mt-3 space-y-1">
                           {l.files.map((f) => (
-                            <a
+                            <button
                               key={f.fileId}
-                              href={f.previewUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex items-center gap-2 text-sm text-indigo-600 hover:underline"
+                              type="button"
+                              onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl || "", isVideo: false })}
+                              className="flex items-center gap-2 text-sm text-indigo-600 hover:underline font-medium cursor-pointer text-left"
                             >
                               <FileText className="h-3.5 w-3.5" /> {f.fileOriginalName}
-                            </a>
+                            </button>
                           ))}
                         </div>
                       )}
@@ -402,9 +407,14 @@ export default function ClassroomDetailView({
                           {a.files && a.files.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-2">
                               {a.files.map((f) => (
-                                <a key={f.fileId} href={f.previewUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50">
+                                <button
+                                  key={f.fileId}
+                                  type="button"
+                                  onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl, isVideo: false })}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 font-medium cursor-pointer"
+                                >
                                   <FileText className="h-3 w-3" /> {f.fileOriginalName}
-                                </a>
+                                </button>
                               ))}
                             </div>
                           )}
@@ -446,6 +456,15 @@ export default function ClassroomDetailView({
           </div>
         </div>
       </div>
+
+      {/* Protected In-App File Viewer Modal */}
+      <SecureFileViewerModal
+        isOpen={!!viewerFile}
+        onClose={() => setViewerFile(null)}
+        fileName={viewerFile?.name || ""}
+        fileUrl={viewerFile?.url || ""}
+        isVideo={viewerFile?.isVideo}
+      />
     </div>
   );
 }
