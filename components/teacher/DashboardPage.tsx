@@ -12,6 +12,8 @@ import {
   Cell,
 } from "recharts";
 import ClassroomCard from "./ClassroomCard";
+import { useGetTeacherClassroomsQuery } from "@/lib/redux/apiSlice";
+import { CardGridSkeleton } from "@/components/shared/Skeletons";
 
 
 const statCards = [
@@ -150,6 +152,7 @@ const attendance = [
 ];
 
 export default function DashboardPage() {
+  const { data: apiClassrooms = [], isLoading } = useGetTeacherClassroomsQuery();
   return (
     <div className="px-8 py-8">
       {/* Stat cards */}
@@ -283,11 +286,15 @@ export default function DashboardPage() {
               MANAGE ALL
             </a>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            {classrooms.map((room, i) => (
-              <ClassroomCard key={`${room.title}-${i}`} {...room} />
-            ))}
-          </div>
+          {isLoading ? (
+            <CardGridSkeleton count={4} />
+          ) : (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {classrooms.map((room, i) => (
+                <ClassroomCard key={`${room.title}-${i}`} {...room} />
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">

@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 };
 
 import ReduxProvider from "@/components/providers/ReduxProvider";
+import { ToastProvider } from "@/components/shared/Toast";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -39,10 +40,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             enableSystem
             disableTransitionOnChange
           >
-            {/* <Navbar/> */}
-            {children}
-            <Footer />
-            <ScrollToTopButton /> {/* <--- 2. Add component here */}
+            <ToastProvider>
+              {/* <Navbar/> */}
+              {children}
+              <Footer />
+              <ScrollToTopButton /> {/* <--- 2. Add component here */}
+            </ToastProvider>
           </ThemeProvider>
         </ReduxProvider>
       </body>

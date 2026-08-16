@@ -5,7 +5,6 @@ import { Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FileDropzone } from "./FileDropzone";
 import { RichTextEditor } from "./RichTextEditor";
-import { LessonSettingsPanel } from "./LessonSettingsPanel";
 import { createSavedLesson, createLessonForClassroom } from "@/lib/api/lesson";
 import { useSearchParams } from "next/navigation";
 import {
@@ -74,9 +73,9 @@ export function NewLessonForm() {
   }
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+    <div className="mx-auto w-full max-w-4xl">
       {/* Main form card */}
-      <div className="flex-1 rounded-xl border border-border bg-card">
+      <div className="w-full rounded-2xl border border-border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <h1 className="text-xl font-semibold text-foreground">New lesson</h1>
           <span className="text-sm text-muted-foreground">Form ID: {FORM_ID}</span>
@@ -162,17 +161,6 @@ export function NewLessonForm() {
           </button>
         </div>
       </div>
-
-      {/* Settings sidebar */}
-      <LessonSettingsPanel
-        allowDownload={form.allowDownload}
-        onAllowDownloadChange={(value) => update("allowDownload", value)}
-        drmProtectionLevel={form.drmProtectionLevel}
-        onDrmProtectionLevelChange={(value) => update("drmProtectionLevel", value)}
-        releaseDate={form.releaseDate}
-        onReleaseDateChange={(value) => update("releaseDate", value)}
-        timeLimit={form.timeLimit}
-      />
     </div>
   );
 }

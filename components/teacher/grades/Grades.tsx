@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/components/shared/Toast";
 import { useState, useMemo, useEffect } from "react";
 import {
   Users,
@@ -14,6 +15,7 @@ import {
   ChevronRight,
   SlidersHorizontal,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import {
   useGetTeacherClassroomsQuery,
@@ -23,6 +25,7 @@ import {
   useGetTeacherProfileQuery,
 } from "@/lib/redux/apiSlice";
 import { ExamType } from "@/lib/api/teacher";
+import ModernSelect from "@/components/shared/ModernSelect";
 
 type GradeLetter = "A" | "B" | "C" | "D" | "F";
 type Status = "Passed" | "Failed" | "Pending";
@@ -35,6 +38,9 @@ interface StudentScoreRow {
   initials: string;
   avatarColor: string;
   classroom: string;
+  yearLevel?: number;
+  yearLevelStr?: string;
+  semesterNum?: number;
   semester: string;
   midterm: number | "";
   final: number | "";
@@ -127,17 +133,42 @@ export default function Attendan2Grades() {
   const { data: teacherProfile } = useGetTeacherProfileQuery();
 
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>("");
-  const [selectedSemester, setSelectedSemester] = useState<string>("Semester 2");
+  const [selectedYearLevel, setSelectedYearLevel] = useState<string>("All Years");
+  const [selectedSemester, setSelectedSemester] = useState<string>("All Semesters");
   const [statusFilter, setStatusFilter] = useState<string>("All Statuses");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Set default classroom
+  // Filter classrooms by selected Year Level & Semester
+  const filteredClassrooms = useMemo(() => {
+    return classrooms.filter((c: any) => {
+      const yLevel = c.yearLevel || 2;
+      const matchYear =
+        selectedYearLevel === "All Years" ||
+        `Year ${yLevel}` === selectedYearLevel;
+
+      const sem = c.semester || 2;
+      const matchSemester =
+        selectedSemester === "All Semesters" ||
+        `Semester ${sem}` === selectedSemester;
+
+      return matchYear && matchSemester;
+    });
+  }, [classrooms, selectedYearLevel, selectedSemester]);
+
+  // Sync selectedClassroomId whenever filteredClassrooms or filters change
   useEffect(() => {
-    if (classrooms.length > 0 && !selectedClassroomId) {
-      setSelectedClassroomId(classrooms[0].classroomId);
+    if (filteredClassrooms.length > 0) {
+      const exists = filteredClassrooms.some((c: any) => c.classroomId === selectedClassroomId);
+      if (!exists) {
+        setSelectedClassroomId(filteredClassrooms[0].classroomId);
+        setPage(1);
+      }
+    } else if (selectedClassroomId) {
+      setSelectedClassroomId("");
     }
-  }, [classrooms, selectedClassroomId]);
+  }, [filteredClassrooms, selectedClassroomId]);
 
   const { data: students = [], isLoading: loadingStudents } = useGetClassroomStudentsQuery(
     selectedClassroomId,
@@ -202,8 +233,11 @@ export default function Attendan2Grades() {
   }, [students, examScores, selectedClassroomId]);
 
   function triggerToast(msg: string) {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3500);
+    if (msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("select")) {
+      toast.error(msg);
+    } else {
+      toast.success(msg);
+    }
   }
 
   function handleScoreCellChange(
@@ -337,6 +371,11 @@ export default function Attendan2Grades() {
         ? "Failed"
         : "Passed";
 
+      const yearLevel = s.yearLevel || selectedClassroomObj?.yearLevel || 2;
+      const semesterNum = s.semester || selectedClassroomObj?.semester || 2;
+      const semesterStr = `Semester ${semesterNum}`;
+      const yearLevelStr = `Year ${yearLevel}`;
+
       return {
         studentId,
         name,
@@ -345,7 +384,10 @@ export default function Attendan2Grades() {
         initials: initialsOf(name),
         avatarColor: avatarColors[i % avatarColors.length],
         classroom: classroomName,
-        semester: "Y2 S2",
+        yearLevel,
+        yearLevelStr,
+        semesterNum,
+        semester: semesterStr,
         midterm: scores.midterm,
         final: scores.final,
         assign: scores.assign,
@@ -360,11 +402,23 @@ export default function Attendan2Grades() {
     });
   }, [students, matrixScores, selectedClassroomId, classrooms, teacherProfile]);
 
-  // Filtered rows
+  // Filtered rows by status, year level, semester & student name/code search
   const filteredRows = useMemo(() => {
-    if (statusFilter === "All Statuses") return allRows;
-    return allRows.filter((r) => r.status === statusFilter);
-  }, [allRows, statusFilter]);
+    return allRows.filter((r) => {
+      const matchStatus =
+        statusFilter === "All Statuses" || r.status === statusFilter;
+      const matchSemester =
+        selectedSemester === "All Semesters" || r.semester === selectedSemester;
+      const matchYear =
+        selectedYearLevel === "All Years" || r.yearLevelStr === selectedYearLevel;
+      const q = searchQuery.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        r.name.toLowerCase().includes(q) ||
+        r.studentCode.toLowerCase().includes(q);
+      return matchStatus && matchSemester && matchYear && matchSearch;
+    });
+  }, [allRows, statusFilter, selectedSemester, selectedYearLevel, searchQuery]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
@@ -475,63 +529,98 @@ export default function Attendan2Grades() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-wrap items-end gap-4">
           {/* Classroom Selector */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Classroom</label>
-            <div className="relative">
-              <select
-                value={selectedClassroomId}
-                onChange={(e) => {
-                  setSelectedClassroomId(e.target.value);
-                  setPage(1);
-                }}
-                disabled={loadingClassrooms}
-                className="w-64 appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-semibold text-card-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-              >
-                {classrooms.length === 0 && <option value="">No classrooms found</option>}
-                {classrooms.map((c) => (
-                  <option key={c.classroomId} value={c.classroomId}>
-                    {c.className} ({c.classCode || "Class"})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-muted-foreground" />
-            </div>
+          <div className="w-64">
+            <ModernSelect
+              label="Classroom"
+              value={selectedClassroomId}
+              onChange={(val) => {
+                setSelectedClassroomId(val);
+                setPage(1);
+              }}
+              disabled={loadingClassrooms}
+              options={
+                filteredClassrooms.length === 0
+                  ? [{ value: "", label: "No classrooms for this Year/Semester" }]
+                  : filteredClassrooms.map((c: any) => ({
+                      value: c.classroomId,
+                      label: `${c.className} (${c.classCode || "Class"})`,
+                      badge: `Y${c.yearLevel || 2} S${c.semester || 2}`,
+                    }))
+              }
+            />
+          </div>
+
+          {/* Year Level Selector */}
+          <div className="w-36">
+            <ModernSelect
+              label="Year Level"
+              value={selectedYearLevel}
+              onChange={(val) => {
+                setSelectedYearLevel(val);
+                setPage(1);
+              }}
+              options={[
+                { value: "All Years", label: "All Years" },
+                { value: "Year 1", label: "Year 1" },
+                { value: "Year 2", label: "Year 2" },
+                { value: "Year 3", label: "Year 3" },
+                { value: "Year 4", label: "Year 4" },
+              ]}
+            />
           </div>
 
           {/* Semester Selector */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Semester</label>
-            <div className="relative">
-              <select
-                value={selectedSemester}
-                onChange={(e) => setSelectedSemester(e.target.value)}
-                className="w-36 appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-semibold text-card-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-              >
-                <option value="Semester 1">Semester 1</option>
-                <option value="Semester 2">Semester 2</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-muted-foreground" />
-            </div>
+          <div className="w-40">
+            <ModernSelect
+              label="Semester"
+              value={selectedSemester}
+              onChange={(val) => {
+                setSelectedSemester(val);
+                setPage(1);
+              }}
+              options={[
+                { value: "All Semesters", label: "All Semesters" },
+                { value: "Semester 1", label: "Semester 1" },
+                { value: "Semester 2", label: "Semester 2" },
+              ]}
+            />
           </div>
 
           {/* Status Filter */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+          <div className="w-44">
+            <ModernSelect
+              label="Status"
+              value={statusFilter}
+              onChange={(val) => {
+                setStatusFilter(val);
+                setPage(1);
+              }}
+              options={[
+                { value: "All Statuses", label: "All Statuses" },
+                { value: "Passed", label: "Passed" },
+                { value: "Failed", label: "Failed" },
+                { value: "Pending", label: "Pending" },
+              ]}
+            />
+          </div>
+
+          {/* Search Student */}
+          <div className="w-56">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Search Student
+            </label>
             <div className="relative">
-              <select
-                value={statusFilter}
+              <input
+                type="text"
+                placeholder="Search name or ID..."
+                value={searchQuery}
                 onChange={(e) => {
-                  setStatusFilter(e.target.value);
+                  setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-40 appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-semibold text-card-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-              >
-                <option value="All Statuses">All Statuses</option>
-                <option value="Passed">Passed</option>
-                <option value="Failed">Failed</option>
-                <option value="Pending">Pending</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 shadow-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+              />
+              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             </div>
           </div>
         </div>

@@ -1,6 +1,14 @@
 // ─── Centralized Lesson API Service ───────────────────────────────────
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081";
+import { API_BASE } from "./config";
+export {
+  useGetSavedLessonsQuery,
+  useCreateSavedLessonMutation,
+  useAssignLessonToClassroomMutation,
+  useGetClassroomLessonsQuery,
+} from "@/lib/redux/apiSlice";
+
+
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window !== "undefined") {
@@ -153,6 +161,50 @@ export async function createLessonForClassroom(
     return (await res.json()) as LessonResponse;
   } catch (err) {
     console.error("createLessonForClassroom:", err);
+    return null;
+  }
+}
+
+/** DELETE /api/v1/lessons/{lessonId} - Delete a lesson */
+export async function deleteLesson(lessonId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/lessons/${lessonId}`, {
+      method: "DELETE",
+      headers: { ...getAuthHeader() },
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("deleteLesson:", err);
+    return false;
+  }
+}
+
+/** PUT /api/v1/lessons/{lessonId} - Update an existing lesson */
+export async function updateLesson(
+  lessonId: string,
+  payload: {
+    title?: string;
+    content?: string;
+    videoLink?: string;
+    allowDownload?: boolean;
+  }
+): Promise<LessonResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/lessons/${lessonId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      console.warn(`updateLesson → ${res.status}`);
+      return null;
+    }
+    return (await res.json()) as LessonResponse;
+  } catch (err) {
+    console.error("updateLesson:", err);
     return null;
   }
 }

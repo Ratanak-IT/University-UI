@@ -16,6 +16,7 @@ import {
   X,
   Play,
 } from "lucide-react";
+import ModernSelect from "@/components/shared/ModernSelect";
 import {
   fetchMyClassrooms,
   fetchMyProfile,
@@ -238,37 +239,36 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-slate-50">
+    <div className="flex min-h-screen w-full flex-col bg-slate-50 dark:bg-slate-950 transition-colors">
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 px-4 py-6 sm:px-6 lg:px-8">
         {/* Classroom selector header */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-black tracking-tight text-indigo-950 sm:text-2xl">
+              <h1 className="text-xl font-black tracking-tight text-indigo-950 dark:text-slate-100 sm:text-2xl">
                 {current?.className}
               </h1>
-              <p className="mt-1 text-sm font-medium text-slate-500">
-                Teacher: <span className="font-semibold text-slate-700">{current?.teacherName ?? "—"}</span> &nbsp;•&nbsp; {current?.academicYear ?? ""} &nbsp;•&nbsp; Semester {current?.semester ?? ""}
+              <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
+                Teacher: <span className="font-semibold text-slate-700 dark:text-slate-200">{current?.teacherName ?? "—"}</span> &nbsp;•&nbsp; {current?.academicYear ?? ""} &nbsp;•&nbsp; Semester {current?.semester ?? ""}
               </p>
             </div>
             {classrooms.length > 1 && (
-              <select
-                value={selectedClassroom ?? ""}
-                onChange={(e) => setSelectedClassroom(e.target.value)}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-600/10"
-              >
-                {classrooms.map((c) => (
-                  <option key={c.classroomId} value={c.classroomId}>
-                    {c.className} ({c.classCode})
-                  </option>
-                ))}
-              </select>
+              <div className="w-60">
+                <ModernSelect
+                  value={selectedClassroom ?? ""}
+                  onChange={(val) => setSelectedClassroom(val)}
+                  options={classrooms.map((c) => ({
+                    value: c.classroomId,
+                    label: `${c.className} (${c.classCode})`,
+                  }))}
+                />
+              </div>
             )}
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-wrap gap-1">
             {TABS.map((tab) => (
               <button
@@ -276,8 +276,8 @@ export default function CoursesPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
                   tab === activeTab
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
-                    : "text-slate-600 hover:bg-slate-100"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none"
+                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
               >
                 {tab}
@@ -288,7 +288,7 @@ export default function CoursesPage() {
 
         {loadingDetail ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
           </div>
         ) : (
           <>
@@ -297,48 +297,66 @@ export default function CoursesPage() {
               <div className="space-y-4">
                 {/* Stats cards */}
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-                    <p className="text-3xl font-black text-indigo-600">{lessons.length}</p>
-                    <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">Lessons</p>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{lessons.length}</p>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Lessons</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-                    <p className="text-3xl font-black text-amber-600">{assignments.length}</p>
-                    <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">Assignments</p>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <p className="text-3xl font-black text-amber-600 dark:text-amber-400">{assignments.length}</p>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Assignments</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-                    <p className="text-3xl font-black text-emerald-600">{quizzes.length}</p>
-                    <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">Quizzes</p>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{quizzes.length}</p>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Quizzes</p>
                   </div>
                 </div>
 
                 {/* Recent Activity */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 className="mb-4 text-base font-bold text-indigo-950">Classroom Content & Activity</h3>
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <h3 className="mb-4 text-base font-bold text-indigo-950 dark:text-slate-100">Classroom Content & Activity</h3>
                   {assignments.length === 0 && lessons.length === 0 && quizzes.length === 0 ? (
                     <p className="py-6 text-center text-sm font-medium text-slate-500">No content published in this classroom yet.</p>
                   ) : (
                     <div className="space-y-3">
-                      {assignments.map((a) => (
-                        <div key={a.assignmentId} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 p-4 transition-colors hover:bg-slate-50">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-                              <ClipboardCheck className="h-5 w-5" />
+                      {assignments.map((a) => {
+                        const isSubmitted = a.submissionStatus === "SUBMITTED" || a.submissionStatus === "TURNED IN" || a.submissionStatus === "GRADED";
+                        return (
+                          <div key={a.assignmentId} className={`flex items-center justify-between gap-3 rounded-xl border p-4 transition-colors ${
+                            isSubmitted ? "border-emerald-200 bg-emerald-50/30" : "border-slate-100 hover:bg-slate-50"
+                          }`}>
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                                isSubmitted ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                              }`}>
+                                <ClipboardCheck className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-bold text-slate-900">{a.title}</p>
+                                  {isSubmitted && (
+                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                                      SUBMITTED
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs font-medium text-slate-500">
+                                  Assignment • {a.maxScore} pts {a.dueDate ? `• Due ${new Date(a.dueDate).toLocaleDateString()}` : ""}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-sm font-bold text-slate-900">{a.title}</p>
-                              <p className="text-xs font-medium text-slate-500">
-                                Assignment • {a.maxScore} pts {a.dueDate ? `• Due ${new Date(a.dueDate).toLocaleDateString()}` : ""}
-                              </p>
-                            </div>
+                            <Link
+                              href={`/dashboard/student/courses/assignment?classroomId=${selectedClassroom}&assignmentId=${a.assignmentId}`}
+                              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-colors ${
+                                isSubmitted
+                                  ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                                  : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                              }`}
+                            >
+                              {isSubmitted ? "View Submission" : "View & Submit"} <ArrowRight className="h-3.5 w-3.5" />
+                            </Link>
                           </div>
-                          <Link
-                            href={`/dashboard/student/courses/assignment?classroomId=${selectedClassroom}&assignmentId=${a.assignmentId}`}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 px-3.5 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-100"
-                          >
-                            View & Submit <ArrowRight className="h-3.5 w-3.5" />
-                          </Link>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       {quizzes.map((q) => (
                         <div key={q.quizId} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 p-4 transition-colors hover:bg-slate-50">
@@ -443,27 +461,36 @@ export default function CoursesPage() {
                       const isSubmitted = a.submissionStatus === "SUBMITTED" || a.submissionStatus === "TURNED IN" || isGraded;
 
                       const statusColor = isGraded
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                         : isSubmitted
-                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                         : "bg-amber-50 text-amber-700 border-amber-200";
 
                       const statusLabel = isGraded
                         ? `GRADED: ${a.score}/${a.maxScore}`
                         : isSubmitted
-                        ? "TURNED IN"
+                        ? "SUBMITTED"
                         : "ASSIGNED";
+
+                      const cardStyle = isSubmitted
+                        ? "border-emerald-300 bg-emerald-50/30 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md";
+
+                      const buttonStyle = isSubmitted
+                        ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+                        : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200";
 
                       return (
                         <div
                           key={a.assignmentId}
-                          className="rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:border-indigo-300 hover:shadow-md"
+                          className={`rounded-2xl border p-5 transition-all ${cardStyle}`}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div className="space-y-1 min-w-0 flex-1">
                               <div className="flex items-center gap-2">
                                 <h4 className="text-base font-bold text-slate-900">{a.title}</h4>
-                                <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${statusColor}`}>
+                                <span className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-extrabold ${statusColor}`}>
+                                  {isSubmitted && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
                                   {statusLabel}
                                 </span>
                               </div>
@@ -485,7 +512,7 @@ export default function CoursesPage() {
                             <div className="shrink-0">
                               <Link
                                 href={`/dashboard/student/courses/assignment?classroomId=${selectedClassroom}&assignmentId=${a.assignmentId}`}
-                                className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 shadow-sm shadow-indigo-200"
+                                className={`flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors shadow-sm ${buttonStyle}`}
                               >
                                 <Upload className="h-4 w-4" />
                                 {isSubmitted ? "View Submission" : "Submit Assignment"}

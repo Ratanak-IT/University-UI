@@ -1,35 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.careerpatch.site";
+function getBackendOrigin(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    (process.env as Record<string, string | undefined>).NEXT_PUBLICE_BASE_API ||
+    "";
+
+  return raw
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/api\/v1$/i, "");
+}
 
 async function handleProxy(req: NextRequest) {
-  const pathname = req.nextUrl.pathname.replace(/^\/api\/proxy/, "/api/v1");
+  const backendBase = getBackendOrigin();
+  const pathname = req.nextUrl.pathname.replace(/^\/api\/proxy(\/api\/v1)?/, "/api/v1");
   const search = req.nextUrl.search;
-  const targetUrl = `${BACKEND_BASE}${pathname}${search}`;
+  const targetUrl = `${backendBase}${pathname}${search}`;
 
   const headers = new Headers();
   const authHeader = req.headers.get("authorization");
   if (authHeader) {
     headers.set("authorization", authHeader);
   }
-  headers.set("accept", "application/json");
+
+  const contentTypeHeader = req.headers.get("content-type");
+  if (contentTypeHeader) {
+    headers.set("content-type", contentTypeHeader);
+  }
+
+  const acceptHeader = req.headers.get("accept");
+  headers.set("accept", acceptHeader || "application/json");
 
   try {
     const body =
       req.method !== "GET" && req.method !== "HEAD"
-        ? await req.text()
+        ? await req.arrayBuffer()
         : undefined;
-
-    if (body) {
-      headers.set("content-type", req.headers.get("content-type") || "application/json");
-    }
 
     const backendRes = await fetch(targetUrl, {
       method: req.method,
       headers,
       body,
     });
+
+    if (backendRes.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
 
     const data = await backendRes.arrayBuffer();
     return new NextResponse(data, {

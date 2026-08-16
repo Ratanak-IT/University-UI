@@ -5,10 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GraduationCap, Users, Shield, Loader2, Eye, EyeOff } from "lucide-react";
-import { loginUser, fetchUserProfile } from "@/lib/api/auth";
+import { useLoginUserMutation } from "@/lib/redux/apiSlice";
+import { fetchUserProfile } from "@/lib/api/auth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [loginUser] = useLoginUserMutation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +29,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const loginRes = await loginUser(email, password);
+      const loginRes = await loginUser({ email: email.trim(), password }).unwrap();
       if (!loginRes) {
         setError("Invalid email or password. Please try again.");
         setLoading(false);

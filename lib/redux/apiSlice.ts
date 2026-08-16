@@ -62,12 +62,12 @@ export interface QuizManageResponse {
   }[];
 }
 
+import { API_BASE } from "../api/config";
+
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1`
-      : "https://api.careerpatch.site/api/v1",
+    baseUrl: `${API_BASE}/api/v1`,
     prepareHeaders: (headers) => {
       const token = getAuthHeaderToken();
       if (token) {
@@ -91,6 +91,11 @@ export const apiSlice = createApi({
     "ClassroomAssignments",
     "TeacherQuizzes",
     "Notifications",
+    "Auth",
+    "SavedLessons",
+    "SavedAssignments",
+    "Submissions",
+    "QuizAttempts",
   ],
   endpoints: (builder) => ({
     getClassroomById: builder.query<ClassroomResponse, string>({
@@ -296,6 +301,156 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Notifications"],
     }),
+
+    // --- Authentication ---
+    loginUser: builder.mutation<
+      { accessToken: string; refreshToken: string; tokenType: string; expiresIn: number; scope: string },
+      { email: string; password: string }
+    >({
+      query: (credentials) => ({
+        url: "/auth/login",
+        method: "POST",
+        body: credentials,
+      }),
+      invalidatesTags: ["Auth", "StudentProfile", "TeacherProfile"],
+    }),
+
+    getUserProfile: builder.query<
+      { id: string; keycloakId: string; email: string; fullName: string; role: "ADMIN" | "TEACHER" | "STUDENT"; isActive: boolean },
+      void
+    >({
+      query: () => "/auth/me",
+      providesTags: ["Auth"],
+    }),
+
+    // --- Saved Lessons ---
+    getSavedLessons: builder.query<any[], void>({
+      query: () => "/lessons/saved",
+      providesTags: ["SavedLessons"],
+    }),
+
+    createSavedLesson: builder.mutation<any, { title: string; contentType: string; contentUrl?: string; description?: string }>({
+      query: (payload) => ({
+        url: "/lessons/saved",
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["SavedLessons"],
+    }),
+
+    assignLessonToClassroom: builder.mutation<any, { lessonId: string; classroomId: string }>({
+      query: ({ lessonId, classroomId }) => ({
+        url: `/lessons/${lessonId}/assign/${classroomId}`,
+        method: "POST",
+      }),
+      invalidatesTags: ["ClassroomLessons"],
+    }),
+
+    // --- Saved Assignments ---
+    getSavedAssignments: builder.query<any[], void>({
+      query: () => "/assignments/saved",
+      providesTags: ["SavedAssignments"],
+    }),
+
+    createSavedAssignment: builder.mutation<any, { title: string; description?: string; maxScore?: number; fileUrl?: string }>({
+      query: (payload) => ({
+        url: "/assignments/saved",
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: ["SavedAssignments"],
+    }),
+
+    updateAssignment: builder.mutation<any, { assignmentId: string; title: string; description?: string; maxScore?: number; dueDate?: string }>({
+      query: ({ assignmentId, ...body }) => ({
+        url: `/assignments/${assignmentId}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["SavedAssignments", "ClassroomAssignments"],
+    }),
+
+    deleteAssignment: builder.mutation<void, string>({
+      query: (assignmentId) => ({
+        url: `/assignments/${assignmentId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["SavedAssignments", "ClassroomAssignments"],
+    }),
+
+    assignAssignmentToClassroom: builder.mutation<any, { assignmentId: string; classroomId: string; dueDate?: string }>({
+      query: ({ assignmentId, classroomId, dueDate }) => ({
+        url: `/assignments/${assignmentId}/assign/${classroomId}` + (dueDate ? `?dueDate=${encodeURIComponent(dueDate)}` : ""),
+        method: "POST",
+      }),
+      invalidatesTags: ["ClassroomAssignments"],
+    }),
+
+    // --- Assignment Submissions & Grading ---
+    getAssignmentDetail: builder.query<any, string>({
+      query: (id) => `/assignments/${id}`,
+      providesTags: ["ClassroomAssignments"],
+    }),
+
+    getAssignmentSubmissions: builder.query<any[], string>({
+      query: (assignmentId) => `/assignments/${assignmentId}/submissions`,
+      providesTags: ["Submissions"],
+    }),
+
+    gradeSubmission: builder.mutation<any, { submissionId: string; grade: number; feedback?: string }>({
+      query: ({ submissionId, grade, feedback }) => ({
+        url: `/submissions/${submissionId}/grade`,
+        method: "POST",
+        body: { grade, feedback },
+      }),
+      invalidatesTags: ["Submissions", "StudentGrades"],
+    }),
+
+    submitAssignment: builder.mutation<any, { assignmentId: string; fileUrl: string }>({
+      query: ({ assignmentId, fileUrl }) => ({
+        url: `/assignments/${assignmentId}/submissions`,
+        method: "POST",
+        body: { fileUrl },
+      }),
+      invalidatesTags: ["Submissions", "ClassroomAssignments"],
+    }),
+
+    // --- Avatars ---
+    uploadStudentAvatar: builder.mutation<{ avatarUrl: string }, FormData>({
+      query: (formData) => ({
+        url: "/students/me/avatar",
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["StudentProfile"],
+    }),
+
+    uploadTeacherAvatar: builder.mutation<{ avatarUrl: string }, FormData>({
+      query: (formData) => ({
+        url: "/teachers/me/avatar",
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["TeacherProfile"],
+    }),
+
+    // --- Quiz Attempts ---
+    startQuizAttempt: builder.mutation<any, { studentId: string; quizId: string }>({
+      query: ({ studentId, quizId }) => ({
+        url: `/students/${studentId}/quizzes/${quizId}/attempts`,
+        method: "POST",
+      }),
+      invalidatesTags: ["QuizAttempts"],
+    }),
+
+    submitQuizAttempt: builder.mutation<any, { studentId: string; quizId: string; attemptId: string; answers: any[] }>({
+      query: ({ studentId, quizId, attemptId, answers }) => ({
+        url: `/students/${studentId}/quizzes/${quizId}/attempts/${attemptId}`,
+        method: "POST",
+        body: { answers },
+      }),
+      invalidatesTags: ["QuizAttempts", "StudentGrades"],
+    }),
   }),
 });
 
@@ -326,4 +481,22 @@ export const {
   useGetMyNotificationsQuery,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
+  useLoginUserMutation,
+  useGetUserProfileQuery,
+  useGetSavedLessonsQuery,
+  useCreateSavedLessonMutation,
+  useAssignLessonToClassroomMutation,
+  useGetSavedAssignmentsQuery,
+  useCreateSavedAssignmentMutation,
+  useUpdateAssignmentMutation,
+  useDeleteAssignmentMutation,
+  useAssignAssignmentToClassroomMutation,
+  useGetAssignmentDetailQuery,
+  useGetAssignmentSubmissionsQuery,
+  useGradeSubmissionMutation,
+  useSubmitAssignmentMutation,
+  useUploadStudentAvatarMutation,
+  useUploadTeacherAvatarMutation,
+  useStartQuizAttemptMutation,
+  useSubmitQuizAttemptMutation,
 } = apiSlice;

@@ -16,13 +16,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Calendar, Clock, CheckCircle } from "lucide-react";
+import { Loader2, Calendar, Clock, CheckCircle, X } from "lucide-react";
 import AssignmentGroupCard from "./AssignmentGroupCard";
 import AssignmentsFilterBar from "./AssignmentsFilterBar";
 import { ClassroomFilter, AssignmentGroup, AssignmentItem } from "@/lib/types/AssignmentGroup";
 import { fetchSavedAssignments, assignSavedAssignment } from "@/lib/api/assignment";
 import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import { fetchClassroomAssignments } from "@/lib/api/student";
+import { useDeleteAssignmentMutation, useUpdateAssignmentMutation } from "@/lib/redux/apiSlice";
+import { toast } from "@/components/shared/Toast";
 
 export default function AssignmentGroups() {
   const [classroomFilter, setClassroomFilter] = useState<ClassroomFilter>("all");
@@ -36,6 +38,14 @@ export default function AssignmentGroups() {
   const [dueTime, setDueTime] = useState<string>("23:59");
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Edit Assignment Modal State
+  const [editingItem, setEditingItem] = useState<AssignmentItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const [deleteAssignmentMutation] = useDeleteAssignmentMutation();
+  const [updateAssignmentMutation] = useUpdateAssignmentMutation();
 
   const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([]);
 
@@ -146,6 +156,39 @@ export default function AssignmentGroups() {
     }
   }
 
+  async function handleDeleteAssignment(id: string) {
+    if (!confirm("Are you sure you want to delete this assignment?")) return;
+    try {
+      await deleteAssignmentMutation(id).unwrap();
+      toast.success("Assignment deleted successfully!");
+      loadData();
+    } catch {
+      toast.error("Failed to delete assignment. Please try again.");
+    }
+  }
+
+  function handleOpenEdit(item: AssignmentItem) {
+    setEditingItem(item);
+    setEditTitle(item.title);
+  }
+
+  async function handleConfirmEdit() {
+    if (!editingItem || !editTitle.trim()) return;
+    setSavingEdit(true);
+    try {
+      await updateAssignmentMutation({
+        assignmentId: editingItem.id,
+        title: editTitle,
+      }).unwrap();
+      toast.success("Assignment updated successfully!");
+      setEditingItem(null);
+      loadData();
+    } catch {
+      toast.error("Failed to update assignment.");
+    }
+    setSavingEdit(false);
+  }
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -174,6 +217,8 @@ export default function AssignmentGroups() {
             key={group.id}
             group={group}
             onAssign={handleAssignClick}
+            onEdit={handleOpenEdit}
+            onDelete={handleDeleteAssignment}
           />
         ))
       )}
@@ -284,6 +329,48 @@ export default function AssignmentGroups() {
                 ) : (
                   "Distribute"
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Assignment Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Edit Assignment</h3>
+              <button type="button" onClick={() => setEditingItem(null)} className="rounded-lg p-1 text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Assignment Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingEdit}
+                onClick={handleConfirmEdit}
+                className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
               </button>
             </div>
           </div>

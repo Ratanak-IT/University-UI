@@ -1,22 +1,21 @@
 export default function QuizCardSkeleton() {
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-start justify-between">
-        <div className="h-6 w-20 animate-pulse rounded-md bg-muted" />
-        <div className="h-6 w-6 animate-pulse rounded-md bg-muted" />
-      </div>
-      <div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
-      <div className="mt-3 h-4 w-full animate-pulse rounded bg-muted" />
-      <div className="mt-2 h-4 w-2/3 animate-pulse rounded bg-muted" />
-      <div className="mt-4 h-10 border-b border-border pb-4">
-        <div className="flex gap-4">
-          <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+    <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all dark:border-slate-800 dark:bg-slate-900">
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="h-6 w-20 animate-pulse rounded-full bg-slate-200/80 dark:bg-slate-800/80" />
+          <div className="h-6 w-16 animate-pulse rounded-full bg-slate-200/80 dark:bg-slate-800/80" />
         </div>
+        <div className="h-5 w-3/4 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+        <div className="mt-2 h-3.5 w-full animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+        <div className="mt-1.5 h-3.5 w-2/3 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
       </div>
-      <div className="mt-4 flex gap-3">
-        <div className="h-10 flex-1 animate-pulse rounded-lg bg-muted" />
-        <div className="h-10 flex-1 animate-pulse rounded-lg bg-muted" />
+
+      <div className="mt-6 border-t border-slate-100 pt-4 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <div className="h-4 w-28 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+          <div className="h-8 w-20 animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80" />
+        </div>
       </div>
     </div>
   );

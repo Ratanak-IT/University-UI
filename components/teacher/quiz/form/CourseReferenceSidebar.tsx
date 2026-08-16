@@ -83,19 +83,19 @@ export function CourseReferenceSidebar({
           type="button"
           disabled={submitting}
           onClick={onSaveDraft}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
-          Save Draft (ទុកសិន)
+          Save Quiz
         </button>
         <button
           type="button"
           disabled={submitting}
           onClick={onPublish}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
         >
           <Send className="h-4 w-4" />
-          Assign Immediately (assign ភ្លាមៗ)
+          Assign to Class
         </button>
       </div>
     </>

@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import RichTextEditor from "./RichTextEditor";
 import FileUploadZone from "./FileUploadZone";
-import LessonSettingsPanel from "./LessonSettingsPanel";
 import { createLesson, saveLessonDraft } from "./api";
 import {
   ENTRY_CATEGORY_LABELS,
@@ -229,22 +228,6 @@ export default function NewLessonForm({ classroomId = "" }: NewLessonFormProps) 
           </button>
         </div>
       </div>
-
-      <LessonSettingsPanel
-        allowDownload={form.allowDownload}
-        onAllowDownloadChange={(value) => updateField("allowDownload", value)}
-        drmProtectionLevel={form.drmProtectionLevel}
-        onDrmProtectionLevelChange={(value: DRMProtectionLevel) =>
-          updateField("drmProtectionLevel", value)
-        }
-        releaseDate={form.releaseDate}
-        onReleaseDateChange={(value) => updateField("releaseDate", value)}
-        timeLimitMinutes={form.timeLimitMinutes}
-        onTimeLimitMinutesChange={(value) =>
-          updateField("timeLimitMinutes", value)
-        }
-        lastSavedLabel={lastSavedLabel}
-      />
     </div>
   );
 }

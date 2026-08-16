@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/components/shared/Toast";
 import { useEffect, useState, useRef, ChangeEvent } from "react";
 import {
   ChevronLeft,
@@ -55,7 +56,6 @@ export default function DailyAttendancePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [rows, setRows] = useState<StudentAttendanceRow[]>([]);
   const [statusFilter, setStatusFilter] = useState<Status | "ALL">("ALL");
-  const [toast, setToast] = useState<string | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // RTK Query Hooks
@@ -118,8 +118,11 @@ export default function DailyAttendancePage() {
   }, [students, attendanceData]);
 
   function showToast(message: string) {
-    setToast(message);
-    setTimeout(() => setToast(null), 3500);
+    if (message.toLowerCase().includes("fail") || message.toLowerCase().includes("error")) {
+      toast.error(message);
+    } else {
+      toast.success(message);
+    }
   }
 
   function updateStudentStatus(studentId: string, status: Status) {
@@ -183,13 +186,6 @@ export default function DailyAttendancePage() {
 
   return (
     <div className="px-8 py-8 space-y-6">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-xl">
-          {toast}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>

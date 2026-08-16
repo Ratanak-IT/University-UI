@@ -1,5 +1,18 @@
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081";
+import { API_BASE } from "./config";
+export {
+  useGetStudentProfileQuery,
+  useGetStudentAttendanceQuery,
+  useGetStudentCertificatesQuery,
+  useCreateCertificateRequestMutation,
+  useGetStudentGradesQuery,
+  useGetStudentGpaQuery,
+  useUploadStudentAvatarMutation,
+  useStartQuizAttemptMutation,
+  useSubmitQuizAttemptMutation,
+} from "@/lib/redux/apiSlice";
+
+
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window !== "undefined") {
@@ -45,6 +58,8 @@ export interface StudentProfile {
   gender: string;
   avatarUrl: string | null;
   graduationStatus: string;
+  major?: string;
+  department?: string;
 }
 
 export interface ClassroomResponse {

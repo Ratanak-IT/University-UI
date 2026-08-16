@@ -308,33 +308,6 @@ export default function Profile() {
 
         {/* RIGHT COLUMN */}
         <div className="flex flex-col gap-6">
-          {/* Account Lifecycle */}
-          <Card className="p-5">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground mb-4">
-              ACCOUNT LIFECYCLE
-            </p>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-card-foreground">
-                System Status
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 dark:bg-emerald-950/40 dark:text-emerald-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                {profile?.enabled ? "Active" : "Active"}
-              </span>
-            </div>
-            <div className="rounded-xl bg-primary/5 border border-primary/15 p-4 flex gap-3">
-              <ShieldCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-card-foreground">
-                  SSO Verification
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Authentication Managed via Keycloak SSO. Profile sync
-                  active.
-                </p>
-              </div>
-            </div>
-          </Card>
 
           {/* HR & Employment */}
           <Card className="p-5">

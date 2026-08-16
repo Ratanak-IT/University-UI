@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { Search, Bell, Moon, Sun } from "lucide-react";
-import Image from "next/image";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import HeaderGlobalSearch from "@/components/shared/HeaderGlobalSearch";
 
 export default function DashboardNavbar() {
   const { theme, setTheme } = useTheme();
@@ -32,16 +32,7 @@ export default function DashboardNavbar() {
         </p>
       </div>
 
-      <div className="relative w-full max-w-xl mx-8">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-          <Search className="h-5 w-5 text-[#5c6f84] dark:text-slate-400" />
-        </div>
-        <input
-          type="text"
-          placeholder="Search students, classes, or files..."
-          className="w-full rounded-xl border border-[#cbd5e1] bg-[#f1f5f9]/60 py-2.5 pl-12 pr-4 text-sm text-gray-700 placeholder-[#64748b] transition-all focus:border-[#004071] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#004071] dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-sky-500 dark:focus:bg-slate-800 dark:focus:ring-sky-500"
-        />
-      </div>
+      <HeaderGlobalSearch placeholder="Search students, classes, or files..." />
 
       <div className="flex items-center gap-6">
         <Link
@@ -69,11 +60,10 @@ export default function DashboardNavbar() {
           className="relative h-10 w-10 overflow-hidden rounded-full border border-gray-200 ring-2 ring-transparent transition-all hover:ring-gray-300 dark:border-slate-700 dark:hover:ring-slate-600 shrink-0"
         >
           {profile?.avatarUrl ? (
-            <Image
+            <img
               src={profile.avatarUrl}
               alt="User profile"
-              fill
-              className="object-cover"
+              className="h-full w-full object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-bold text-xs">

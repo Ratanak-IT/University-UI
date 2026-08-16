@@ -1,6 +1,18 @@
 // ─── Centralized Assignment API Service ──────────────────────────────
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081";
+import { API_BASE } from "./config";
+export {
+  useGetSavedAssignmentsQuery,
+  useCreateSavedAssignmentMutation,
+  useAssignAssignmentToClassroomMutation,
+  useGetClassroomAssignmentsQuery,
+  useGetAssignmentDetailQuery,
+  useGetAssignmentSubmissionsQuery,
+  useGradeSubmissionMutation,
+  useSubmitAssignmentMutation,
+} from "@/lib/redux/apiSlice";
+
+
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window !== "undefined") {

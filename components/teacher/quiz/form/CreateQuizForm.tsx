@@ -1,7 +1,9 @@
 "use client";
 
+import { toast } from "@/components/shared/Toast";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Save, Send, Loader2 } from "lucide-react";
 import { CourseReferenceSidebar } from "./CourseReferenceSidebar";
 import { initialQuizFormData, QuizFormData, createEmptyQuestion } from "@/lib/types/createEmptyQuestion";
 import { QuizDetailsSection } from "./QuizDetailsSection";
@@ -14,6 +16,7 @@ import {
   useUpdateTeacherQuizMutation,
   useAssignQuizToClassroomMutation,
   useGetTeacherQuizzesQuery,
+  useGetQuizByIdQuery,
 } from "@/lib/redux/apiSlice";
 
 export function CreateQuizForm() {
@@ -22,9 +25,8 @@ export function CreateQuizForm() {
   const editId = searchParams.get("editId");
 
   const [form, setForm] = useState<QuizFormData>(initialQuizFormData);
-  const [toast, setToast] = useState<string | null>(null);
 
-  const { data: quizzes = [] } = useGetTeacherQuizzesQuery(undefined, { skip: !editId });
+  const { data: targetQuiz } = useGetQuizByIdQuery(editId || "", { skip: !editId });
 
   const [createQuiz, { isLoading: creating }] = useCreateTeacherQuizMutation();
   const [updateQuiz, { isLoading: updating }] = useUpdateTeacherQuizMutation();
@@ -33,57 +35,111 @@ export function CreateQuizForm() {
   const submitting = creating || updating || assigning;
 
   useEffect(() => {
-    if (!editId || !quizzes || quizzes.length === 0) return;
-    const target = quizzes.find((q) => q.quizId === editId);
-    if (target) {
-      setForm({
-        title: target.title || "",
-        description: target.description || "",
-        openingDate: target.startAt ? target.startAt.split("T")[0] : "",
-        timeLimitMinutes: String(target.durationMinutes || 30),
-        courseId: target.classroomId || "",
-        topicId: "Module 1",
-        contributesToFinalGrade: true,
-        questions: target.questions && target.questions.length > 0
-          ? target.questions.map((q, idx) => ({
+    if (!editId || !targetQuiz) return;
+    setForm({
+      title: targetQuiz.title || "",
+      description: targetQuiz.description || "",
+      openingDate: targetQuiz.startAt ? targetQuiz.startAt.split("T")[0] : "",
+      timeLimitMinutes: String(targetQuiz.durationMinutes || 30),
+      courseId: targetQuiz.classroomId || "",
+      topicId: "Module 1",
+      contributesToFinalGrade: true,
+      questions: targetQuiz.questions && targetQuiz.questions.length > 0
+        ? targetQuiz.questions.map((q, idx) => {
+            const opts = q.options || ["Option A", "Option B"];
+            const correctIdx = opts.findIndex(
+              (opt) => (typeof opt === "string" ? opt : (opt as any)?.text) === q.correctAnswer
+            );
+            return {
               id: q.questionId || String(idx),
               content: q.questionText || "",
               type: "multiple_choice",
               points: q.score || 10,
-              options: (q.options || ["Option A", "Option B"]).map((opt, oIdx) => ({
+              options: opts.map((opt, oIdx) => ({
                 id: String(oIdx),
                 text: typeof opt === "string" ? opt : (opt as any)?.text || "Option",
               })),
-              correctOptionId: "0",
-            }))
-          : [createEmptyQuestion(0)],
-      });
-    }
-  }, [editId, quizzes]);
+              correctOptionId: String(correctIdx >= 0 ? correctIdx : 0),
+            };
+          })
+        : [createEmptyQuestion(0)],
+    });
+  }, [editId, targetQuiz]);
 
   function update<K extends keyof QuizFormData>(key: K, value: QuizFormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function showToastMsg(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3500);
+    if (msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("enter") || msg.toLowerCase().includes("select")) {
+      toast.error(msg);
+    } else {
+      toast.success(msg);
+    }
+  }
+
+  function parseErrorMsg(err: any, fallback: string): string {
+    console.error("API Error details:", err);
+    if (!err) return fallback;
+    if (typeof err === "string") return err;
+    const data = err.data || err;
+    if (typeof data === "string") return data;
+    if (data.message && typeof data.message === "string") return data.message;
+    if (data.error && typeof data.error === "string") return data.error;
+    if (typeof data === "object") {
+      try {
+        const entries = Object.entries(data).filter(([_, v]) => typeof v === "string");
+        if (entries.length > 0) {
+          return entries.map(([k, v]) => `${k}: ${v}`).join("; ");
+        }
+        const str = JSON.stringify(data);
+        if (str && str !== "{}" && str !== "[]") return str;
+      } catch (e) {}
+    }
+    if (err.message && typeof err.message === "string") return err.message;
+    return fallback;
   }
 
   function buildPayloadQuestions(questions: any[]) {
+    if (!questions || questions.length === 0) {
+      return [
+        {
+          questionText: "Sample Question 1",
+          options: ["Option A", "Option B"],
+          correctAnswer: "Option A",
+          score: 1.0,
+          questionOrder: 1,
+        },
+      ];
+    }
     return questions.map((q, idx) => {
       const optionTexts = (q.options || [])
-        .map((opt: any) => opt.text)
-        .filter((t: string) => Boolean(t && t.trim()));
-      const validOptions = optionTexts.length > 0 ? optionTexts : ["Option A", "Option B"];
-      const correctOpt = q.options?.find((opt: any) => opt.id === q.correctOptionId);
-      const correctAnswer = correctOpt?.text || validOptions[0];
+        .map((opt: any) => (typeof opt === "string" ? opt : opt?.text || "").trim())
+        .filter((t: string) => Boolean(t));
+      
+      const validOptions = optionTexts.length > 0
+        ? optionTexts
+        : ["Option A", "Option B"];
+      
+      let correctAnswer = validOptions[0];
+      if (q.correctOptionId !== undefined && q.options) {
+        const found = q.options.find((opt: any) => String(opt.id) === String(q.correctOptionId));
+        if (found) {
+          const txt = (typeof found === "string" ? found : found.text || "").trim();
+          if (txt) correctAnswer = txt;
+        }
+      }
+      if (!validOptions.includes(correctAnswer)) {
+        correctAnswer = validOptions[0];
+      }
+
+      const qText = (q.content || q.questionText || "").trim();
 
       return {
-        questionText: q.content || `Question ${idx + 1}`,
+        questionText: qText.length > 0 ? qText : `Question ${idx + 1}`,
         options: validOptions,
-        correctAnswer,
-        score: q.points || 1,
+        correctAnswer: correctAnswer,
+        score: Number(q.points) > 0 ? Number(q.points) : 1.0,
         questionOrder: idx + 1,
       };
     });
@@ -97,27 +153,31 @@ export function CreateQuizForm() {
 
     try {
       const payloadQuestions = buildPayloadQuestions(form.questions);
-      const payload = {
-        title: form.title,
+      const payload: any = {
+        title: form.title.trim(),
         description: form.description || "",
-        durationMinutes: Number(form.timeLimitMinutes) || 30,
+        durationMinutes: Math.max(1, Number(form.timeLimitMinutes) || 30),
         maxAttempts: 1,
-        questions: payloadQuestions,
       };
+
+      if (!editId && payloadQuestions) {
+        payload.questions = payloadQuestions;
+      }
 
       if (editId) {
         await updateQuiz({ quizId: editId, payload }).unwrap();
-        showToastMsg("Quiz updated in Real API (ទុកសិន) successfully!");
+        showToastMsg("Quiz updated successfully!");
       } else {
         await createQuiz(payload).unwrap();
-        showToastMsg("Quiz saved to Real API (ទុកសិន) successfully!");
+        showToastMsg("Quiz saved successfully!");
       }
 
       setTimeout(() => {
         router.push("/dashboard/teacher/quiz");
       }, 1000);
     } catch (err: any) {
-      showToastMsg(err?.data?.message || "Failed to save quiz. Please try again.");
+      console.error("Save Draft Error:", err);
+      showToastMsg(parseErrorMsg(err, "Failed to save quiz. Please check fields."));
     }
   }
 
@@ -127,20 +187,18 @@ export function CreateQuizForm() {
       return;
     }
 
-    if (!form.courseId) {
-      showToastMsg("Please select a classroom to assign this quiz to.");
-      return;
-    }
-
     try {
       const payloadQuestions = buildPayloadQuestions(form.questions);
-      const payload = {
-        title: form.title,
+      const payload: any = {
+        title: form.title.trim(),
         description: form.description || "",
-        durationMinutes: Number(form.timeLimitMinutes) || 30,
+        durationMinutes: Math.max(1, Number(form.timeLimitMinutes) || 30),
         maxAttempts: 1,
-        questions: payloadQuestions,
       };
+
+      if (!editId && payloadQuestions) {
+        payload.questions = payloadQuestions;
+      }
 
       let targetQuizId = editId;
 
@@ -152,30 +210,56 @@ export function CreateQuizForm() {
       }
 
       if (form.courseId && targetQuizId) {
-        await assignQuiz({ quizId: targetQuizId, classroomId: form.courseId }).unwrap();
+        try {
+          await assignQuiz({ quizId: targetQuizId, classroomId: form.courseId }).unwrap();
+        } catch (assignErr: any) {
+          console.warn("Classroom assign warning:", assignErr);
+        }
       }
 
-      showToastMsg("Quiz assigned to classroom (assign ភ្លាមៗ) successfully!");
+      showToastMsg(editId ? "Quiz updated successfully!" : "Quiz published successfully!");
       setTimeout(() => {
         router.push("/dashboard/teacher/quiz");
       }, 1000);
     } catch (err: any) {
-      showToastMsg(err?.data?.message || "Failed to publish quiz. Please try again.");
+      console.error("Publish Quiz Error:", err);
+      showToastMsg(parseErrorMsg(err, "Failed to update quiz. Please check required fields."));
     }
   }
 
   return (
     <div>
-      {toast && (
-        <div className="fixed top-5 right-5 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl animate-in fade-in slide-in-from-top-2">
-          {toast}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5 dark:border-slate-800">
+        <div>
+          <h1 className="text-3xl font-extrabold text-foreground">
+            {editId ? "Edit Quiz" : "Create New Quiz"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {editId ? "Update your assessment parameters, classroom assignment, and questions." : "Configure high-security assessment parameters, classroom assignment, and questions."}
+          </p>
         </div>
-      )}
 
-      <h1 className="text-3xl font-bold text-foreground">Create New Quiz</h1>
-      <p className="mt-1.5 text-muted-foreground">
-        Configure high-security assessment parameters, classroom assignment, and questions.
-      </p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={handleSaveDraft}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 disabled:opacity-50"
+          >
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Quiz
+          </button>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={handlePublish}
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-800 transition-colors shadow-sm disabled:opacity-50"
+          >
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {editId ? "Update & Assign" : "Assign to Class"}
+          </button>
+        </div>
+      </div>
 
       <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="flex-1 space-y-6">

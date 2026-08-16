@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronRight, Loader2 } from "lucide-react";
+import { TableRowsSkeleton } from "@/components/shared/Skeletons";
 import {
   useGetMyNotificationsQuery,
   useMarkNotificationReadMutation,
@@ -175,8 +176,9 @@ export default function NotificationsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background px-6 py-6 space-y-6">
+        <div className="h-14 w-1/4 animate-pulse rounded-xl bg-muted" />
+        <TableRowsSkeleton rows={6} cols={3} />
       </div>
     );
   }
