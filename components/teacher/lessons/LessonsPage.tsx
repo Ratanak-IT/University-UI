@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Send, CheckCircle } from "lucide-react";
+import { Loader2, Send, CheckCircle, Pencil } from "lucide-react";
 import LessonsFilterBar from "./LessonsFilterBar";
 import LessonCard from "./LessonCard";
 import LessonsPagination from "./LessonsPagination";
 import { Lesson, LessonFilter, ClassroomFilter } from "@/lib/types/Lesson";
-import { fetchSavedLessons, assignSavedLesson } from "@/lib/api/lesson";
+import { fetchSavedLessons, assignSavedLesson, deleteLesson, updateLesson } from "@/lib/api/lesson";
 import { fetchTeacherClassrooms } from "@/lib/api/teacher";
+import { toast } from "@/components/shared/Toast";
 
 const PAGE_SIZE = 6;
 
@@ -25,6 +26,46 @@ export default function LessonsPage() {
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>("");
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Edit Lesson Modal State
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [updating, setUpdating] = useState(false);
+
+  function handleOpenEditLesson(lesson: Lesson) {
+    setEditingLesson(lesson);
+    setEditTitle(lesson.title || "");
+    setEditContent(lesson.description || "");
+  }
+
+  async function handleSaveEditLesson() {
+    if (!editingLesson || !editTitle.trim()) return;
+    setUpdating(true);
+    const res = await updateLesson(editingLesson.id, {
+      title: editTitle.trim(),
+      content: editContent.trim(),
+    });
+    setUpdating(false);
+    if (res) {
+      toast.success("Lesson updated successfully!");
+      setEditingLesson(null);
+      loadData();
+    } else {
+      toast.error("Failed to update lesson. Please try again.");
+    }
+  }
+
+  async function handleDeleteLesson(lessonId: string) {
+    if (!confirm("Are you sure you want to delete this lesson?")) return;
+    const ok = await deleteLesson(lessonId);
+    if (ok) {
+      toast.success("Lesson deleted successfully!");
+      loadData();
+    } else {
+      toast.error("Failed to delete lesson. Please try again.");
+    }
+  }
 
   async function loadData() {
     setLoading(true);
@@ -44,6 +85,7 @@ export default function LessonsPage() {
             : new Date().toLocaleDateString(),
           status: l.classroomId ? "published" : "draft",
           thumbnail: "database",
+          classroomId: l.classroomId || undefined,
         }));
         setLessonsList(mapped);
       }
@@ -75,7 +117,7 @@ export default function LessonsPage() {
     if (classroom !== "all") {
       const targetClass = classrooms.find(c => c.name === classroom);
       if (targetClass) {
-        // Additional filtering logic would go here if needed
+        result = result.filter(lesson => lesson.classroomId === targetClass.id);
       }
     }
     return result;
@@ -105,7 +147,6 @@ export default function LessonsPage() {
 
     if (res) {
       setMessage({ type: "success", text: "Lesson assigned successfully!" });
-      // Refresh list to update status if needed
       await loadData();
       setTimeout(() => {
         setAssigningLessonId(null);
@@ -152,6 +193,8 @@ export default function LessonsPage() {
               key={lesson.id}
               lesson={lesson}
               onAssign={lesson.status === "draft" ? handleAssignClick : undefined}
+              onEdit={handleOpenEditLesson}
+              onDelete={handleDeleteLesson}
             />
           ))}
         </div>
@@ -165,6 +208,75 @@ export default function LessonsPage() {
           totalPages={totalPages}
           onPageChange={setPage}
         />
+      )}
+
+      {/* Edit Lesson Modal */}
+      {editingLesson && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-indigo-600" />
+              Edit Lesson
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Update the details of your lesson below.
+            </p>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Lesson Title
+                </label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Enter lesson title..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Content / Description
+                </label>
+                <textarea
+                  rows={4}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  placeholder="Enter lesson content or description..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setEditingLesson(null)}
+                disabled={updating}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-55 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditLesson}
+                disabled={updating || !editTitle.trim()}
+                className="flex items-center gap-1.5 rounded-xl bg-indigo-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-800 disabled:opacity-55"
+              >
+                {updating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Assign to Classroom Modal */}

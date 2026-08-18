@@ -158,7 +158,7 @@ export default function Curriculum() {
       candidates.push("http://localhost:8080/api/v1");
       candidates.push("http://localhost:3000/backend");
     }
-    candidates.push("https://api.careerpatch.site/api/v1");
+
 
     for (const rawBase of candidates) {
       try {

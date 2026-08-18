@@ -222,13 +222,19 @@ export default function RosterTable({
                 <tr key={student.id} className="border-t border-border">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <Image
-                        src={student.avatarUrl}
-                        alt={student.name}
-                        width={36}
-                        height={36}
-                        className="h-9 w-9 shrink-0 rounded-full object-cover"
-                      />
+                      {student.avatarUrl ? (
+                        <Image
+                          src={student.avatarUrl}
+                          alt={student.name}
+                          width={36}
+                          height={36}
+                          className="h-9 w-9 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 font-bold text-white text-sm">
+                          {student.name?.charAt(0)?.toUpperCase() || "S"}
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-foreground">
                           {student.name}

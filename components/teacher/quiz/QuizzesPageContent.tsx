@@ -131,12 +131,9 @@
 //         />
 //       )}
 //     </div>
-//   );
-// }
-
-
 "use client";
 
+import { toast } from "@/components/shared/Toast";
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
 
@@ -155,6 +152,7 @@ import {
   useAssignQuizToClassroomMutation,
   useGetTeacherClassroomsQuery,
 } from "@/lib/redux/apiSlice";
+import ModernSelect from "@/components/shared/ModernSelect";
 
 type StatusFilter = QuizStatus | "all";
 type ClassroomFilter = string | "all";
@@ -213,8 +211,11 @@ export default function QuizzesPageContent() {
   }, []);
 
   function triggerToast(msg: string) {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3500);
+    if (msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("select")) {
+      toast.error(msg);
+    } else {
+      toast.success(msg);
+    }
   }
 
   const handlePreview = (quiz: Quiz) => {
@@ -260,10 +261,12 @@ export default function QuizzesPageContent() {
   };
 
   const handleDelete = async (quiz: Quiz) => {
+    if (!confirm(`Are you sure you want to delete quiz "${quiz.title}"?`)) return;
     try {
       await deleteQuizMutation(quiz.id).unwrap();
-    } catch (err) {
-      console.error("Failed to delete quiz", err);
+      triggerToast("Quiz deleted successfully!");
+    } catch (err: any) {
+      triggerToast(err?.data?.message || "Failed to delete quiz.");
     }
   };
 
@@ -347,22 +350,17 @@ export default function QuizzesPageContent() {
               </p>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                Select Classroom
-              </label>
-              <select
+            <div className="space-y-1.5">
+              <ModernSelect
+                label="Select Classroom"
+                placeholder="Select Classroom..."
                 value={targetClassroomId}
-                onChange={(e) => setTargetClassroomId(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-100"
-              >
-                <option value="">Select Classroom...</option>
-                {teacherClassrooms.map((c) => (
-                  <option key={c.classroomId} value={c.classroomId}>
-                    {c.className} ({c.classCode || "Class"})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setTargetClassroomId(val)}
+                options={teacherClassrooms.map((c) => ({
+                  value: c.classroomId,
+                  label: `${c.className} (${c.classCode || "Class"})`,
+                }))}
+              />
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">

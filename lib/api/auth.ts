@@ -1,6 +1,7 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://api.careerpatch.site";
+import { API_BASE } from "./config";
+export { useLoginUserMutation, useGetUserProfileQuery } from "@/lib/redux/apiSlice";
+
+
 
 export interface LoginResponse {
   accessToken: string;

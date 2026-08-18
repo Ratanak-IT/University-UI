@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/components/shared/Toast";
 import { useEffect, useState, useRef } from "react";
 import {
   Award,
@@ -42,7 +43,6 @@ export default function CertificatePage() {
     "ENROLLMENT_CONFIRMATION" | "DEGREE" | "TRANSCRIPT" | "COMPLETION"
   >("ENROLLMENT_CONFIRMATION");
   const [reason, setReason] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
 
   const { data: profile, isLoading: loadingProfile } = useGetStudentProfileQuery();
   const studentId = profile?.studentId || "";
@@ -58,8 +58,11 @@ export default function CertificatePage() {
   const printRef = useRef<HTMLDivElement>(null);
 
   function showToastMsg(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3500);
+    if (msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("provide")) {
+      toast.error(msg);
+    } else {
+      toast.success(msg);
+    }
   }
 
   async function handleCreateRequest(e: React.FormEvent) {
@@ -168,11 +171,6 @@ export default function CertificatePage() {
       `}</style>
 
       {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-xl animate-in fade-in slide-in-from-bottom-2 dark:bg-slate-100 dark:text-slate-900">
-          {toast}
-        </div>
-      )}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">

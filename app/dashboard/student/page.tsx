@@ -61,7 +61,7 @@ function CourseCardComponent({ c }: { c: CourseCard }) {
   return (
     <Link
       href={`/dashboard/student/my-classes/${c.id}`}
-      className={`block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5`}
+      className={`block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 dark:border-slate-800 dark:bg-slate-900`}
     >
       <div className={`relative ${COLOR_HEADER[c.color]} px-4 pb-8 pt-4 text-white`}>
         <p className="text-sm font-semibold">{c.name}</p>
@@ -71,12 +71,12 @@ function CourseCardComponent({ c }: { c: CourseCard }) {
         </div>
       </div>
       <div className="px-4 pb-4 pt-3">
-        <p className="text-sm font-medium text-slate-900">
-          {c.studentCount} students <span className="text-slate-500">· {c.year}</span>
+        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+          {c.studentCount} students <span className="text-slate-500 dark:text-slate-400">· {c.year}</span>
         </p>
-        <p className="mt-1 text-xs text-slate-500">{c.meta}</p>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{c.meta}</p>
         <div className="mt-3 flex items-center justify-end">
-          <span className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+          <span className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
             Open
           </span>
         </div>
@@ -122,29 +122,29 @@ export default function StudentDashboard() {
     load();
   }, []);
 
-  const selectClass = "border-slate-200 bg-white text-slate-700";
+  const selectClass = "border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200";
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-slate-50">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors">
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
           {/* Welcome header */}
           {profile && (
             <div className="mb-6">
-              <h1 className="text-xl font-bold text-slate-900">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                 Welcome back, {profile.firstName} 👋
               </h1>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {profile.studentCode} · {profile.academicYear} · Year {profile.yearLevel} Sem {profile.semester}
               </p>
             </div>
           )}
 
-          <h2 className="text-lg font-semibold sm:text-xl text-slate-900">Course Overview</h2>
+          <h2 className="text-lg font-semibold sm:text-xl text-slate-900 dark:text-slate-100">Course Overview</h2>
 
           {/* Filter bar */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {courses.length} classroom{courses.length !== 1 ? "s" : ""} enrolled
             </p>
 
@@ -154,7 +154,7 @@ export default function StudentDashboard() {
                   onClick={() => setView("card")}
                   aria-label="Card view"
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-sm ${
-                    view === "card" ? "bg-slate-100" : ""
+                    view === "card" ? "bg-slate-100 dark:bg-slate-800 dark:text-slate-100" : ""
                   }`}
                 >
                   <LayoutGrid className="h-4 w-4" /> Card
@@ -162,8 +162,8 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => setView("list")}
                   aria-label="List view"
-                  className={`flex items-center gap-1.5 border-l border-slate-200 px-3 py-1.5 text-sm ${
-                    view === "list" ? "bg-slate-100" : ""
+                  className={`flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-800 px-3 py-1.5 text-sm ${
+                    view === "list" ? "bg-slate-100 dark:bg-slate-800 dark:text-slate-100" : ""
                   }`}
                 >
                   <List className="h-4 w-4" /> List
@@ -175,13 +175,13 @@ export default function StudentDashboard() {
           {/* Content */}
           {loading ? (
             <div className="mt-16 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-              <span className="text-sm text-slate-500">Loading your classrooms...</span>
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+              <span className="text-sm text-slate-500 dark:text-slate-400">Loading your classrooms...</span>
             </div>
           ) : courses.length === 0 ? (
             <div className="mt-16 flex flex-col items-center gap-2 text-center">
-              <p className="text-lg font-semibold text-slate-700">No classrooms found</p>
-              <p className="text-sm text-slate-500">
+              <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">No classrooms found</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 You are not enrolled in any classroom yet.
               </p>
             </div>

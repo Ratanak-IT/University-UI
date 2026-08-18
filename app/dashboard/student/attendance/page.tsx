@@ -16,6 +16,7 @@ import {
   useGetStudentProfileQuery,
   useGetStudentAttendanceQuery,
 } from "@/lib/redux/apiSlice";
+import ModernSelect from "@/components/shared/ModernSelect";
 
 interface GroupedAttendance {
   classroomId: string;
@@ -141,22 +142,18 @@ export default function StudentAttendancePage() {
               </h2>
               
               {/* Classroom filter dropdown */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Filter Class:
-                </span>
-                <select
+              <div className="w-52">
+                <ModernSelect
                   value={filterClassroom}
-                  onChange={(e) => setFilterClassroom(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-indigo-600 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                >
-                  <option value="ALL">All Classes</option>
-                  {courseSummaries.map((c) => (
-                    <option key={c.classroomId} value={c.classroomId}>
-                      {c.course}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setFilterClassroom(val)}
+                  options={[
+                    { value: "ALL", label: "All Classes" },
+                    ...courseSummaries.map((c) => ({
+                      value: c.classroomId,
+                      label: c.course,
+                    })),
+                  ]}
+                />
               </div>
             </div>
 

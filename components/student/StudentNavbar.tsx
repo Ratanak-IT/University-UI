@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Search, Bell, Moon } from "lucide-react";
+import { Bell, Moon } from "lucide-react";
+import HeaderGlobalSearch from "@/components/shared/HeaderGlobalSearch";
 
 const TITLES: Record<string, string> = {
   "/dashboard/student": "Dashboard",
@@ -31,16 +32,7 @@ export default function StudentNavbar() {
       </div>
 
       {/* Search */}
-      <div className="relative mx-8 w-full max-w-xl">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-          <Search className="h-5 w-5 text-slate-400" />
-        </div>
-        <input
-          type="text"
-          placeholder="Search classes, lessons, or assignments…"
-          className="w-full rounded-xl border border-slate-200 bg-slate-50/60 py-2.5 pl-12 pr-4 text-sm text-slate-700 placeholder-slate-400 transition-all focus:border-indigo-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-700"
-        />
-      </div>
+      <HeaderGlobalSearch placeholder="Search classes, lessons, assignments, or grades..." />
 
       {/* Actions */}
       <div className="flex items-center gap-6">

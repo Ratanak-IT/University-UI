@@ -50,6 +50,7 @@ export interface Lesson {
   date: string;
   status: LessonStatus;
   thumbnail: ThumbnailKind;
+  classroomId?: string;
 
   courseLabel?: string; // e.g. "Database Systems 301 • Module 1"
   videoUrl?: string;

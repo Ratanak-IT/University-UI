@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { Search, Bell, Moon, Sun } from "lucide-react";
-import Image from "next/image";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import HeaderGlobalSearch from "@/components/shared/HeaderGlobalSearch";
 import {
   useGetStudentProfileQuery,
   useGetMyNotificationsQuery,
@@ -39,15 +39,8 @@ export default function NavbarStudent() {
         </p>
       </div>
 
-      <div className="relative w-full max-w-xl mx-6 hidden sm:block">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-          <Search className="h-4.5 w-4.5 text-muted-foreground" />
-        </div>
-        <input
-          type="text"
-          placeholder="Search courses, grades, or certificates..."
-          className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-11 pr-4 text-sm text-foreground placeholder-muted-foreground transition-all focus:border-indigo-600 focus:bg-background focus:outline-none focus:ring-1 focus:ring-indigo-600 dark:focus:border-indigo-500 dark:focus:ring-indigo-500"
-        />
+      <div className="hidden sm:block flex-1 max-w-xl mx-6">
+        <HeaderGlobalSearch placeholder="Search courses, grades, or certificates..." />
       </div>
 
       <div className="flex items-center gap-4">

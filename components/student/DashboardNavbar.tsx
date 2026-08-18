@@ -1,22 +1,13 @@
 "use client";
 
-import React from "react";
-import { Search, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
+import HeaderGlobalSearch from "@/components/shared/HeaderGlobalSearch";
 
 export default function DashboardNavbar() {
   return (
     <header className="flex w-full items-center justify-between border-b border-gray-100 bg-white px-8 py-4">
       {/* Search Bar */}
-      <div className="relative w-full max-w-xl">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-          <Search className="h-5 w-5 text-[#5c6f84]" />
-        </div>
-        <input
-          type="text"
-          placeholder="Search grades, courses, or documents..."
-          className="w-full rounded-xl border border-[#cbd5e1] bg-[#f1f5f9]/60 py-2.5 pl-12 pr-4 text-sm text-gray-700 placeholder-[#64748b] transition-all focus:border-[#004071] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#004071]"
-        />
-      </div>
+      <HeaderGlobalSearch placeholder="Search grades, courses, or documents..." />
 
       {/* Right Section: Actions & Profile */}
       <div className="flex items-center gap-5">

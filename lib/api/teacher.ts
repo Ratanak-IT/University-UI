@@ -1,8 +1,20 @@
-// ─── Centralized Teacher API Service ─────────────────────────────────
+import { API_BASE } from "./config";
 import { ClassroomResponse } from "./classroom";
 import { Classroom } from "../types/dashboard";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081";
+export {
+  useGetTeacherProfileQuery,
+  useGetTeacherClassroomsQuery,
+  useGetClassroomStudentsQuery,
+  useGetTeacherAttendanceQuery,
+  useRecordTeacherAttendanceMutation,
+  useGetExamScoresQuery,
+  useSaveExamScoresMutation,
+  useUploadTeacherAvatarMutation,
+} from "@/lib/redux/apiSlice";
+
+
+
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window !== "undefined") {
@@ -258,7 +270,7 @@ export function mapClassroomToTeacherCard(
   const initials = item.className
     ? item.className
         .split(" ")
-        .map((w) => w[0])
+        .map((w: string) => w[0])
         .join("")
         .substring(0, 2)
         .toUpperCase()

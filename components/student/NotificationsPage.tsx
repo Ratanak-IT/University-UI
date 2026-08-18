@@ -12,7 +12,6 @@ import {
   Star,
   UserCheck,
   Bell,
-  SlidersHorizontal,
 } from "lucide-react";
 
 type NotificationType =
@@ -108,6 +107,7 @@ import {
   useMarkAllNotificationsReadMutation,
 } from "@/lib/redux/apiSlice";
 import { Loader2 } from "lucide-react";
+import { TableRowsSkeleton } from "@/components/shared/Skeletons";
 
 export default function NotificationsPage() {
   const { data: apiNotifications = [], isLoading } = useGetMyNotificationsQuery();
@@ -115,13 +115,6 @@ export default function NotificationsPage() {
   const [markAllReadApi] = useMarkAllNotificationsReadMutation();
 
   const [activeTab, setActiveTab] = useState<TabValue>("ALL");
-  const [settings, setSettings] = useState({
-    email: true,
-    push: true,
-    grade: true,
-    certificate: true,
-    weekly: false,
-  });
 
   const notifications: Notification[] = apiNotifications.map((n: any) => ({
     id: n.id || n.notificationId,
@@ -189,30 +182,11 @@ export default function NotificationsPage() {
     }
   }
 
-  function toggleSetting(key: keyof typeof settings) {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
-
-  const settingRows: { key: keyof typeof settings; label: string }[] = [
-    { key: "email", label: "Email alerts" },
-    { key: "push", label: "Browser push notifications" },
-    { key: "grade", label: "Grade release alerts" },
-    { key: "certificate", label: "Certificate approval updates" },
-    { key: "weekly", label: "Weekly academic summary" },
-  ];
-
-  const byType = [
-    { label: "GRADE ALERTS", value: notifications.filter((n) => n.type === "GRADE").length, dotClass: "bg-emerald-500" },
-    { label: "ASSIGNMENT & QUIZ", value: notifications.filter((n) => n.type === "ASSIGNMENT").length, dotClass: "bg-indigo-500" },
-    { label: "CERTIFICATES", value: notifications.filter((n) => n.type === "CERTIFICATE").length, dotClass: "bg-amber-500" },
-    { label: "ANNOUNCEMENTS", value: notifications.filter((n) => n.type === "ANNOUNCEMENT").length, dotClass: "bg-purple-500" },
-    { label: "ATTENDANCE RECORDS", value: notifications.filter((n) => n.type === "ATTENDANCE").length, dotClass: "bg-sky-500" },
-  ];
-
   if (isLoading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+      <div className="min-h-screen bg-background text-foreground px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="h-16 w-1/3 animate-pulse rounded-xl bg-muted" />
+        <TableRowsSkeleton rows={6} cols={3} />
       </div>
     );
   }
@@ -245,104 +219,50 @@ export default function NotificationsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left 2 Cols: Tabs & Notifications Feed */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Filter Tabs */}
-          <div className="flex flex-wrap gap-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => setActiveTab(tab.value)}
-                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all ${
+      <div className="space-y-5">
+        {/* Filter Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setActiveTab(tab.value)}
+              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all ${
+                activeTab === tab.value
+                  ? "bg-indigo-600 text-white shadow-md dark:bg-indigo-600"
+                  : "border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
                   activeTab === tab.value
-                    ? "bg-indigo-600 text-white shadow-md dark:bg-indigo-600"
-                    : "border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-white/20 text-white"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
-                {tab.label}
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                    activeTab === tab.value
-                      ? "bg-white/20 text-white"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Feed List */}
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
+            <Bell className="mx-auto h-10 w-10 text-muted-foreground/40" />
+            <p className="mt-3 text-sm font-bold text-foreground">No notifications found</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              You are all caught up for this category.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((item) => (
+              <NotificationRow key={item.id} item={item} onToggleRead={toggleRead} />
             ))}
           </div>
-
-          {/* Feed List */}
-          {filtered.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
-              <Bell className="mx-auto h-10 w-10 text-muted-foreground/40" />
-              <p className="mt-3 text-sm font-bold text-foreground">No notifications found</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                You are all caught up for this category.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filtered.map((item) => (
-                <NotificationRow key={item.id} item={item} onToggleRead={toggleRead} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Category Summary & Settings */}
-        <div className="space-y-6">
-          {/* Activity Breakdown */}
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4 text-card-foreground">
-            <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
-              Academic Activity Breakdown
-            </h2>
-            <ul className="space-y-3">
-              {byType.map((item) => (
-                <li key={item.label} className="flex items-center justify-between text-xs font-bold">
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <span className={`h-2.5 w-2.5 rounded-full ${item.dotClass}`} />
-                    {item.label}
-                  </span>
-                  <span className="font-black text-foreground">{item.value} alerts</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Alert Preferences */}
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm space-y-4 text-card-foreground">
-            <div className="flex items-center gap-2 text-sm font-extrabold text-foreground">
-              <SlidersHorizontal className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-              Alert Preferences
-            </div>
-            <ul className="space-y-4">
-              {settingRows.map((row) => (
-                <li key={row.key} className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-foreground">{row.label}</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={settings[row.key]}
-                    onClick={() => toggleSetting(row.key)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      settings[row.key] ? "bg-indigo-600" : "bg-muted-foreground/30"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        settings[row.key] ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

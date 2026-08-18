@@ -73,23 +73,23 @@ export default function MyClassesPage() {
   }, []);
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-8 transition-colors">
       <div>
-        <h2 className="text-2xl font-black tracking-tight text-indigo-950">My Classes</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <h2 className="text-2xl font-black tracking-tight text-indigo-950 dark:text-slate-100">My Classes</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           {loading ? "Loading..." : `${classes.length} course${classes.length !== 1 ? "s" : ""} enrolled this semester.`}
         </p>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center gap-3 py-20">
-          <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
-          <span className="text-sm text-slate-500">Loading classrooms...</span>
+          <Loader2 className="h-7 w-7 animate-spin text-indigo-600 dark:text-indigo-400" />
+          <span className="text-sm text-slate-500 dark:text-slate-400">Loading classrooms...</span>
         </div>
       ) : classes.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-20 text-center">
-          <p className="text-lg font-semibold text-slate-700">No classrooms found</p>
-          <p className="text-sm text-slate-500">You are not enrolled in any classroom yet.</p>
+          <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">No classrooms found</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">You are not enrolled in any classroom yet.</p>
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -97,7 +97,7 @@ export default function MyClassesPage() {
             <Link
               key={c.id}
               href={`/dashboard/student/my-classes/${c.id}`}
-              className="block overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:shadow-md hover:-translate-y-0.5"
+              className="block overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:shadow-md hover:-translate-y-0.5 dark:border-slate-800 dark:bg-slate-900"
             >
               {/* Colored header */}
               <div className={`relative px-5 py-4 text-white ${c.header}`}>
@@ -112,8 +112,8 @@ export default function MyClassesPage() {
 
               {/* Body */}
               <div className="space-y-2 px-5 py-4">
-                <p className="text-sm font-medium text-indigo-950">{c.teacher}</p>
-                <p className="flex items-center gap-3 text-xs text-slate-500">
+                <p className="text-sm font-medium text-indigo-950 dark:text-slate-100">{c.teacher}</p>
+                <p className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                   <span className="flex items-center gap-1">
                     <Users className="h-3 w-3" strokeWidth={2} />
                     {c.students} students
