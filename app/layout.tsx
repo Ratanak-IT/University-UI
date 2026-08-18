@@ -1,10 +1,8 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Google_Sans_Flex, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import ScrollToTopButton from "@/components/layout/ScrollToTopButton"; // <--- 1. Import component
 
 const googleSans = Google_Sans_Flex({
   variable: "--font-geist-sans",
@@ -36,10 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           enableSystem
           disableTransitionOnChange
         >
-          {/* <Navbar/> */}
           {children}
-          <Footer />
-          <ScrollToTopButton /> {/* <--- 2. Add component here */}
         </ThemeProvider>
       </body>
     </html>
