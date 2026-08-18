@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, ChangeEvent, MouseEvent } from "react";
+import { useEffect, useState, useRef, ChangeEvent } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,165 +10,27 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Plus,
-  Upload,
-  X,
+  HelpCircle,
+  Loader2,
+  Save,
 } from "lucide-react";
+import {
+  useGetTeacherClassroomsQuery,
+  useGetClassroomStudentsQuery,
+  useGetTeacherAttendanceQuery,
+  useRecordTeacherAttendanceMutation,
+} from "@/lib/redux/apiSlice";
+import { ClassroomResponse } from "@/lib/api/student";
 
-const PAGE_SIZE = 4;
+type Status = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 
-const avatarPalette = [
-  "bg-amber-200 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
-  "bg-rose-200 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300",
-  "bg-sky-200 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300",
-  "bg-violet-200 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300",
-  "bg-emerald-200 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300",
-  "bg-cyan-200 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300",
-];
-
-type Status = "Present" | "Absent" | "Late";
-
-interface RosterStudent {
-  id: number;
-  name: string;
+interface StudentAttendanceRow {
   studentId: string;
-}
-
-interface AttendanceStatus {
+  studentCode: string;
+  fullName: string;
+  email: string;
   status: Status;
-  score: number;
   remark: string;
-}
-
-interface AttendanceRecord extends RosterStudent {
-  classroom: string;
-  initials: string;
-  avatarColor: string;
-  status: Status;
-  score: number;
-  remark: string;
-}
-
-type Rosters = Record<string, RosterStudent[]>;
-type Overrides = Record<string, AttendanceStatus>;
-
-interface FormState {
-  name: string;
-  studentId: string;
-  status: Status;
-  score: number | string;
-  remark: string;
-}
-
-function initialsOf(name: string): string {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-const firstNames = [
-  "Alexander", "Beatrix", "Carlos", "Dina", "Farrah", "Grant", "Harriet", "Isaac",
-  "Julia", "Kevin", "Laura", "Miguel", "Nina", "Oscar", "Priya", "Quinn",
-  "Rosa", "Samuel", "Tara", "Umar", "Vera", "Wyatt", "Ximena", "Yusuf",
-  "Zoe", "Adrian", "Bianca", "Caleb", "Delia", "Ethan", "Fiona", "Gabriel",
-];
-const lastNames = [
-  "Thompson", "Vance", "Mendez", "Roberts", "Nolan", "Osei", "Solis", "Park",
-  "Chen", "Diaz", "Ibrahim", "Santos", "Kowalski", "Reyes", "Patel", "Nguyen",
-  "Okafor", "Silva", "Murphy", "Haddad", "Kim", "Brooks", "Ortiz", "Baptiste",
-  "Ferreira", "Lindqvist", "Costa", "Meyer", "Adeyemi", "Fischer", "Alvarado", "Ross",
-];
-
-function buildRoster(count: number, offset: number): RosterStudent[] {
-  const roster: RosterStudent[] = [];
-  for (let i = 0; i < count; i++) {
-    const id = offset + i;
-    const first = firstNames[(i + offset) % firstNames.length];
-    const last = lastNames[(i * 3 + offset) % lastNames.length];
-    roster.push({ id, name: `${first} ${last}`, studentId: `STU2026${String(1000 + id)}` });
-  }
-  return roster;
-}
-
-const initialRosters: Rosters = {
-  "AP Physics - Section B": buildRoster(32, 0),
-  "AP Chemistry - Section A": buildRoster(24, 100),
-  "AP Biology - Section C": buildRoster(18, 200),
-};
-
-function hashCode(str: string): number {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (h * 31 + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-}
-
-function statusFromHash(h: number): AttendanceStatus {
-  const r = h % 100;
-  if (r < 78) return { status: "Present", score: 100, remark: "On time and active." };
-  if (r < 90) return { status: "Absent", score: 0, remark: "Parent notified." };
-  return { status: "Late", score: 80, remark: "Bus delay." };
-}
-
-// Attendance is derived per classroom + date, so paging through dates actually
-// filters to a different (but consistent, re-visitable) set of records.
-function buildAttendance(
-  roster: RosterStudent[],
-  classroom: string,
-  dateISO: string,
-  overrides: Overrides
-): AttendanceRecord[] {
-  return roster.map((student) => {
-    const key = `${classroom}|${dateISO}|${student.id}`;
-    const base = overrides[key] || statusFromHash(hashCode(key));
-    return {
-      ...student,
-      classroom,
-      initials: initialsOf(student.name),
-      avatarColor: avatarPalette[student.id % avatarPalette.length],
-      status: base.status,
-      score: base.score,
-      remark: base.remark,
-    };
-  });
-}
-
-const statusStyles: Record<Status, string> = {
-  Present: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
-  Absent: "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400",
-  Late: "bg-muted text-muted-foreground",
-};
-
-interface StatCardProps {
-  icon: React.ReactNode;
-  iconBg: string;
-  label: string;
-  value: number;
-  active: boolean;
-  onClick: () => void;
-}
-
-function StatCard({ icon, iconBg, label, value, active, onClick }: StatCardProps) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-3 rounded-xl border bg-card p-4 text-left shadow-sm transition ${
-        active ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-muted-foreground/40"
-      }`}
-    >
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-xs font-medium tracking-wide text-muted-foreground">{label}</p>
-        <p className="text-xl font-semibold text-card-foreground">{value}</p>
-      </div>
-    </button>
-  );
 }
 
 function formatDate(d: Date): string {
@@ -187,434 +49,397 @@ function fromISODate(s: string): Date {
   return new Date(year, month - 1, day);
 }
 
-function isSameDay(a: Date, b: Date): boolean {
-  return a.toDateString() === b.toDateString();
-}
-
 export default function DailyAttendancePage() {
-  const [rosters, setRosters] = useState<Rosters>(initialRosters);
-  const [overrides, setOverrides] = useState<Overrides>({});
-  const [nextId, setNextId] = useState(1000);
-  const [selectedClassroom, setSelectedClassroom] = useState("AP Physics - Section B");
+  const [selectedClassroom, setSelectedClassroom] = useState<ClassroomResponse | null>(null);
   const [classroomOpen, setClassroomOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 9, 24));
-  const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
-  const [page, setPage] = useState(1);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [rows, setRows] = useState<StudentAttendanceRow[]>([]);
+  const [statusFilter, setStatusFilter] = useState<Status | "ALL">("ALL");
   const [toast, setToast] = useState<string | null>(null);
-  const [showBulkModal, setShowBulkModal] = useState(false);
-  const [form, setForm] = useState<FormState>({ name: "", studentId: "", status: "Present", score: 100, remark: "" });
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  function handleDateInputChange(e: ChangeEvent<HTMLInputElement>) {
-    if (!e.target.value) return;
-    setSelectedDate(fromISODate(e.target.value));
-    setPage(1);
-  }
+  // RTK Query Hooks
+  const { data: classrooms = [], isLoading: loadingClassrooms } = useGetTeacherClassroomsQuery();
 
-  const today = new Date(2026, 9, 24);
-  const classroomNames = Object.keys(rosters);
-  const dateISO = toISODate(selectedDate);
-  const students = buildAttendance(rosters[selectedClassroom], selectedClassroom, dateISO, overrides);
+  useEffect(() => {
+    if (classrooms && classrooms.length > 0 && !selectedClassroom) {
+      setSelectedClassroom(classrooms[0]);
+    }
+  }, [classrooms, selectedClassroom]);
 
-  const counts = {
-    total: students.length,
-    Present: students.filter((s) => s.status === "Present").length,
-    Absent: students.filter((s) => s.status === "Absent").length,
-    Late: students.filter((s) => s.status === "Late").length,
-  };
+  const classroomId = selectedClassroom?.classroomId || "";
+  const dateIso = toISODate(selectedDate);
 
-  const filtered = statusFilter === "all" ? students : students.filter((s) => s.status === statusFilter);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const startIdx = (safePage - 1) * PAGE_SIZE;
-  const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
-  const rangeStart = filtered.length === 0 ? 0 : startIdx + 1;
-  const rangeEnd = Math.min(startIdx + PAGE_SIZE, filtered.length);
+  const { data: students = [], isLoading: loadingStudents } = useGetClassroomStudentsQuery(
+    classroomId,
+    { skip: !classroomId }
+  );
+
+  const { data: attendanceData = [], isLoading: loadingAttendance } = useGetTeacherAttendanceQuery(
+    { classroomId, date: dateIso },
+    { skip: !classroomId }
+  );
+
+  const [recordAttendance, { isLoading: saving }] = useRecordTeacherAttendanceMutation();
+
+  const loadingData = loadingStudents || loadingAttendance;
+
+  useEffect(() => {
+    if (!students || students.length === 0) {
+      setRows([]);
+      return;
+    }
+
+    const logMap = new Map<string, { status: Status; remark: string }>();
+    if (attendanceData && Array.isArray(attendanceData)) {
+      attendanceData.forEach((item: any) => {
+        if (item.studentId) {
+          logMap.set(item.studentId, {
+            status: (item.status as Status) || "PRESENT",
+            remark: item.remark || "",
+          });
+        }
+      });
+    }
+
+    const mergedRows: StudentAttendanceRow[] = students.map((st: any) => {
+      const existing = logMap.get(st.studentId);
+      return {
+        studentId: st.studentId,
+        studentCode: st.studentCode || st.studentId.substring(0, 8),
+        fullName: st.fullName || `${st.firstName || ""} ${st.lastName || ""}`.trim() || "Student",
+        email: st.email || "—",
+        status: existing ? existing.status : "PRESENT",
+        remark: existing ? existing.remark : "",
+      };
+    });
+
+    setRows(mergedRows);
+  }, [students, attendanceData]);
 
   function showToast(message: string) {
     setToast(message);
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
+  }
+
+  function updateStudentStatus(studentId: string, status: Status) {
+    setRows((prev) =>
+      prev.map((r) => (r.studentId === studentId ? { ...r, status } : r))
+    );
+  }
+
+  function updateStudentRemark(studentId: string, remark: string) {
+    setRows((prev) =>
+      prev.map((r) => (r.studentId === studentId ? { ...r, remark } : r))
+    );
+  }
+
+  async function handleSubmitSheet() {
+    if (!selectedClassroom) return;
+    const dateISO = toISODate(selectedDate);
+    const items = rows.map((r) => ({
+      studentId: r.studentId,
+      status: r.status,
+      remark: r.remark,
+    }));
+
+    try {
+      await recordAttendance({
+        classroomId: selectedClassroom.classroomId,
+        payload: { attendanceDate: dateISO, items },
+      }).unwrap();
+      showToast(`Attendance saved successfully for ${formatDate(selectedDate)}.`);
+    } catch (err) {
+      showToast("Failed to save attendance. Please check network connection.");
+    }
   }
 
   function changeDate(delta: number) {
     const next = new Date(selectedDate);
     next.setDate(next.getDate() + delta);
     setSelectedDate(next);
-    setPage(1);
   }
 
-  function selectClassroom(name: string) {
-    setSelectedClassroom(name);
-    setClassroomOpen(false);
-    setStatusFilter("all");
-    setPage(1);
-  }
+  const counts = {
+    total: rows.length,
+    Present: rows.filter((r) => r.status === "PRESENT").length,
+    Absent: rows.filter((r) => r.status === "ABSENT").length,
+    Late: rows.filter((r) => r.status === "LATE").length,
+    Excused: rows.filter((r) => r.status === "EXCUSED").length,
+  };
 
-  function selectStatFilter(key: Status | "all") {
-    setStatusFilter(key);
-    setPage(1);
-  }
+  const filteredRows =
+    statusFilter === "ALL"
+      ? rows
+      : rows.filter((r) => r.status === statusFilter);
 
-  function handleSubmitSheet() {
-    showToast(`Attendance submitted for ${formatDate(selectedDate)} — ${selectedClassroom}.`);
-  }
-
-  function handleDownloadTemplate() {
-    const header = "Student Name,Student ID,Classroom,Date,Status,Score,Remark\n";
-    const sampleRow = `Jane Doe,STU20260000,${selectedClassroom},${formatDate(selectedDate)},Present,100,\n`;
-    const csv = header + sampleRow;
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "attendance-template.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    showToast("Template downloaded.");
-  }
-
-  function handleAddRecord() {
-    if (!form.name.trim()) return;
-    const id = nextId;
-    setNextId((n) => n + 1);
-    const newStudent: RosterStudent = {
-      id,
-      name: form.name.trim(),
-      studentId: form.studentId.trim() || `STU2026${String(1000 + id)}`,
-    };
-    setRosters((prev) => ({
-      ...prev,
-      [selectedClassroom]: [...prev[selectedClassroom], newStudent],
-    }));
-    const key = `${selectedClassroom}|${dateISO}|${id}`;
-    setOverrides((prev) => ({
-      ...prev,
-      [key]: {
-        status: form.status,
-        score: Number(form.score) || 0,
-        remark: form.remark.trim() || "—",
-      },
-    }));
-    setShowBulkModal(false);
-    setForm({ name: "", studentId: "", status: "Present", score: 100, remark: "" });
-    showToast(`Added ${newStudent.name} to ${selectedClassroom} for ${formatDate(selectedDate)}.`);
+  if (loadingClassrooms) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+      </div>
+    );
   }
 
   return (
-    <div
-      className="min-h-screen bg-background"
-      style={
-        {
-          "--font-sans": "var(--font-geist-sans)",
-          "--font-mono": "var(--font-geist-mono)",
-          fontFamily: "var(--font-sans)",
-          fontSize: "18px",
-        } as React.CSSProperties
-      }
-    >
+    <div className="px-8 py-8 space-y-6">
+      {/* Toast */}
       {toast && (
-        <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background shadow-lg">
+        <div className="fixed bottom-6 right-6 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-xl">
           {toast}
         </div>
       )}
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        {/* Page header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">Daily Attendance</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Manage student presence and participation records.
-            </p>
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+            <Users className="h-4 w-4" />
+            Classroom Attendance
           </div>
-
-          <div className="flex items-center gap-3">
-            {/* Date navigator */}
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm">
-              <button
-                aria-label="Previous day"
-                onClick={() => changeDate(-1)}
-                className="text-muted-foreground hover:text-card-foreground"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              {isSameDay(selectedDate, today) && (
-                <span className="font-medium text-card-foreground">Today,</span>
-              )}
-              <input
-                ref={dateInputRef}
-                type="date"
-                value={toISODate(selectedDate)}
-                onChange={handleDateInputChange}
-                onClick={(e) => e.currentTarget.showPicker?.()}
-                className="w-[110px] cursor-pointer border-none bg-transparent p-0 text-sm font-medium text-card-foreground focus:outline-none focus:ring-0 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:opacity-0"
-              />
-              <button
-                aria-label="Open date picker"
-                onClick={() => dateInputRef.current?.showPicker?.()}
-                className="text-muted-foreground hover:text-card-foreground"
-              >
-                <Calendar className="h-4 w-4" />
-              </button>
-              <button
-                aria-label="Next day"
-                onClick={() => changeDate(1)}
-                className="text-muted-foreground hover:text-card-foreground"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Classroom dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setClassroomOpen((o) => !o)}
-                className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-card-foreground shadow-sm hover:bg-muted"
-              >
-                {selectedClassroom}
-                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${classroomOpen ? "rotate-180" : ""}`} />
-              </button>
-              {classroomOpen && (
-                <div className="absolute right-0 z-10 mt-1 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
-                  {classroomNames.map((name) => (
-                    <button
-                      key={name}
-                      onClick={() => selectClassroom(name)}
-                      className={`block w-full px-4 py-2 text-left text-sm hover:bg-muted ${
-                        name === selectedClassroom ? "bg-muted font-medium text-primary" : "text-card-foreground"
-                      }`}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={handleSubmitSheet}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:opacity-90"
-            >
-              <Upload className="h-4 w-4" />
-              Submit Sheet
-            </button>
-          </div>
-        </div>
-
-        {/* Stat cards */}
-        <div className="mb-6 grid grid-cols-4 gap-4">
-          <StatCard
-            icon={<Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />}
-            iconBg="bg-violet-100 dark:bg-violet-900/40"
-            label="TOTAL STUDENTS"
-            value={counts.total}
-            active={statusFilter === "all"}
-            onClick={() => selectStatFilter("all")}
-          />
-          <StatCard
-            icon={<CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
-            iconBg="bg-emerald-100 dark:bg-emerald-900/40"
-            label="PRESENT"
-            value={counts.Present}
-            active={statusFilter === "Present"}
-            onClick={() => selectStatFilter("Present")}
-          />
-          <StatCard
-            icon={<XCircle className="h-5 w-5 text-rose-600 dark:text-rose-400" />}
-            iconBg="bg-rose-100 dark:bg-rose-900/40"
-            label="ABSENT"
-            value={counts.Absent}
-            active={statusFilter === "Absent"}
-            onClick={() => selectStatFilter("Absent")}
-          />
-          <StatCard
-            icon={<Clock className="h-5 w-5 text-muted-foreground" />}
-            iconBg="bg-muted"
-            label="LATE"
-            value={counts.Late}
-            active={statusFilter === "Late"}
-            onClick={() => selectStatFilter("Late")}
-          />
-        </div>
-
-        {/* Table */}
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="px-6 py-3 font-medium">Student</th>
-                <th className="px-4 py-3 font-medium">Student ID</th>
-                <th className="px-4 py-3 font-medium">Classroom</th>
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Score</th>
-                <th className="px-4 py-3 font-medium">Remark</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
-                    No students match this filter.
-                  </td>
-                </tr>
-              )}
-              {pageItems.map((r) => (
-                <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/60">
-                  <td className="flex items-center gap-3 px-6 py-4">
-                    <div
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${r.avatarColor}`}
-                    >
-                      {r.initials}
-                    </div>
-                    <span className="font-medium text-card-foreground">{r.name}</span>
-                  </td>
-                  <td className="px-4 py-4 text-muted-foreground">{r.studentId}</td>
-                  <td className="px-4 py-4 text-muted-foreground">{r.classroom}</td>
-                  <td className="px-4 py-4 text-muted-foreground">{formatDate(selectedDate)}</td>
-                  <td className="px-4 py-4">
-                    <span
-                      className={`inline-block rounded-md px-2.5 py-1 text-xs font-medium ${statusStyles[r.status]}`}
-                    >
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-card-foreground/80">{r.score}</td>
-                  <td className="px-4 py-4 text-muted-foreground">{r.remark}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div className="flex items-center justify-between border-t border-border px-6 py-3 text-sm">
-            <span className="text-muted-foreground">
-              Showing {rangeStart}-{rangeEnd} of {filtered.length} students
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={safePage === 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded-md border border-border px-3 py-1.5 text-card-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/50"
-              >
-                Previous
-              </button>
-              <span className="text-muted-foreground">
-                Page {safePage} of {totalPages}
-              </span>
-              <button
-                disabled={safePage === totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Bulk add */}
-        <div className="mt-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card px-6 py-10 text-center">
-          <button
-            onClick={() => setShowBulkModal(true)}
-            className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:opacity-90"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-          <h3 className="text-sm font-semibold text-card-foreground">Bulk Add Attendance</h3>
-          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Import attendance records from a CSV file or scan student ID badges to speed up the
-            marking process.
+          <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">
+            Daily Attendance Sheet
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Record and manage student attendance for your classrooms.
           </p>
+        </div>
+
+        {/* Action button */}
+        <button
+          type="button"
+          onClick={handleSubmitSheet}
+          disabled={saving || !selectedClassroom || rows.length === 0}
+          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600 shadow-sm"
+        >
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          Save Attendance
+        </button>
+      </div>
+
+      {/* Filters Bar: Classroom Selector & Date Picker */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        {/* Classroom Dropdown */}
+        <div className="relative">
           <button
-            onClick={handleDownloadTemplate}
-            className="mt-3 text-sm font-medium text-primary hover:underline"
+            type="button"
+            onClick={() => setClassroomOpen((v) => !v)}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           >
-            Download Template
+            <span>{selectedClassroom ? selectedClassroom.className : "Select Classroom"}</span>
+            <ChevronDown className="h-4 w-4 text-slate-500" />
+          </button>
+          {classroomOpen && (
+            <div className="absolute left-0 z-20 mt-1.5 w-64 rounded-xl border border-slate-100 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+              {classrooms.map((c) => (
+                <button
+                  key={c.classroomId}
+                  type="button"
+                  onClick={() => {
+                    setSelectedClassroom(c);
+                    setClassroomOpen(false);
+                  }}
+                  className={`block w-full text-left rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                    selectedClassroom?.classroomId === c.classroomId
+                      ? "bg-indigo-50 font-bold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400"
+                      : "text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {c.className} ({c.classCode})
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Date Selector */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => changeDate(-1)}
+            className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="relative flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            <span>{formatDate(selectedDate)}</span>
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={toISODate(selectedDate)}
+              onChange={(e) => e.target.value && setSelectedDate(fromISODate(e.target.value))}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => changeDate(1)}
+            className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-      </main>
+      </div>
 
-      {/* Bulk add modal */}
-      {showBulkModal && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-card-foreground">Add Attendance Record</h3>
-              <button onClick={() => setShowBulkModal(false)} className="text-muted-foreground hover:text-card-foreground">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Student Name</label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
-                  placeholder="e.g. Jamie Foster"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Student ID (optional)</label>
-                <input
-                  value={form.studentId}
-                  onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
-                  placeholder="STU20260099"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value as Status })}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
-                  >
-                    <option>Present</option>
-                    <option>Absent</option>
-                    <option>Late</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Score</label>
-                  <input
-                    type="number"
-                    value={form.score}
-                    onChange={(e) => setForm({ ...form, score: e.target.value })}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Remark</label>
-                <input
-                  value={form.remark}
-                  onChange={(e) => setForm({ ...form, remark: e.target.value })}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-card-foreground focus:border-primary focus:outline-none"
-                  placeholder="Optional note"
-                />
-              </div>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                onClick={() => setShowBulkModal(false)}
-                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-card-foreground hover:bg-muted"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddRecord}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-              >
-                Add Record
-              </button>
-            </div>
+      {/* Stats Breakdown Cards */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div
+          onClick={() => setStatusFilter("ALL")}
+          className={`cursor-pointer rounded-2xl border p-4 shadow-sm transition-all ${
+            statusFilter === "ALL"
+              ? "border-indigo-600 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-950/30"
+              : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <Users className="h-4 w-4 text-indigo-600" /> Total Enrolled
           </div>
+          <p className="mt-2 text-2xl font-black text-slate-900 dark:text-slate-50">{counts.total}</p>
         </div>
-      )}
+
+        <div
+          onClick={() => setStatusFilter("PRESENT")}
+          className={`cursor-pointer rounded-2xl border p-4 shadow-sm transition-all ${
+            statusFilter === "PRESENT"
+              ? "border-emerald-600 bg-emerald-50/50 dark:border-emerald-500 dark:bg-emerald-950/30"
+              : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-600">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Present
+          </div>
+          <p className="mt-2 text-2xl font-black text-emerald-700 dark:text-emerald-400">{counts.Present}</p>
+        </div>
+
+        <div
+          onClick={() => setStatusFilter("ABSENT")}
+          className={`cursor-pointer rounded-2xl border p-4 shadow-sm transition-all ${
+            statusFilter === "ABSENT"
+              ? "border-rose-600 bg-rose-50/50 dark:border-rose-500 dark:bg-rose-950/30"
+              : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-600">
+            <XCircle className="h-4 w-4 text-rose-600" /> Absent
+          </div>
+          <p className="mt-2 text-2xl font-black text-rose-700 dark:text-rose-400">{counts.Absent}</p>
+        </div>
+
+        <div
+          onClick={() => setStatusFilter("LATE")}
+          className={`cursor-pointer rounded-2xl border p-4 shadow-sm transition-all ${
+            statusFilter === "LATE"
+              ? "border-amber-600 bg-amber-50/50 dark:border-amber-500 dark:bg-amber-950/30"
+              : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-600">
+            <Clock className="h-4 w-4 text-amber-600" /> Late / Excused
+          </div>
+          <p className="mt-2 text-2xl font-black text-amber-700 dark:text-amber-400">{counts.Late + counts.Excused}</p>
+        </div>
+      </div>
+
+      {/* Roster & Marking Table */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        {loadingData ? (
+          <div className="flex h-48 items-center justify-center">
+            <Loader2 className="h-7 w-7 animate-spin text-indigo-600 dark:text-indigo-400" />
+          </div>
+        ) : filteredRows.length === 0 ? (
+          <div className="py-12 text-center text-sm font-semibold text-slate-500 dark:text-slate-400">
+            No students found for this classroom.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-400 dark:border-slate-800 dark:text-slate-500">
+                  <th className="pb-3 pr-4">Student ID</th>
+                  <th className="pb-3 px-4">Student Name</th>
+                  <th className="pb-3 px-4">Status Marking</th>
+                  <th className="pb-3 pl-4">Remark</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredRows.map((r) => (
+                  <tr key={r.studentId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                    <td className="py-3.5 pr-4 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                      {r.studentCode}
+                    </td>
+                    <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                      {r.fullName}
+                      <span className="block text-xs font-normal text-slate-400">{r.email}</span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => updateStudentStatus(r.studentId, "PRESENT")}
+                          className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
+                            r.status === "PRESENT"
+                              ? "bg-emerald-600 text-white shadow-sm"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                          }`}
+                        >
+                          Present
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateStudentStatus(r.studentId, "ABSENT")}
+                          className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
+                            r.status === "ABSENT"
+                              ? "bg-rose-600 text-white shadow-sm"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                          }`}
+                        >
+                          Absent
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateStudentStatus(r.studentId, "LATE")}
+                          className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
+                            r.status === "LATE"
+                              ? "bg-amber-600 text-white shadow-sm"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                          }`}
+                        >
+                          Late
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateStudentStatus(r.studentId, "EXCUSED")}
+                          className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
+                            r.status === "EXCUSED"
+                              ? "bg-sky-600 text-white shadow-sm"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                          }`}
+                        >
+                          Excused
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-3.5 pl-4">
+                      <input
+                        type="text"
+                        value={r.remark}
+                        onChange={(e) => updateStudentRemark(r.studentId, e.target.value)}
+                        placeholder="Add remark..."
+                        className="w-full max-w-xs rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 focus:border-indigo-600 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

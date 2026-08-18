@@ -1,3 +1,5 @@
+"use client";
+
 import { CreateQuizForm } from "./CreateQuizForm";
 
 export default function CreateQuizPage() {

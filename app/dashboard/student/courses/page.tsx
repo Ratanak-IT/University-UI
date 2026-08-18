@@ -35,6 +35,7 @@ import {
   QuizQuestionItem,
 } from "@/lib/api/student";
 import Link from "next/link";
+import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 
 const TABS = ["Overview", "Lessons", "Assignments", "Quizzes"];
 
@@ -58,6 +59,7 @@ export default function CoursesPage() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [classrooms, setClassrooms] = useState<ClassroomResponse[]>([]);
   const [selectedClassroom, setSelectedClassroom] = useState<string | null>(null);
+  const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
 
   // Data per classroom
   const [lessons, setLessons] = useState<LessonResponse[]>([]);
@@ -392,25 +394,23 @@ export default function CoursesPage() {
                         
                         <div className="mt-3 flex flex-wrap gap-2">
                           {l.videoLink && (
-                            <a
-                              href={l.videoLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-100 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-200"
+                            <button
+                              type="button"
+                              onClick={() => setViewerFile({ name: `${l.title} (Video)`, url: l.videoLink || "", isVideo: true })}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-100 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-200 cursor-pointer"
                             >
                               <Video className="h-4 w-4" /> Watch Video Lesson
-                            </a>
+                            </button>
                           )}
                           {l.files?.map((f) => (
-                            <a
+                            <button
                               key={f.fileId}
-                              href={f.previewUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                              type="button"
+                              onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl || "", isVideo: false })}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
                             >
                               <FileText className="h-4 w-4 text-indigo-600" /> {f.fileOriginalName}
-                            </a>
+                            </button>
                           ))}
                         </div>
                         <p className="mt-3 text-xs font-medium text-slate-400">
@@ -853,6 +853,15 @@ export default function CoursesPage() {
           </div>
         </div>
       )}
+
+      {/* Secure Read-Only In-App File Viewer */}
+      <SecureFileViewerModal
+        isOpen={!!viewerFile}
+        onClose={() => setViewerFile(null)}
+        fileName={viewerFile?.name || ""}
+        fileUrl={viewerFile?.url || ""}
+        isVideo={viewerFile?.isVideo}
+      />
     </div>
   );
 }

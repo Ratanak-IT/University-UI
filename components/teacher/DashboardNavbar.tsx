@@ -10,7 +10,16 @@ export default function DashboardNavbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  const [profile, setProfile] = useState<{ avatarUrl?: string | null; firstName?: string; lastName?: string } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    import("@/lib/api/teacher").then((m) => {
+      m.fetchTeacherProfile().then((p) => {
+        if (p) setProfile(p);
+      });
+    });
+  }, []);
 
   return (
     <header className="flex w-full items-center justify-between border-b border-gray-100 bg-white px-8 py-4 dark:border-slate-800 dark:bg-slate-900">
@@ -55,14 +64,23 @@ export default function DashboardNavbar() {
           )}
         </button>
 
-        <button className="relative h-10 w-10 overflow-hidden rounded-full border border-gray-200 ring-2 ring-transparent transition-all hover:ring-gray-300 dark:border-slate-700 dark:hover:ring-slate-600">
-          <Image
-            src="/davin.jpg"
-            alt="User profile"
-            fill
-            className="object-cover"
-          />
-        </button>
+        <Link
+          href="/dashboard/teacher/profile"
+          className="relative h-10 w-10 overflow-hidden rounded-full border border-gray-200 ring-2 ring-transparent transition-all hover:ring-gray-300 dark:border-slate-700 dark:hover:ring-slate-600 shrink-0"
+        >
+          {profile?.avatarUrl ? (
+            <Image
+              src={profile.avatarUrl}
+              alt="User profile"
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-bold text-xs">
+              {profile?.firstName?.[0] || "T"}{profile?.lastName?.[0] || ""}
+            </div>
+          )}
+        </Link>
       </div>
     </header>
   );

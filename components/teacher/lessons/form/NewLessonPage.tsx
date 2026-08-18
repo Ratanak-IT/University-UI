@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { NewLessonForm } from "./NewLessonForm";
 
 
@@ -10,7 +11,13 @@ export default function NewLessonPage() {
         <span className="font-medium text-foreground">New lesson</span>
       </nav>
 
-      <NewLessonForm />
+      <Suspense fallback={
+        <div className="flex h-48 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+        </div>
+      }>
+        <NewLessonForm />
+      </Suspense>
     </div>
   );
 }

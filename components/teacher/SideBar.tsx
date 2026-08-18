@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutGrid,
   GraduationCap,
@@ -92,6 +92,15 @@ const sections: NavSection[] = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [profile, setProfile] = useState<{ avatarUrl?: string | null; firstName?: string; lastName?: string } | null>(null);
+
+  useEffect(() => {
+    import("@/lib/api/teacher").then((m) => {
+      m.fetchTeacherProfile().then((p) => {
+        if (p) setProfile(p);
+      });
+    });
+  }, []);
 
   return (
     <aside
@@ -185,18 +194,25 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer User Profile Banner */}
-      <div
-        className={`flex items-center gap-3 border-t border-border bg-muted/50 px-5 py-4 ${
+      <Link
+        href="/dashboard/teacher/profile"
+        className={`flex items-center gap-3 border-t border-border bg-muted/50 px-5 py-4 transition-colors hover:bg-muted ${
           isCollapsed ? "justify-center" : ""
         }`}
       >
         <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border">
-          <Image
-            src="/davin.jpg"
-            alt="Chhay Davin profile"
-            fill
-            className="object-cover"
-          />
+          {profile?.avatarUrl ? (
+            <Image
+              src={profile.avatarUrl}
+              alt="Profile"
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-bold text-xs">
+              {profile?.firstName?.[0] || "T"}{profile?.lastName?.[0] || ""}
+            </div>
+          )}
         </div>
 
         {!isCollapsed && (
@@ -205,20 +221,25 @@ export default function Sidebar() {
               <p className="truncate text-xs font-medium text-muted-foreground">
                 Teacher
               </p>
-              <p className="truncate text-lg font-semibold text-foreground">
-                Chhay Davin
+              <p className="truncate text-sm font-semibold text-foreground">
+                {profile ? `${profile.firstName} ${profile.lastName}` : "My Profile"}
               </p>
             </div>
             <button
               type="button"
               aria-label="Log out"
+              onClick={(e) => {
+                e.preventDefault();
+                localStorage.clear();
+                window.location.href = "/login";
+              }}
               className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-rose-600 dark:hover:text-rose-400"
             >
               <LogOut className="h-4.5 w-4.5" strokeWidth={2} />
             </button>
           </>
         )}
-      </div>
+      </Link>
     </aside>
   );
 }

@@ -7,10 +7,15 @@ import { Lesson } from "@/lib/types/Lesson";
 // import { LessonThumbnail, StatusBadge } from "./LessonThumbnail";
 // import type { Lesson } from "./types";
 
-export default function LessonCard({ lesson }: { lesson: Lesson }) {
+export default function LessonCard({
+  lesson,
+  onAssign,
+}: {
+  lesson: Lesson;
+  onAssign?: (lessonId: string) => void;
+}) {
   return (
-    <Link
-      href={`/dashboard/teacher/lessons/${lesson.id}`}
+    <div
       className="block overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
     >
       <article>
@@ -23,9 +28,10 @@ export default function LessonCard({ lesson }: { lesson: Lesson }) {
           <h3 className="line-clamp-2 font-semibold text-card-foreground">
             {lesson.title}
           </h3>
-          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
-            {lesson.description}
-          </p>
+          <div
+            className="mt-1.5 line-clamp-2 text-sm text-muted-foreground"
+            dangerouslySetInnerHTML={{ __html: lesson.description || "" }}
+          />
 
           <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -34,34 +40,25 @@ export default function LessonCard({ lesson }: { lesson: Lesson }) {
             </span>
 
             <div className="flex items-center gap-1">
-              <button
-                type="button"
-                aria-label="Preview lesson"
-                onClick={(e) => e.preventDefault()}
+              {onAssign && (
+                <button
+                  type="button"
+                  onClick={() => onAssign(lesson.id)}
+                  className="mr-1 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400"
+                >
+                  Assign
+                </button>
+              )}
+              <Link
+                href={`/dashboard/teacher/lessons/${lesson.id}`}
                 className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-card-foreground"
               >
                 <Eye className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="Edit lesson"
-                onClick={(e) => e.preventDefault()}
-                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-card-foreground"
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="More options"
-                onClick={(e) => e.preventDefault()}
-                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-card-foreground"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </button>
+              </Link>
             </div>
           </div>
         </div>
       </article>
-    </Link>
+    </div>
   );
 }

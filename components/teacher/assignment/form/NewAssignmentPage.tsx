@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { AssignmentFormValues } from "@/lib/types/AssignmentFormValues";
 import { AssignmentFormHeader } from "./AssignmentFormHeader";
@@ -11,12 +11,19 @@ import { AssignmentSettingsPanel } from "./AssignmentSettingsPanel";
 import { SchedulingTipCard } from "./SchedulingTipCard";
 import { defaultAssignmentForm } from "@/lib/data/defaultAssignmentForm";
 
+import { createSavedAssignment, createAssignmentForClassroom } from "@/lib/api/assignment";
+import { useSearchParams } from "next/navigation";
 
-export default function NewAssignmentPage() {
+function NewAssignmentFormInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const classroomId = searchParams?.get("classroomId");
+
   const [values, setValues] = useState<AssignmentFormValues>(
     defaultAssignmentForm,
   );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   function setField<K extends keyof AssignmentFormValues>(
     key: K,
@@ -25,24 +32,58 @@ export default function NewAssignmentPage() {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleSaveAsDraft() {
-    // await saveAssignmentDraftMutation(values)
-    console.log("save as draft:", values);
+  async function handleSaveAsDraft() {
+    await submitAssignment(true);
   }
 
-  function handleAssign() {
-    // Build FormData for the Spring Boot endpoint:
-    // const formData = new FormData();
-    // formData.append("title", values.title);
-    // formData.append("instructionsHtml", values.instructionsHtml);
-    // formData.append("courseId", values.courseId);
-    // ...
-    // values.attachments.forEach((a) => a.file && formData.append("files", a.file));
-    // await createAssignmentMutation(formData);
-    console.log("assign:", values);
+  async function handleAssign() {
+    await submitAssignment(false);
   }
 
-  const canAssign = values.title.trim().length > 0;
+  async function submitAssignment(isDraft: boolean) {
+    if (!values.title.trim()) {
+      setError("Title is required.");
+      return;
+    }
+    setError("");
+    setSaving(true);
+
+    const attachmentsFiles = values.attachments
+      .map((a) => a.file)
+      .filter((f): f is File => !!f);
+
+    const payload = {
+      title: values.title,
+      description: values.instructionsHtml,
+      maxScore: typeof values.points === "number" ? values.points : 100,
+      weight: 10.0, // Default weight
+    };
+
+    let res;
+    if (classroomId && !isDraft) {
+      const combinedDueDate = values.dueDate && values.dueTime
+        ? `${values.dueDate}T${values.dueTime}:00`
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19); // default 7 days from now
+
+      res = await createAssignmentForClassroom(classroomId, { ...payload, dueDate: combinedDueDate }, attachmentsFiles);
+    } else {
+      res = await createSavedAssignment(payload, attachmentsFiles);
+    }
+
+    setSaving(false);
+
+    if (res) {
+      if (classroomId && !isDraft) {
+        router.push(`/dashboard/teacher/my-classroom/${classroomId}`);
+      } else {
+        router.push("/dashboard/teacher/assignments");
+      }
+    } else {
+      setError("Failed to create assignment. Please try again.");
+    }
+  }
+
+  const canAssign = values.title.trim().length > 0 && !saving;
 
   return (
     <div className="p-6">
@@ -53,6 +94,12 @@ export default function NewAssignmentPage() {
         assignDisabled={!canAssign}
       />
 
+      {error && (
+        <div className="mt-4 rounded-xl bg-rose-50 p-4 text-sm font-semibold text-rose-700 dark:bg-rose-950/40 dark:text-rose-400">
+          {error}
+        </div>
+      )}
+
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
         <AssignmentFormMain values={values} onChange={setField} />
 
@@ -62,5 +109,17 @@ export default function NewAssignmentPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewAssignmentPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    }>
+      <NewAssignmentFormInner />
+    </Suspense>
   );
 }
