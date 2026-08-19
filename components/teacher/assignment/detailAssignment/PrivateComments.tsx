@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { MessageSquare, Send, User } from "lucide-react";
+import { toast } from "@/components/shared/Toast";
 
 interface PrivateCommentsProps {
   studentName: string;
@@ -21,6 +22,7 @@ export function PrivateComments({
     if (!body) return;
     onSubmit?.(body);
     setDraft("");
+    toast.success(`Private comment sent to ${studentName}!`, "Comment Sent");
   }
 
   return (

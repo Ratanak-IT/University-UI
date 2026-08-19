@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { Send, Users } from "lucide-react";
 import { CommentAuthor,Comment } from "@/lib/types/AssignmentDetail";
-// import type { Comment, CommentAuthor } from "./types";
+import { toast } from "@/components/shared/Toast";
 
 interface ClassCommentsProps {
   comments: Comment[];
@@ -25,6 +25,7 @@ export function ClassComments({
     if (!body) return;
     onSubmit?.(body);
     setDraft("");
+    toast.success("Class comment posted successfully!", "Comment Added");
   }
 
   return (

@@ -2,15 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  fetchClassroomById,
-  fetchClassroomStudents,
-  fetchClassroomLessons,
-  fetchClassroomAssignments,
-  fetchMyClassrooms,
-  ClassroomResponse,
-  ClassroomStudentResponse,
-  LessonResponse,
-  AssignmentResponse,
+  fetchMyClassrooms
 } from "@/lib/api/student";
 import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import {
@@ -26,6 +18,7 @@ import { toast } from "@/components/shared/Toast";
 import { Loader2, FileText, Video, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X } from "lucide-react";
 import Link from "next/link";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
+import CommentThread from "@/components/shared/CommentThread";
 
 interface ClassroomDetailViewProps {
   classroomId?: string;
@@ -37,6 +30,11 @@ export default function ClassroomDetailView({
   isStudent = false,
 }: ClassroomDetailViewProps) {
   const [activeTab, setActiveTab] = useState("Stream");
+
+  const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
+  useEffect(() => {
+    setFocusCommentId(new URLSearchParams(window.location.search).get("comment"));
+  }, []);
   const [resolvedId, setResolvedId] = useState<string>(classroomId || "");
   const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -372,6 +370,11 @@ export default function ClassroomDetailView({
                     ))}
                   </>
                 )}
+
+                <CommentThread
+                  scope={{ kind: "classroom", id: resolvedId }}
+                  focusCommentId={focusCommentId}
+                />
               </div>
             )}
 
