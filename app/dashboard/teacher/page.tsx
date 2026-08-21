@@ -6,7 +6,6 @@ import StatCards from "@/components/teacher/dashboard/StatCards";
 import {
   engagementData,
   contentLibraryData,
-  attendance,
 } from "../../../lib/data/dashboardData";
 import EngagementChart from "@/components/teacher/dashboard/EngagementChart";
 import ContentLibraryCard from "@/components/teacher/dashboard/ContentLibraryCard";
@@ -25,6 +24,28 @@ import {
 } from "@/lib/api/teacher";
 import { fetchClassroomLessons } from "@/lib/api/student";
 import { Classroom, StatCard, Deadline, AttendanceRow } from "@/lib/types/dashboard";
+
+const STATUS_LABEL: Record<string, string> = {
+  PRESENT: "Present",
+  ABSENT: "Absent",
+  LATE: "Late",
+  EXCUSED: "Excused",
+};
+
+const STATUS_CLASS: Record<string, string> = {
+  PRESENT: "bg-emerald-100 text-emerald-700",
+  ABSENT: "bg-rose-100 text-rose-700",
+  LATE: "bg-amber-100 text-amber-700",
+  EXCUSED: "bg-sky-100 text-sky-700",
+};
+
+function todayDateString(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
@@ -46,14 +67,31 @@ export default function DashboardPage() {
         let totalMaterials = 0;
         let pendingGradesCount = 0;
         const allDeadlines: { title: string; classCode: string; dueDate: string }[] = [];
+        const allAttendanceRows: AttendanceRow[] = [];
+        const today = todayDateString();
 
         const populatedClassrooms = await Promise.all(
           classData.map(async (c, i) => {
-            const [students, assignments, lessons] = await Promise.all([
+            const [students, assignments, lessons, todaysAttendance] = await Promise.all([
               fetchClassroomStudents(c.classroomId),
               fetchClassroomAssignments(c.classroomId),
               fetchClassroomLessons(c.classroomId),
+              fetchTeacherAttendanceByDate(c.classroomId, today),
             ]);
+
+            const studentById = new Map(students.map((st) => [st.studentId, st]));
+            todaysAttendance.forEach((record) => {
+              const student = studentById.get(record.studentId);
+              allAttendanceRows.push({
+                id: student?.studentCode || record.studentId,
+                name: student?.fullName || "Unknown student",
+                classroom: c.className || c.classCode,
+                date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                status: STATUS_LABEL[record.status] || record.status,
+                statusClass: STATUS_CLASS[record.status] || "bg-slate-100 text-slate-700",
+                note: record.remark || "",
+              });
+            });
 
             // Count pending grading submissions
             let classroomPendingCount = 0;
@@ -89,6 +127,7 @@ export default function DashboardPage() {
         );
 
         setClassrooms(populatedClassrooms);
+        setRealAttendance(allAttendanceRows);
 
         // Sort deadlines by due date
         const sortedDeadlines: Deadline[] = allDeadlines
@@ -150,6 +189,7 @@ export default function DashboardPage() {
         ]);
       } else {
         setClassrooms([]);
+        setRealAttendance([]);
         setStatsList([
           {
             label: "Total Enrolled",
@@ -205,7 +245,7 @@ export default function DashboardPage() {
         <DeadlinesSection deadlines={deadlinesList} />
       </div>
 
-      <AttendanceSnapshot rows={attendance} />
+      <AttendanceSnapshot rows={realAttendance} />
     </div>
   );
 }

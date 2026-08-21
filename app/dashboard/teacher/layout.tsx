@@ -20,7 +20,6 @@ export default function TeacherLayout({
   );
 }
 
-
 // import DashboardNavbar from "@/components/teacher/DashboardNavbar";
 // import Sidebar from "@/components/teacher/SideBar";
 

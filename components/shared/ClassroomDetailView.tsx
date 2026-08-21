@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import {
-  fetchMyClassrooms
+  fetchClassroomById,
+  fetchClassroomStudents,
+  fetchClassroomLessons,
+  fetchClassroomAssignments,
+  fetchMyClassrooms,
+  ClassroomResponse,
+  ClassroomStudentResponse,
+  LessonResponse,
+  AssignmentResponse,
 } from "@/lib/api/student";
 import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import {
@@ -10,15 +18,20 @@ import {
   useGetClassroomLessonsQuery,
   useGetClassroomAssignmentsQuery,
   useGetClassroomStudentsQuery,
+  useGetClassroomTeachersQuery,
+  useRemoveStudentFromClassroomMutation,
   useDeleteAssignmentMutation,
   useUpdateAssignmentMutation,
 } from "@/lib/redux/apiSlice";
 import { deleteLesson, updateLesson } from "@/lib/api/lesson";
 import { toast } from "@/components/shared/Toast";
-import { Loader2, FileText, Video, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X } from "lucide-react";
+import { Loader2, FileText, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X, ChevronRight, GraduationCap, UserX } from "lucide-react";
 import Link from "next/link";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
-import CommentThread from "@/components/shared/CommentThread";
+import { LessonDetailModal } from "@/components/shared/LessonDetailModal";
+import { LessonCard } from "@/components/teacher/my-classroom/LessonCard";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface ClassroomDetailViewProps {
   classroomId?: string;
@@ -30,13 +43,11 @@ export default function ClassroomDetailView({
   isStudent = false,
 }: ClassroomDetailViewProps) {
   const [activeTab, setActiveTab] = useState("Stream");
-
-  const [focusCommentId, setFocusCommentId] = useState<string | null>(null);
-  useEffect(() => {
-    setFocusCommentId(new URLSearchParams(window.location.search).get("comment"));
-  }, []);
-  const [resolvedId, setResolvedId] = useState<string>(classroomId || "");
+  const isDirectId = !!classroomId && UUID_REGEX.test(classroomId);
+  const [lookedUpId, setLookedUpId] = useState<string>("");
+  const resolvedId = isDirectId ? (classroomId as string) : lookedUpId;
   const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
+  const [detailLesson, setDetailLesson] = useState<LessonResponse | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Edit Modals State
@@ -50,27 +61,22 @@ export default function ClassroomDetailView({
   const tabs = ["Stream", "Lessons", "Assignments", "People"];
 
   useEffect(() => {
-    if (!classroomId) return;
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(classroomId)) {
-      setResolvedId(classroomId);
-    } else {
-      async function resolveCode() {
-        const myClassrooms = isStudent
-          ? await fetchMyClassrooms()
-          : await fetchTeacherClassrooms();
-        if (myClassrooms) {
-          const matched = myClassrooms.find(
-            (c) => c.classCode?.toLowerCase() === classroomId?.toLowerCase()
-          );
-          if (matched) {
-            setResolvedId(matched.classroomId);
-          }
+    if (!classroomId || isDirectId) return;
+    async function resolveCode() {
+      const myClassrooms = isStudent
+        ? await fetchMyClassrooms()
+        : await fetchTeacherClassrooms();
+      if (myClassrooms) {
+        const matched = myClassrooms.find(
+          (c) => c.classCode?.toLowerCase() === classroomId?.toLowerCase()
+        );
+        if (matched) {
+          setLookedUpId(matched.classroomId);
         }
       }
-      resolveCode();
     }
-  }, [classroomId, isStudent]);
+    resolveCode();
+  }, [classroomId, isDirectId, isStudent]);
 
   // Use RTK Query Hooks with resolved UUID
   const { data: classroom, isLoading: loadingClassroom } = useGetClassroomByIdQuery(resolvedId, {
@@ -79,12 +85,30 @@ export default function ClassroomDetailView({
   const { data: students = [] } = useGetClassroomStudentsQuery(resolvedId, {
     skip: !resolvedId,
   });
+  const { data: teachers = [] } = useGetClassroomTeachersQuery(resolvedId, {
+    skip: !resolvedId,
+  });
   const { data: lessons = [], refetch: refetchLessons } = useGetClassroomLessonsQuery(resolvedId, {
     skip: !resolvedId,
   });
   const { data: assignments = [], refetch: refetchAssignments } = useGetClassroomAssignmentsQuery(resolvedId, {
     skip: !resolvedId,
   });
+  const [removeStudentMutation] = useRemoveStudentFromClassroomMutation();
+  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
+
+  const handleRemoveStudent = async (studentId: string, studentName: string) => {
+    if (!resolvedId) return;
+    if (!confirm(`Remove ${studentName} from this classroom?`)) return;
+    setRemovingStudentId(studentId);
+    try {
+      await removeStudentMutation({ classroomId: resolvedId, studentId }).unwrap();
+      toast.success("Student removed from classroom.");
+    } catch {
+      toast.error("Failed to remove student. Please try again.");
+    }
+    setRemovingStudentId(null);
+  };
 
   const handleDeleteLesson = async (lessonId: string) => {
     if (!confirm("Are you sure you want to delete this lesson?")) return;
@@ -339,42 +363,55 @@ export default function ClassroomDetailView({
                 ) : (
                   <>
                     {assignments.map((a) => (
-                      <div key={a.assignmentId} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-                            <FileText className="h-5 w-5 text-amber-700" strokeWidth={1.75} />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-slate-900">{a.createdBy} posted a new assignment: {a.title}</p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {a.dueDate ? `Due ${new Date(a.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : "No due date"} · {a.maxScore} points
-                            </p>
-                          </div>
+                      <Link
+                        key={a.assignmentId}
+                        href={
+                          isStudent
+                            ? `/dashboard/student/courses/assignment?assignmentId=${a.assignmentId}&classroomId=${resolvedId}`
+                            : `/dashboard/teacher/assignments/${a.assignmentId}`
+                        }
+                        className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-amber-200 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-amber-900"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950">
+                          <FileText className="h-5 w-5 text-amber-700 dark:text-amber-400" strokeWidth={1.75} />
                         </div>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{a.createdBy} posted a new assignment: {a.title}</p>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {a.dueDate ? `Due ${new Date(a.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : "No due date"} · {a.maxScore} points
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-amber-600 transition-colors" />
+                      </Link>
                     ))}
                     {lessons.map((l) => (
-                      <div key={l.lessonId} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
-                            <BookOpen className="h-5 w-5 text-emerald-700" strokeWidth={1.75} />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-slate-900">{l.createdBy} posted a new lesson: {l.title}</p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {new Date(l.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                            </p>
-                          </div>
+                      <div
+                        key={l.lessonId}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setDetailLesson(l)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setDetailLesson(l);
+                          }
+                        }}
+                        className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-emerald-900"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950">
+                          <BookOpen className="h-5 w-5 text-emerald-700 dark:text-emerald-400" strokeWidth={1.75} />
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{l.createdBy} posted a new lesson: {l.title}</p>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {new Date(l.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-emerald-600 transition-colors" />
                       </div>
                     ))}
                   </>
                 )}
-
-                <CommentThread
-                  scope={{ kind: "classroom", id: resolvedId }}
-                  focusCommentId={focusCommentId}
-                />
               </div>
             )}
 
@@ -409,67 +446,26 @@ export default function ClassroomDetailView({
                     </div>
                   </div>
                 ) : (
-                  lessons.map((l) => (
-                    <div key={l.lessonId} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                      <div className="flex items-start justify-between gap-3">
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{l.title}</h4>
-                        {!isStudent && (
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setEditingLesson({ lessonId: l.lessonId, title: l.title, content: l.content || "", videoLink: l.videoLink || "" })}
-                              title="Edit lesson"
-                              className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteLesson(l.lessonId)}
-                              disabled={deletingId === l.lessonId}
-                              title="Delete lesson"
-                              className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors disabled:opacity-50"
-                            >
-                              {deletingId === l.lessonId ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-rose-600" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      {l.content && (
-                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 line-clamp-3">{l.content}</p>
-                      )}
-                      {l.videoLink && (
-                        <button
-                          type="button"
-                          onClick={() => setViewerFile({ name: `${l.title} (Video)`, url: l.videoLink || "", isVideo: true })}
-                          className="mt-2 inline-flex items-center gap-1 text-sm text-indigo-600 hover:underline font-medium cursor-pointer dark:text-indigo-400"
-                        >
-                          <Video className="h-4 w-4" /> Watch Video
-                        </button>
-                      )}
-                      {l.files && l.files.length > 0 && (
-                        <div className="mt-3 space-y-1">
-                          {l.files.map((f) => (
-                            <button
-                              key={f.fileId}
-                              type="button"
-                              onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl || "", isVideo: false })}
-                              className="flex items-center gap-2 text-sm text-indigo-600 hover:underline font-medium cursor-pointer text-left dark:text-indigo-400"
-                            >
-                              <FileText className="h-3.5 w-3.5" /> {f.fileOriginalName}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
-                        Posted by {l.createdBy} · {new Date(l.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {lessons.map((l) => (
+                      <LessonCard
+                        key={l.lessonId}
+                        lesson={l}
+                        isStudent={isStudent}
+                        isDeleting={deletingId === l.lessonId}
+                        onOpen={setDetailLesson}
+                        onEdit={(lesson) =>
+                          setEditingLesson({
+                            lessonId: lesson.lessonId,
+                            title: lesson.title,
+                            content: lesson.content || "",
+                            videoLink: lesson.videoLink || "",
+                          })
+                        }
+                        onDelete={handleDeleteLesson}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -563,6 +559,34 @@ export default function ClassroomDetailView({
             {/* ─── People Tab ─── */}
             {activeTab === "People" && (
               <div className="space-y-4">
+                {/* Teachers */}
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:border-slate-800 dark:bg-slate-900">
+                  <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Teachers ({teachers.length})</h3>
+                  </div>
+                  {teachers.length === 0 ? (
+                    <p className="p-5 text-sm text-slate-500 dark:text-slate-400">No teachers assigned.</p>
+                  ) : (
+                    <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {teachers.map((t) => (
+                        <li key={t.id} className="flex items-center gap-3 px-5 py-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                            {t.fullName?.charAt(0)?.toUpperCase() ?? "?"}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{t.fullName}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{t.email}</p>
+                          </div>
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                            <GraduationCap className="h-3 w-3" /> Teacher
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Students */}
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:border-slate-800 dark:bg-slate-900">
                   <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
                     <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Students ({students.length})</h3>
@@ -580,6 +604,21 @@ export default function ClassroomDetailView({
                             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{s.fullName}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{s.studentCode} · {s.email}</p>
                           </div>
+                          {!isStudent && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveStudent(s.studentId, s.fullName)}
+                              disabled={removingStudentId === s.studentId}
+                              title="Remove student from classroom"
+                              className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors disabled:opacity-50"
+                            >
+                              {removingStudentId === s.studentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-rose-600" />
+                              ) : (
+                                <UserX className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -722,7 +761,7 @@ export default function ClassroomDetailView({
         </div>
       )}
 
-      {/* Protected In-App File Viewer Modal */}
+      {/* Protected In-App File Viewer Modal (used by Assignments tab) */}
       <SecureFileViewerModal
         isOpen={!!viewerFile}
         onClose={() => setViewerFile(null)}
@@ -730,6 +769,9 @@ export default function ClassroomDetailView({
         fileUrl={viewerFile?.url || ""}
         isVideo={viewerFile?.isVideo}
       />
+
+      {/* Lesson Detail Popup: video + files + description combined */}
+      <LessonDetailModal lesson={detailLesson} onClose={() => setDetailLesson(null)} />
     </div>
   );
 }

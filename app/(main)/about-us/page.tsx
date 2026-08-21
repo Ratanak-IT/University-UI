@@ -9,7 +9,6 @@ import Navbar from "@/components/layout/Navbar";
 export default function AboutPage() {
   return (
     <main className="bg-white">
-      <Navbar/>
       <Hero />
       {/* <Intro /> */}
       <VisionMission />

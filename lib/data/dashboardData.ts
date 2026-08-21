@@ -5,7 +5,6 @@ import {
   ContentLibrarySlice,
   Classroom,
   Deadline,
-  AttendanceRow,
 } from "../types/dashboard";
 
 export const statCards: StatCard[] = [
@@ -118,27 +117,3 @@ export const deadlines: Deadline[] = [
   { title: "Weekly Quiz 08", classCode: "DSTR301", due: "TOMORROW", badgeClass: "bg-sky-100 text-sky-700" },
 ];
 
-export const attendance: AttendanceRow[] = [
-  {
-    name: "Rath Vuthy",
-    id: "2024-001",
-    avatar: "https://i.pravatar.cc/80?img=15",
-    classroom: "CS101-A",
-    date: "Oct 23, 2024",
-    status: "Present",
-    statusClass: "bg-emerald-100 text-emerald-700",
-    score: "10/10",
-    note: "Active participation",
-  },
-  {
-    name: "Sok Pagna",
-    id: "2024-042",
-    avatar: "https://i.pravatar.cc/80?img=33",
-    classroom: "UXD202-B",
-    date: "Oct 23, 2024",
-    status: "Late",
-    statusClass: "bg-amber-100 text-amber-700",
-    score: "8/10",
-    note: "Arrived 15m late",
-  },
-];
