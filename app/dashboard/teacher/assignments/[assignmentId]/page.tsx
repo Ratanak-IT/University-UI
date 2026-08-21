@@ -9,7 +9,6 @@ import {
   FileText,
   MessageSquare,
   ArrowLeft,
-  Download,
   AlertCircle,
   ExternalLink,
   CheckCircle,
@@ -21,6 +20,7 @@ import {
   AssignmentResponse,
   SubmissionResponse,
 } from "@/lib/api/assignment";
+import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 
 export default function AssignmentDetailPage() {
   const params = useParams<{ assignmentId: string }>();
@@ -38,6 +38,7 @@ export default function AssignmentDetailPage() {
   const [feedbackText, setFeedbackText] = useState<string>("");
   const [gradingLoading, setGradingLoading] = useState(false);
   const [gradeMessage, setGradeMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [viewerFile, setViewerFile] = useState<{ name: string; url: string } | null>(null);
 
   async function loadData() {
     if (!assignmentId) return;
@@ -198,17 +199,15 @@ export default function AssignmentDetailPage() {
                   <h3 className="font-bold text-xs text-slate-400 uppercase tracking-wider mb-2">Attachments</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {assignment.files.map((file) => (
-                      <a
+                      <button
                         key={file.fileId}
-                        href={file.filePreviewUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors"
+                        type="button"
+                        onClick={() => setViewerFile({ name: file.fileOriginalName, url: file.filePreviewUrl })}
+                        className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-left cursor-pointer"
                       >
                         <FileText className="h-5 w-5 text-indigo-600 shrink-0" />
                         <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-700">{file.fileOriginalName}</span>
-                        <Download className="h-4 w-4 text-slate-400 shrink-0" />
-                      </a>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -293,16 +292,15 @@ export default function AssignmentDetailPage() {
                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Submitted Attachments</h3>
                   {selectedSub.files && selectedSub.files.length > 0 ? (
                     selectedSub.files.map((file) => (
-                      <a
+                      <button
                         key={file.fileId}
-                        href={file.filePreviewUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-between rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors"
+                        type="button"
+                        onClick={() => setViewerFile({ name: file.fileOriginalName, url: file.filePreviewUrl })}
+                        className="flex w-full items-center justify-between rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-left cursor-pointer"
                       >
                         <span className="min-w-0 flex-1 truncate text-xs font-semibold text-indigo-600">{file.fileOriginalName}</span>
                         <ExternalLink className="h-4 w-4 text-indigo-500 shrink-0 ml-2" />
-                      </a>
+                      </button>
                     ))
                   ) : (
                     <p className="text-xs text-slate-400">No attachments submitted.</p>
@@ -389,6 +387,13 @@ export default function AssignmentDetailPage() {
           </aside>
         </div>
       </div>
+
+      <SecureFileViewerModal
+        isOpen={!!viewerFile}
+        onClose={() => setViewerFile(null)}
+        fileName={viewerFile?.name || ""}
+        fileUrl={viewerFile?.url || ""}
+      />
     </main>
   );
 }
