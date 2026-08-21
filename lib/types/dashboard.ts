@@ -47,11 +47,9 @@ export type Deadline = {
 export type AttendanceRow = {
   name: string;
   id: string;
-  avatar: string;
   classroom: string;
   date: string;
   status: string;
   statusClass: string;
-  score: string;
   note: string;
 };

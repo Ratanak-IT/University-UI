@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Google_Sans_Flex, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import ScrollToTopButton from "@/components/layout/ScrollToTopButton"; // <--- 1. Import component
 
 const googleSans = Google_Sans_Flex({
@@ -24,6 +22,7 @@ export const metadata: Metadata = {
 
 import ReduxProvider from "@/components/providers/ReduxProvider";
 import { ToastProvider } from "@/components/shared/Toast";
+import { GlobalContentProtection } from "@/components/shared/GlobalContentProtection";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -41,10 +40,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             disableTransitionOnChange
           >
             <ToastProvider>
-              {/* <Navbar/> */}
-              {children}
-              <Footer />
-              <ScrollToTopButton /> {/* <--- 2. Add component here */}
+              <GlobalContentProtection>
+                {/* <Navbar/> */}
+                {children}
+                {/* <Footer /> */}
+                <ScrollToTopButton /> {/* <--- 2. Add component here */}
+              </GlobalContentProtection>
             </ToastProvider>
           </ThemeProvider>
         </ReduxProvider>

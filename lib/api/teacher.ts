@@ -216,11 +216,17 @@ export interface RecordAttendancePayload {
   items: AttendanceItemPayload[];
 }
 
+export interface TeacherAttendanceRecord {
+  studentId: string;
+  status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
+  remark?: string | null;
+}
+
 /** POST /api/v1/classrooms/{classroomId}/attendance */
 export async function recordTeacherAttendance(
   classroomId: string,
   payload: RecordAttendancePayload
-): Promise<any[]> {
+): Promise<TeacherAttendanceRecord[]> {
   try {
     const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/attendance`, {
       method: "POST",
@@ -239,7 +245,7 @@ export async function recordTeacherAttendance(
 export async function fetchTeacherAttendanceByDate(
   classroomId: string,
   date?: string
-): Promise<any[]> {
+): Promise<TeacherAttendanceRecord[]> {
   try {
     const url = `${API_BASE}/api/v1/classrooms/${classroomId}/attendance` + (date ? `?date=${date}` : "");
     const res = await fetch(url, {

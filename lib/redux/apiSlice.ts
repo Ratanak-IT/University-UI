@@ -6,6 +6,8 @@ import {
   GradeResponse,
   GpaResponse,
   ClassroomResponse,
+  ClassroomStudentResponse,
+  ClassroomMemberResponse,
   LessonResponse,
   AssignmentResponse,
 } from "@/lib/api/student";
@@ -84,6 +86,7 @@ export const apiSlice = createApi({
     "TeacherProfile",
     "TeacherClassrooms",
     "ClassroomStudents",
+    "ClassroomTeachers",
     "TeacherAttendance",
     "ExamScores",
     "ClassroomDetail",
@@ -174,9 +177,22 @@ export const apiSlice = createApi({
       providesTags: ["TeacherClassrooms"],
     }),
 
-    getClassroomStudents: builder.query<any[], string>({
+    getClassroomStudents: builder.query<ClassroomStudentResponse[], string>({
       query: (classroomId) => `/classrooms/${classroomId}/students`,
       providesTags: ["ClassroomStudents"],
+    }),
+
+    getClassroomTeachers: builder.query<ClassroomMemberResponse[], string>({
+      query: (classroomId) => `/classrooms/${classroomId}/teachers`,
+      providesTags: ["ClassroomTeachers"],
+    }),
+
+    removeStudentFromClassroom: builder.mutation<void, { classroomId: string; studentId: string }>({
+      query: ({ classroomId, studentId }) => ({
+        url: `/classrooms/${classroomId}/students/${studentId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ClassroomStudents"],
     }),
 
     getTeacherAttendance: builder.query<
@@ -468,6 +484,8 @@ export const {
   useGetTeacherProfileQuery,
   useGetTeacherClassroomsQuery,
   useGetClassroomStudentsQuery,
+  useGetClassroomTeachersQuery,
+  useRemoveStudentFromClassroomMutation,
   useGetTeacherAttendanceQuery,
   useRecordTeacherAttendanceMutation,
   useGetExamScoresQuery,
