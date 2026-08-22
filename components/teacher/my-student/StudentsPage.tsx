@@ -57,7 +57,7 @@ export default function StudentsPage() {
                         ? new Date(s.joinedAt).toLocaleDateString()
                         : new Date().toLocaleDateString(),
                       gradStatus: "In Progress", // Default status as backend doesn't have at-risk/grad-status mappings
-                      avatarUrl: s.avatarUrl || s.avatar || s.profileUrl || "",
+                      avatarUrl: s.avatarUrl || "",
                     });
                   }
                 });

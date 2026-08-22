@@ -22,7 +22,6 @@ export const metadata: Metadata = {
 
 import ReduxProvider from "@/components/providers/ReduxProvider";
 import { ToastProvider } from "@/components/shared/Toast";
-import { GlobalContentProtection } from "@/components/shared/GlobalContentProtection";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -40,12 +39,16 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             disableTransitionOnChange
           >
             <ToastProvider>
-              <GlobalContentProtection>
-                {/* <Navbar/> */}
-                {children}
-                {/* <Footer /> */}
-                <ScrollToTopButton /> {/* <--- 2. Add component here */}
-              </GlobalContentProtection>
+              {/* Content protection is deliberately NOT applied here.
+                  Wrapping the whole app blocked right-click and raised the
+                  blackout on public pages like the home and about pages, where
+                  there is nothing to protect and it only gets in the way.
+                  Protection belongs to the file viewer itself — see
+                  SecureFileViewerModal, which enables it while a file is open. */}
+              {/* <Navbar/> */}
+              {children}
+              {/* <Footer /> */}
+              <ScrollToTopButton />
             </ToastProvider>
           </ThemeProvider>
         </ReduxProvider>

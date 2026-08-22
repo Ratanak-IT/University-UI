@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PersonAvatar from "@/components/shared/PersonAvatar";
 import {
   fetchClassroomById,
   fetchClassroomStudents,
@@ -498,7 +499,16 @@ export default function ClassroomDetailView({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3">
-                            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{a.title}</h4>
+                            {isStudent ? (
+                              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{a.title}</h4>
+                            ) : (
+                              <Link
+                                href={`/dashboard/teacher/assignments/${a.assignmentId}`}
+                                className="text-sm font-bold text-slate-900 hover:text-indigo-600 hover:underline dark:text-slate-100 dark:hover:text-indigo-400"
+                              >
+                                {a.title}
+                              </Link>
+                            )}
                             {!isStudent && (
                               <div className="flex items-center gap-1 shrink-0">
                                 <button
@@ -548,6 +558,19 @@ export default function ClassroomDetailView({
                               ))}
                             </div>
                           )}
+
+                          {/* A named action, not just a linked title: opening
+                              the grader was previously unreachable from here,
+                              which is where a teacher actually starts. */}
+                          {!isStudent && (
+                            <Link
+                              href={`/dashboard/teacher/assignments/${a.assignmentId}`}
+                              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                            >
+                              Review submissions
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -569,12 +592,10 @@ export default function ClassroomDetailView({
                   ) : (
                     <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                       {teachers.map((t) => (
-                        <li key={t.id} className="flex items-center gap-3 px-5 py-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                            {t.fullName?.charAt(0)?.toUpperCase() ?? "?"}
-                          </div>
+                        <li key={t.teacherId} className="flex items-center gap-3 px-5 py-3">
+                          <PersonAvatar name={t.fullname} avatarUrl={t.avatarUrl} size="sm" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{t.fullName}</p>
+                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{t.fullname}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{t.email}</p>
                           </div>
                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
@@ -597,9 +618,7 @@ export default function ClassroomDetailView({
                     <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                       {students.map((s) => (
                         <li key={s.studentId} className="flex items-center gap-3 px-5 py-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
-                            {s.fullName?.charAt(0)?.toUpperCase() ?? "?"}
-                          </div>
+                          <PersonAvatar name={s.fullName} avatarUrl={s.avatarUrl} size="sm" />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{s.fullName}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{s.studentCode} · {s.email}</p>

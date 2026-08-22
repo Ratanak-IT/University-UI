@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Search, Bell, Moon, Sun } from "lucide-react";
+import { Bell, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import HeaderGlobalSearch from "@/components/shared/HeaderGlobalSearch";
+import MobileNav from "./MobileNav";
 import {
   useGetStudentProfileQuery,
   useGetMyNotificationsQuery,
@@ -29,14 +30,17 @@ export default function NavbarStudent() {
     : "ST";
 
   return (
-    <header className="flex w-full items-center justify-between border-b border-border bg-card px-6 py-4 text-card-foreground transition-colors">
-      <div className="flex flex-col gap-0.5">
-        <h1 className="text-xl font-black text-indigo-700 dark:text-indigo-400">
-          Dashboard
-        </h1>
-        <p className="text-xs font-semibold text-muted-foreground">
-          Academic Year {profile?.academicYear || "2025–2026"} <span className="mx-1">•</span> Semester {profile?.semester || 2}
-        </p>
+    <header className="flex w-full items-center justify-between gap-3 border-b border-border bg-card px-4 py-4 sm:px-6 text-card-foreground transition-colors">
+      <div className="flex min-w-0 items-center gap-2">
+        <MobileNav />
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-black text-indigo-700 sm:text-xl dark:text-indigo-400">
+            Dashboard
+          </h1>
+          <p className="hidden truncate text-xs font-semibold text-muted-foreground sm:block">
+            Academic Year {profile?.academicYear || "2025–2026"} <span className="mx-1">•</span> Semester {profile?.semester || 2}
+          </p>
+        </div>
       </div>
 
       <div className="hidden sm:block flex-1 max-w-xl mx-6">

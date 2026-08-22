@@ -93,6 +93,8 @@ export interface ClassroomStudentResponse {
   yearLevel: number;
   semester: number;
   joinedAt: string;
+  /** Presigned MinIO URL. Absent when the student has no avatar. */
+  avatarUrl?: string;
 }
 
 export interface FileResponse {
@@ -197,13 +199,22 @@ export interface LessonFileResponse {
   previewUrl: string;
 }
 
+/**
+ * Mirrors the backend `ClassroomMemberResponse` record exactly.
+ *
+ * Note `fullname` is lower-case "n" on the wire. The previous declaration here
+ * claimed `id`, `userId` and `fullName` — none of which the API sends — so the
+ * teacher panel rendered a blank name and an undefined React key.
+ */
 export interface ClassroomMemberResponse {
-  id: string;
-  userId: string;
-  fullName: string;
+  teacherId: string;
+  fullname: string;
   email: string;
   role: string;
+  joinedAt?: string;
   status: string;
+  /** Presigned MinIO URL. Absent when the teacher has no avatar. */
+  avatarUrl?: string;
 }
 
 // Spring Page wrapper
@@ -342,10 +353,18 @@ export async function submitAssignment(assignmentId: string, files: File[]) {
 }
 // ─── Quiz Attempt Types ──────────────────────────────────────────────
 
+/** Mirrors the backend `QuestionType` enum. */
+export type QuestionType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+
 export interface QuizQuestionItem {
   questionId: string;
   questionText: string;
   options: string[];
+  /**
+   * How to render the input. Safe to receive: it never reveals the answer —
+   * neither the correct option nor its index is ever sent to a student.
+   */
+  type: QuestionType;
   score: number;
   questionOrder: number;
 }
@@ -394,7 +413,14 @@ export async function submitQuizAttempt(
   studentId: string,
   quizId: string,
   attemptId: string,
-  answers: { questionId: string; answer: string }[]
+  /**
+   * `selectedOptionIndex` is the source of truth for choice questions —
+   * sending the option's text let a later reword of that option silently
+   * invalidate every stored answer, because grading compared text to text.
+   * `answer` is required for SHORT_ANSWER and optional elsewhere as a
+   * fallback the server can still resolve.
+   */
+  answers: { questionId: string; selectedOptionIndex?: number; answer?: string }[]
 ): Promise<QuizAttemptResponse | null> {
   try {
     const res = await fetch(

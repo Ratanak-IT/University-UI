@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "i.pravatar.cc",
       },
+      {
+        // MinIO object storage — where user avatars live.
+        protocol: "https",
+        hostname: "s3.careerpatch.site",
+        pathname: "/**",
+      },
     ],
   },
 };

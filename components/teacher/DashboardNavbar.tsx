@@ -1,38 +1,42 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Search, Bell, Moon, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import HeaderGlobalSearch from "@/components/shared/HeaderGlobalSearch";
+import MobileNav from "./MobileNav";
+import { useGetTeacherProfileQuery } from "@/lib/redux/apiSlice";
 
 export default function DashboardNavbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  // Shares its cache with the sidebar's own profile query, so opening the
+  // rail, the drawer, and this navbar together still costs one request.
+  const { data: profile } = useGetTeacherProfileQuery();
 
-  const [profile, setProfile] = useState<{ avatarUrl?: string | null; firstName?: string; lastName?: string } | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-    import("@/lib/api/teacher").then((m) => {
-      m.fetchTeacherProfile().then((p) => {
-        if (p) setProfile(p);
-      });
-    });
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   return (
-    <header className="flex w-full items-center justify-between border-b border-gray-100 bg-white px-8 py-4 dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold text-[#004071] dark:text-sky-400">
-          Dashboard
-        </h1>
-        <p className="text-sm font-medium text-gray-500 dark:text-slate-400">
-          Academic Year 2024–2025 <span className="mx-1">•</span> Semester 2
-        </p>
+    <header className="flex w-full items-center justify-between gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:px-8 dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex min-w-0 items-center gap-2">
+        <MobileNav />
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-bold text-[#004071] sm:text-xl dark:text-sky-400">
+            Dashboard
+          </h1>
+          <p className="hidden truncate text-sm font-medium text-gray-500 sm:block dark:text-slate-400">
+            Academic Year 2024–2025 <span className="mx-1">•</span> Semester 2
+          </p>
+        </div>
       </div>
 
-      <HeaderGlobalSearch placeholder="Search students, classes, or files..." />
+      {/* Search competes for width with the title and icon cluster on a
+          narrow header, so it only joins in from md up — same threshold the
+          student navbar already uses for the same reason. */}
+      <div className="hidden min-w-0 flex-1 md:block">
+        <HeaderGlobalSearch placeholder="Search students, classes, or files..." />
+      </div>
 
       <div className="flex items-center gap-6">
         <Link

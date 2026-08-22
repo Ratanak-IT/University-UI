@@ -1,110 +1,30 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
-import {
-  LayoutGrid,
-  GraduationCap,
-  Users,
-  Package,
-  BookOpen,
-  Trophy,
-  UserCheck,
-  Star,
-  Bell,
-  User,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { useState } from "react";
+import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { navSections } from "./SidebarNav";
+import { useGetTeacherProfileQuery } from "@/lib/redux/apiSlice";
 
-type NavItem = {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-};
-
-type NavSection = {
-  title: string;
-  items: NavItem[];
-};
-
-const sections: NavSection[] = [
-  {
-    title: "Overview",
-    items: [
-      { label: "Dashboard", href: "/dashboard/teacher", icon: LayoutGrid },
-    ],
-  },
-  {
-    title: "My Teaching",
-    items: [
-      {
-        label: "My Classrooms",
-        href: "/dashboard/teacher/my-classroom",
-        icon: GraduationCap,
-      },
-      {
-        label: "My students",
-        href: "/dashboard/teacher/my-student",
-        icon: Users,
-      },
-    ],
-  },
-  {
-    title: "Content",
-    items: [
-      { label: "Lessons", href: "/dashboard/teacher/lessons", icon: Package },
-      {
-        label: "Assignments",
-        href: "/dashboard/teacher/assignments",
-        icon: BookOpen,
-      },
-      { label: "Quizzes", href: "/dashboard/teacher/quiz", icon: Trophy },
-    ],
-  },
-  {
-    title: "Manage",
-    items: [
-      {
-        label: "Attendance",
-        href: "/dashboard/teacher/attendance",
-        icon: UserCheck,
-      },
-      { label: "Grades", href: "/dashboard/teacher/grades", icon: Star },
-    ],
-  },
-  {
-    title: "Profile",
-    items: [
-      {
-        label: "Notifications",
-        href: "/dashboard/teacher/notifications",
-        icon: Bell,
-      },
-      { label: "My Profile", href: "/dashboard/teacher/profile", icon: User },
-    ],
-  },
-];
-
+/**
+ * The permanent rail, from `lg` up. Below that the same navigation is served
+ * by {@link MobileNav} as a drawer, so a phone gets the whole screen width
+ * for content instead of losing 260px (or 80px collapsed) of it.
+ *
+ * `navSections` is imported rather than declared here so the rail and the
+ * drawer read the same list — a route added to one can no longer be
+ * forgotten in the other.
+ */
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [profile, setProfile] = useState<{ avatarUrl?: string | null; firstName?: string; lastName?: string } | null>(null);
-
-  useEffect(() => {
-    import("@/lib/api/teacher").then((m) => {
-      m.fetchTeacherProfile().then((p) => {
-        if (p) setProfile(p);
-      });
-    });
-  }, []);
+  const { data: profile } = useGetTeacherProfileQuery();
 
   return (
     <aside
-  className={`relative shrink-0 z-40 flex h-screen flex-col border-r border-border bg-background transition-all duration-300 ${
+  className={`relative z-40 hidden h-screen shrink-0 flex-col border-r border-border bg-background transition-all duration-300 lg:flex ${
     isCollapsed ? "w-20" : "w-[260px]"
   }`}
 >
@@ -144,7 +64,7 @@ export default function Sidebar() {
 
       {/* Navigation Links */}
       <nav className="custom-scrollbar flex-1 overflow-y-auto px-4 py-6">
-        {sections.map((section, idx) => (
+        {navSections.map((section, idx) => (
           <div key={section.title} className={idx === 0 ? "" : "mt-7"}>
             {!isCollapsed && (
               <p className="mb-2.5 px-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">

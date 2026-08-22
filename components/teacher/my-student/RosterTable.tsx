@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useRef, useEffect } from "react";
-import Image from "next/image";
+import PersonAvatar from "@/components/shared/PersonAvatar";
 import { ChevronDown, Check } from "lucide-react";
 import GradStatusBadge from "./GradStatusBadge";
 import Pagination from "./Pagination";
@@ -222,19 +222,11 @@ export default function RosterTable({
                 <tr key={student.id} className="border-t border-border">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      {student.avatarUrl ? (
-                        <Image
-                          src={student.avatarUrl}
-                          alt={student.name}
-                          width={36}
-                          height={36}
-                          className="h-9 w-9 shrink-0 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 font-bold text-white text-sm">
-                          {student.name?.charAt(0)?.toUpperCase() || "S"}
-                        </div>
-                      )}
+                      <PersonAvatar
+                        name={student.name}
+                        avatarUrl={student.avatarUrl}
+                        size="sm"
+                      />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-foreground">
                           {student.name}

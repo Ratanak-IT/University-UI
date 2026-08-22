@@ -23,7 +23,13 @@ function getAuthHeader(): Record<string, string> {
 export interface LessonFileResponse {
   fileId: string;
   fileOriginalName: string;
-  filePreviewUrl: string;
+  /**
+   * The backend record field is `previewUrl`, so that is what arrives on the
+   * wire. This was declared as `filePreviewUrl` — a name the API never sends —
+   * which made every attachment link resolve to `href={undefined}`, so
+   * clicking a submitted file did nothing at all.
+   */
+  previewUrl: string;
 }
 
 export interface LessonResponse {
