@@ -1,24 +1,23 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Search, Bell, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Bell } from "lucide-react";
 import Link from "next/link";
 import HeaderGlobalSearch from "@/components/shared/HeaderGlobalSearch";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import MobileNav from "./MobileNav";
 import {
   useGetStudentProfileQuery,
   useGetMyNotificationsQuery,
 } from "@/lib/redux/apiSlice";
+import { useNotifyUnreadOnce } from "@/lib/hooks/useNotifyUnreadOnce";
 
 export default function NavbarStudent() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const { data: profile } = useGetStudentProfileQuery();
   const { data: notifications = [] } = useGetMyNotificationsQuery();
 
-  useEffect(() => setMounted(true), []);
+  useNotifyUnreadOnce();
 
-  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const studentName = profile
     ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || profile.username
@@ -29,18 +28,21 @@ export default function NavbarStudent() {
     : "ST";
 
   return (
-    <header className="flex w-full items-center justify-between border-b border-border bg-card px-6 py-4 text-card-foreground transition-colors">
-      <div className="flex flex-col gap-0.5">
-        <h1 className="text-xl font-black text-indigo-700 dark:text-indigo-400">
-          Dashboard
-        </h1>
-        <p className="text-xs font-semibold text-muted-foreground">
-          Academic Year {profile?.academicYear || "2025–2026"} <span className="mx-1">•</span> Semester {profile?.semester || 2}
-        </p>
+    <header className="flex w-full items-center justify-between gap-3 border-b border-border bg-card px-4 py-4 sm:px-6 text-card-foreground transition-colors">
+      <div className="flex min-w-0 items-center gap-2">
+        <MobileNav />
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-black text-indigo-700 sm:text-xl dark:text-indigo-400">
+            Dashboard
+          </h1>
+          <p className="hidden truncate text-xs font-semibold text-muted-foreground sm:block">
+            Academic Year {profile?.academicYear || "2025–2026"} <span className="mx-1">•</span> Semester {profile?.semester || 2}
+          </p>
+        </div>
       </div>
 
       <div className="hidden sm:block flex-1 max-w-xl mx-6">
-        <HeaderGlobalSearch placeholder="Search courses, grades, or certificates..." />
+        <HeaderGlobalSearch role="student" placeholder="Search your courses and pages..." />
       </div>
 
       <div className="flex items-center gap-4">
@@ -57,18 +59,7 @@ export default function NavbarStudent() {
           )}
         </Link>
 
-        <button
-          type="button"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label="Toggle theme"
-          className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-        >
-          {mounted && theme === "dark" ? (
-            <Sun className="h-5 w-5 stroke-[1.75] text-amber-400" />
-          ) : (
-            <Moon className="h-5 w-5 stroke-[1.75]" />
-          )}
-        </button>
+        <ThemeToggle />
 
         <Link
           href="/dashboard/student/profile"

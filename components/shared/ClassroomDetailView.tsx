@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PersonAvatar from "@/components/shared/PersonAvatar";
 import {
   fetchClassroomById,
   fetchClassroomStudents,
@@ -187,8 +188,8 @@ export default function ClassroomDetailView({
   if (!classroom) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-2">
-        <p className="text-lg font-semibold text-slate-700">Classroom not found</p>
-        <p className="text-sm text-slate-500">Unable to load this classroom.</p>
+        <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">Classroom not found</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Unable to load this classroom.</p>
       </div>
     );
   }
@@ -203,8 +204,8 @@ export default function ClassroomDetailView({
   return (
     <div>
       {/* Tab Bar */}
-      <div className="bg-white">
-        <div className="flex items-center gap-8 border-b border-slate-200 px-8">
+      <div className="bg-white dark:bg-slate-900">
+        <div className="flex items-center gap-8 border-b border-slate-200 px-8 dark:border-slate-800">
           {tabs.map((tab) => {
             const isActive = tab === activeTab;
             return (
@@ -213,13 +214,13 @@ export default function ClassroomDetailView({
                 onClick={() => setActiveTab(tab)}
                 className={`relative py-4 text-[15px] font-medium transition-colors ${
                   isActive
-                    ? "text-indigo-700 font-bold"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "text-indigo-700 font-bold dark:text-indigo-400"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 }`}
               >
                 {tab}
                 {isActive && (
-                  <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-indigo-700" />
+                  <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-indigo-700 dark:bg-indigo-400" />
                 )}
               </button>
             );
@@ -247,38 +248,38 @@ export default function ClassroomDetailView({
           {/* Left sidebar */}
           <div className="space-y-5">
             {/* Class Code Card */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-semibold tracking-wide text-slate-500">CLASS CODE</p>
-              <p className="mt-3 font-mono text-2xl font-bold tracking-wider text-slate-900">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-xs font-semibold tracking-wide text-slate-500 dark:text-slate-400">CLASS CODE</p>
+              <p className="mt-3 font-mono text-2xl font-bold tracking-wider text-slate-900 dark:text-slate-100">
                 {classroom.inviteCode || classroom.classCode}
               </p>
             </div>
 
             {/* Class Info Card */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-              <h3 className="text-sm font-bold text-slate-900">Class Details</h3>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3 dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Class Details</h3>
               <div className="space-y-2 text-sm">
                 {classroom.teacherName && (
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Users className="h-4 w-4 text-slate-400" />
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                    <Users className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                     <span>Teacher: <strong>{classroom.teacherName}</strong></span>
                   </div>
                 )}
                 {classroom.subjectName && (
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <BookOpen className="h-4 w-4 text-slate-400" />
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                    <BookOpen className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                     <span>Subject: {classroom.subjectName}</span>
                   </div>
                 )}
                 {classroom.room && (
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <MapPin className="h-4 w-4 text-slate-400" />
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                    <MapPin className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                     <span>Room {classroom.room}</span>
                   </div>
                 )}
                 {classroom.academicYear && (
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Calendar className="h-4 w-4 text-slate-400" />
+                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                    <Calendar className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                     <span>{classroom.academicYear}</span>
                   </div>
                 )}
@@ -286,16 +287,16 @@ export default function ClassroomDetailView({
             </div>
 
             {/* Assignments count */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900">Quick Stats</h3>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Quick Stats</h3>
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-indigo-50 p-3 text-center">
-                  <p className="text-lg font-bold text-indigo-700">{lessons.length}</p>
-                  <p className="text-xs text-indigo-600">Lessons</p>
+                <div className="rounded-xl bg-indigo-50 p-3 text-center dark:bg-indigo-950/60">
+                  <p className="text-lg font-bold text-indigo-700 dark:text-indigo-300">{lessons.length}</p>
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400">Lessons</p>
                 </div>
-                <div className="rounded-xl bg-amber-50 p-3 text-center">
-                  <p className="text-lg font-bold text-amber-700">{assignments.length}</p>
-                  <p className="text-xs text-amber-600">Assignments</p>
+                <div className="rounded-xl bg-amber-50 p-3 text-center dark:bg-amber-950/60">
+                  <p className="text-lg font-bold text-amber-700 dark:text-amber-300">{assignments.length}</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">Assignments</p>
                 </div>
               </div>
             </div>
@@ -309,32 +310,32 @@ export default function ClassroomDetailView({
                 {assignments.length === 0 && lessons.length === 0 ? (
                   <div className="space-y-4">
                     {/* Demo/Sample Activity items for new classrooms */}
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                       <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
-                          <BookOpen className="h-5 w-5 text-emerald-700" strokeWidth={1.75} />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950">
+                          <BookOpen className="h-5 w-5 text-emerald-700 dark:text-emerald-400" strokeWidth={1.75} />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-slate-900">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                             Course Overview & Syllabus Introduction
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             Welcome to {classroom.className}! Review the course structure and grading policies.
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                       <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-                          <FileText className="h-5 w-5 text-amber-700" strokeWidth={1.75} />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950">
+                          <FileText className="h-5 w-5 text-amber-700 dark:text-amber-400" strokeWidth={1.75} />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-slate-900">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                             Assignment 1: Project Plan Proposal
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             Due in 7 days · 100 points
                           </p>
                         </div>
@@ -352,7 +353,7 @@ export default function ClassroomDetailView({
                         </Link>
                         <Link
                           href={`/dashboard/teacher/assignments/create-assignment?classroomId=${classroom.classroomId}`}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           Create New Assignment
@@ -431,17 +432,17 @@ export default function ClassroomDetailView({
                 )}
 
                 {lessons.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3 dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
-                        <BookOpen className="h-5 w-5 text-emerald-700" strokeWidth={1.75} />
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950">
+                        <BookOpen className="h-5 w-5 text-emerald-700 dark:text-emerald-400" strokeWidth={1.75} />
                       </div>
                       <div className="flex-1">
-                        <h4 className="text-sm font-bold text-slate-900">Module 1: Course Introduction & Architecture Overview</h4>
-                        <p className="mt-1 text-sm text-slate-600">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Module 1: Course Introduction & Architecture Overview</h4>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                           Comprehensive introduction to core concepts, key learning objectives, and practical application modules.
                         </p>
-                        <p className="mt-3 text-xs text-slate-400">Course Syllabus · Module 1</p>
+                        <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">Course Syllabus · Module 1</p>
                       </div>
                     </div>
                   </div>
@@ -498,7 +499,16 @@ export default function ClassroomDetailView({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3">
-                            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{a.title}</h4>
+                            {isStudent ? (
+                              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{a.title}</h4>
+                            ) : (
+                              <Link
+                                href={`/dashboard/teacher/assignments/${a.assignmentId}`}
+                                className="text-sm font-bold text-slate-900 hover:text-indigo-600 hover:underline dark:text-slate-100 dark:hover:text-indigo-400"
+                              >
+                                {a.title}
+                              </Link>
+                            )}
                             {!isStudent && (
                               <div className="flex items-center gap-1 shrink-0">
                                 <button
@@ -548,6 +558,19 @@ export default function ClassroomDetailView({
                               ))}
                             </div>
                           )}
+
+                          {/* A named action, not just a linked title: opening
+                              the grader was previously unreachable from here,
+                              which is where a teacher actually starts. */}
+                          {!isStudent && (
+                            <Link
+                              href={`/dashboard/teacher/assignments/${a.assignmentId}`}
+                              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                            >
+                              Review submissions
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -569,12 +592,10 @@ export default function ClassroomDetailView({
                   ) : (
                     <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                       {teachers.map((t) => (
-                        <li key={t.id} className="flex items-center gap-3 px-5 py-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                            {t.fullName?.charAt(0)?.toUpperCase() ?? "?"}
-                          </div>
+                        <li key={t.teacherId} className="flex items-center gap-3 px-5 py-3">
+                          <PersonAvatar name={t.fullname} avatarUrl={t.avatarUrl} size="sm" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{t.fullName}</p>
+                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{t.fullname}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{t.email}</p>
                           </div>
                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
@@ -597,9 +618,7 @@ export default function ClassroomDetailView({
                     <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                       {students.map((s) => (
                         <li key={s.studentId} className="flex items-center gap-3 px-5 py-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
-                            {s.fullName?.charAt(0)?.toUpperCase() ?? "?"}
-                          </div>
+                          <PersonAvatar name={s.fullName} avatarUrl={s.avatarUrl} size="sm" />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{s.fullName}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{s.studentCode} · {s.email}</p>

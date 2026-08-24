@@ -93,6 +93,8 @@ export interface ClassroomStudentResponse {
   yearLevel: number;
   semester: number;
   joinedAt: string;
+  /** Presigned MinIO URL. Absent when the student has no avatar. */
+  avatarUrl?: string;
 }
 
 export interface FileResponse {
@@ -134,7 +136,37 @@ export interface StudentAssignmentResponse {
   submissionFiles: FileResponse[];
 }
 
+/**
+ * One graded component of a course — e.g. "Midterm" or "Final Exam" if the
+ * teacher types it in by hand, or "Assignments"/"Quizzes"/"Attendance" if the
+ * classroom's scheme derives it automatically. A classroom's component list
+ * is configurable per classroom, not a fixed set, so this is read as a list
+ * to render, never looked up by a hard-coded name.
+ */
+export interface GradeComponentBreakdown {
+  componentId: string;
+  name: string;
+  source: "MANUAL" | "ASSIGNMENT" | "QUIZ" | "ATTENDANCE";
+  weightPercent: number;
+  /** Null when nothing in this component has been marked yet. */
+  percent: number | null;
+  earnedPoints: number;
+  possiblePoints: number;
+  gradedItems: number;
+  totalItems: number;
+}
+
+/**
+ * Mirrors the backend `CourseGradeResponse` record exactly — one course on a
+ * transcript. This previously declared fields the API has never sent
+ * (`gradedAssignments`, `totalAssignments`, a flat `scores` array), which
+ * made every field on this type read as `undefined` at runtime.
+ */
 export interface GradeResponse {
+  courseGradeId: string;
+  studentId: string;
+  studentCode: string;
+  fullName: string;
   classroomId: string;
   className: string;
   subjectId: string;
@@ -143,24 +175,28 @@ export interface GradeResponse {
   credit: number;
   academicYear: string;
   semester: number;
-  gradedAssignments: number;
-  totalAssignments: number;
-  scorePercent: number;
-  letterGrade: string;
-  gradePoint: number;
-  scores?: {
-    examScoreId: string;
-    examType: "MIDTERM" | "FINAL" | "ASSIGNMENT" | "QUIZ" | "ATTENDANCE" | "OTHER";
-    score: number;
-    maxScore: number;
-  }[];
+  scorePercent: number | null;
+  letterGrade: string | null;
+  gradePoint: number | null;
+  creditsEarned: number | null;
+  completenessPercent: number | null;
+  /** IN_PROGRESS while the teacher is still marking; POSTED is the only status a transcript reads. */
+  status: "IN_PROGRESS" | "SUBMITTED" | "POSTED";
+  countsInGpa: boolean;
+  postedAt: string | null;
+  remark: string | null;
+  breakdown: GradeComponentBreakdown[];
 }
 
 export interface GpaResponse {
   studentId: string;
   studentCode: string;
+  /** Official GPA — posted grades only. */
   cumulativeGpa: number;
-  totalCredits: number;
+  /** Includes courses still being marked. */
+  currentGpa: number;
+  creditsEarned: number;
+  creditsAttempted: number;
   subjects: GradeResponse[];
 }
 
@@ -197,13 +233,22 @@ export interface LessonFileResponse {
   previewUrl: string;
 }
 
+/**
+ * Mirrors the backend `ClassroomMemberResponse` record exactly.
+ *
+ * Note `fullname` is lower-case "n" on the wire. The previous declaration here
+ * claimed `id`, `userId` and `fullName` — none of which the API sends — so the
+ * teacher panel rendered a blank name and an undefined React key.
+ */
 export interface ClassroomMemberResponse {
-  id: string;
-  userId: string;
-  fullName: string;
+  teacherId: string;
+  fullname: string;
   email: string;
   role: string;
+  joinedAt?: string;
   status: string;
+  /** Presigned MinIO URL. Absent when the teacher has no avatar. */
+  avatarUrl?: string;
 }
 
 // Spring Page wrapper
@@ -342,10 +387,18 @@ export async function submitAssignment(assignmentId: string, files: File[]) {
 }
 // ─── Quiz Attempt Types ──────────────────────────────────────────────
 
+/** Mirrors the backend `QuestionType` enum. */
+export type QuestionType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+
 export interface QuizQuestionItem {
   questionId: string;
   questionText: string;
   options: string[];
+  /**
+   * How to render the input. Safe to receive: it never reveals the answer —
+   * neither the correct option nor its index is ever sent to a student.
+   */
+  type: QuestionType;
   score: number;
   questionOrder: number;
 }
@@ -394,7 +447,14 @@ export async function submitQuizAttempt(
   studentId: string,
   quizId: string,
   attemptId: string,
-  answers: { questionId: string; answer: string }[]
+  /**
+   * `selectedOptionIndex` is the source of truth for choice questions —
+   * sending the option's text let a later reword of that option silently
+   * invalidate every stored answer, because grading compared text to text.
+   * `answer` is required for SHORT_ANSWER and optional elsewhere as a
+   * fallback the server can still resolve.
+   */
+  answers: { questionId: string; selectedOptionIndex?: number; answer?: string }[]
 ): Promise<QuizAttemptResponse | null> {
   try {
     const res = await fetch(

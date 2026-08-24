@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { TableRowsSkeleton } from "@/components/shared/Skeletons";
 import {
   useGetMyNotificationsQuery,
@@ -9,7 +10,14 @@ import {
   useMarkAllNotificationsReadMutation,
 } from "@/lib/redux/apiSlice";
 
-type NotificationType = "GRADE" | "ASSIGNMENT" | "CERTIFICATE" | "ANNOUNCEMENT" | "ATTENDANCE";
+type NotificationType =
+  | "GRADE"
+  | "ASSIGNMENT"
+  | "CERTIFICATE"
+  | "ANNOUNCEMENT"
+  | "ATTENDANCE"
+  | "MENTION"
+  | "COMMENT_REPLY";
 
 interface NotificationItem {
   id: string;
@@ -21,13 +29,8 @@ interface NotificationItem {
   initials: string;
   avatarColor: string;
   unread: boolean;
-}
-
-interface Settings {
-  emailAlerts: boolean;
-  pushNotifications: boolean;
-  submissionAlerts: boolean;
-  weeklyDigest: boolean;
+  /** Route to open on click; null when there is nothing to navigate to. */
+  link: string | null;
 }
 
 const typeStyles: Record<NotificationType, string> = {
@@ -36,6 +39,8 @@ const typeStyles: Record<NotificationType, string> = {
   CERTIFICATE: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
   ANNOUNCEMENT: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300",
   ATTENDANCE: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+  MENTION: "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300",
+  COMMENT_REPLY: "bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300",
 };
 
 const typeDot: Record<NotificationType, string> = {
@@ -44,35 +49,81 @@ const typeDot: Record<NotificationType, string> = {
   CERTIFICATE: "bg-amber-500",
   ANNOUNCEMENT: "bg-purple-500",
   ATTENDANCE: "bg-sky-500",
+  MENTION: "bg-rose-500",
+  COMMENT_REPLY: "bg-teal-500",
 };
 
 type FilterKey = "All" | "Unread" | NotificationType;
+
+
+function NotificationRow({
+  n,
+  onOpen,
+}: {
+  n: NotificationItem;
+  onOpen: (n: NotificationItem) => void;
+}) {
+  return (
+    <div
+      onClick={() => onOpen(n)}
+      className={`flex items-center gap-3 px-6 py-4 cursor-pointer transition-colors ${
+        n.unread ? "bg-primary/5 hover:bg-primary/10" : "bg-card hover:bg-muted/40"
+      }`}
+    >
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${n.avatarColor}`}
+      >
+        {n.initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm text-card-foreground">
+          {n.actor && <span className="font-semibold">{n.actor} </span>}
+          {n.action}
+        </p>
+        <div className="mt-1 flex items-center gap-2">
+          <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${typeStyles[n.type]}`}>
+            {n.type}
+          </span>
+          <span className="text-xs text-muted-foreground font-mono">{n.context} · {n.time}</span>
+        </div>
+      </div>
+      {n.unread ? (
+        <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+      ) : (
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+      )}
+    </div>
+  );
+}
 
 export default function NotificationsPage() {
   const { data: apiNotifications = [], isLoading } = useGetMyNotificationsQuery();
   const [markSingleRead] = useMarkNotificationReadMutation();
   const [markAllReadApi] = useMarkAllNotificationsReadMutation();
 
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<FilterKey>("All");
-  const [settings, setSettings] = useState<Settings>({
-    emailAlerts: true,
-    pushNotifications: true,
-    submissionAlerts: true,
-    weeklyDigest: false,
-  });
 
   const notifications: NotificationItem[] = useMemo(() => {
-    return apiNotifications.map((n: any) => ({
-      id: n.id || n.notificationId,
-      actor: n.actor || n.title || "System",
-      action: n.message || n.title,
-      type: (n.type as NotificationType) || "ANNOUNCEMENT",
-      context: n.context || "Classroom",
-      time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
-      initials: n.actor ? n.actor.substring(0, 2).toUpperCase() : "UM",
-      avatarColor: typeStyles[n.type as NotificationType] || "bg-indigo-100 text-indigo-800",
-      unread: !n.isRead,
-    }));
+    return apiNotifications.map((n) => {
+      const type = (typeStyles[n.type as NotificationType] ? n.type : "ANNOUNCEMENT") as NotificationType;
+      return {
+        id: n.id,
+        actor: n.actor || n.title || "System",
+        action: n.message || n.title,
+        type,
+        context: n.context || "Classroom",
+        time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
+        initials: n.actor ? n.actor.substring(0, 2).toUpperCase() : "UM",
+        avatarColor: typeStyles[type],
+        unread: !n.isRead,
+        link:
+          n.link ??
+          (n.resourceType === "CLASSROOM" && n.resourceId
+            ? `/dashboard/teacher/my-classroom/${n.resourceId}`
+            : null),
+      };
+    });
   }, [apiNotifications]);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
@@ -85,6 +136,8 @@ export default function NotificationsPage() {
     { key: "CERTIFICATE", label: "Certificates", count: notifications.filter((n) => n.type === "CERTIFICATE").length },
     { key: "ANNOUNCEMENT", label: "Announcements", count: notifications.filter((n) => n.type === "ANNOUNCEMENT").length },
     { key: "ATTENDANCE", label: "Attendance", count: notifications.filter((n) => n.type === "ATTENDANCE").length },
+    { key: "MENTION", label: "Mentions", count: notifications.filter((n) => n.type === "MENTION").length },
+    { key: "COMMENT_REPLY", label: "Replies", count: notifications.filter((n) => n.type === "COMMENT_REPLY").length },
   ];
 
   const filtered = useMemo(() => {
@@ -99,6 +152,8 @@ export default function NotificationsPage() {
     { type: "CERTIFICATE" as NotificationType, count: notifications.filter((n) => n.type === "CERTIFICATE").length },
     { type: "ANNOUNCEMENT" as NotificationType, count: notifications.filter((n) => n.type === "ANNOUNCEMENT").length },
     { type: "ATTENDANCE" as NotificationType, count: notifications.filter((n) => n.type === "ATTENDANCE").length },
+    { type: "MENTION" as NotificationType, count: notifications.filter((n) => n.type === "MENTION").length },
+    { type: "COMMENT_REPLY" as NotificationType, count: notifications.filter((n) => n.type === "COMMENT_REPLY").length },
   ], [notifications]);
 
   async function markAllRead() {
@@ -109,69 +164,16 @@ export default function NotificationsPage() {
     }
   }
 
-  async function handleRowClick(id: string) {
-    try {
-      await markSingleRead(id).unwrap();
-    } catch (err) {
-      console.error("Failed to mark notification read", err);
+
+  async function handleRowClick(n: NotificationItem) {
+    if (n.unread) {
+      markSingleRead(n.id)
+        .unwrap()
+        .catch((err) => console.error("Failed to mark notification read", err));
     }
-  }
-
-  function toggleSetting(key: keyof Settings) {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
-
-  function NotificationRow({ n }: { n: NotificationItem }) {
-    return (
-      <div
-        onClick={() => handleRowClick(n.id)}
-        className={`flex items-center gap-3 px-6 py-4 cursor-pointer transition-colors ${
-          n.unread ? "bg-primary/5 hover:bg-primary/10" : "bg-card hover:bg-muted/40"
-        }`}
-      >
-        <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${n.avatarColor}`}
-        >
-          {n.initials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-card-foreground">
-            {n.actor && <span className="font-semibold">{n.actor} </span>}
-            {n.action}
-          </p>
-          <div className="mt-1 flex items-center gap-2">
-            <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${typeStyles[n.type]}`}>
-              {n.type}
-            </span>
-            <span className="text-xs text-muted-foreground font-mono">{n.context} · {n.time}</span>
-          </div>
-        </div>
-        {n.unread ? (
-          <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
-        )}
-      </div>
-    );
-  }
-
-  function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        aria-pressed={on}
-        className={`relative box-border inline-flex h-5 w-9 shrink-0 items-center rounded-full border-0 p-0 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 ${
-          on ? "bg-primary" : "bg-muted"
-        }`}
-      >
-        <span
-          className={`pointer-events-none absolute left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-            on ? "translate-x-4" : "translate-x-0"
-          }`}
-        />
-      </button>
-    );
+    if (n.link) {
+      router.push(n.link);
+    }
   }
 
   if (isLoading) {
@@ -240,7 +242,7 @@ export default function NotificationsPage() {
           ) : (
             <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm divide-y divide-border">
               {filtered.map((n) => (
-                <NotificationRow key={n.id} n={n} />
+                <NotificationRow key={n.id} n={n} onOpen={handleRowClick} />
               ))}
             </div>
           )}
@@ -260,28 +262,6 @@ export default function NotificationsPage() {
                   <span className="font-semibold text-card-foreground font-mono">{t.count}</span>
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold text-card-foreground">Notification settings</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-card-foreground/80">Email alerts</span>
-                <Toggle on={settings.emailAlerts} onClick={() => toggleSetting("emailAlerts")} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-card-foreground/80">Push notifications</span>
-                <Toggle on={settings.pushNotifications} onClick={() => toggleSetting("pushNotifications")} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-card-foreground/80">Submission alerts</span>
-                <Toggle on={settings.submissionAlerts} onClick={() => toggleSetting("submissionAlerts")} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-card-foreground/80">Weekly digest</span>
-                <Toggle on={settings.weeklyDigest} onClick={() => toggleSetting("weeklyDigest")} />
-              </div>
             </div>
           </div>
         </div>

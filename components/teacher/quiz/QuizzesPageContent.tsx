@@ -442,31 +442,43 @@ export default function QuizzesPageContent() {
                       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                         {q.questionText}
                       </p>
-                      <div className="space-y-2 pt-2">
-                        {(q.options || []).map((opt: any, i: number) => {
-                          const isCorrect = opt === q.correctAnswer;
-                          return (
-                            <div
-                              key={i}
-                              className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
-                                isCorrect
-                                  ? "border-emerald-600 bg-emerald-50/50 text-emerald-900 dark:border-emerald-500 dark:bg-emerald-950/30 dark:text-emerald-200"
-                                  : "border-slate-200 bg-slate-50/50 text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
-                              }`}
-                            >
-                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs font-bold">
-                                {String.fromCharCode(65 + i)}
-                              </span>
-                              <span>{opt}</span>
-                              {isCorrect && (
-                                <span className="ml-auto text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                                  ✓ Correct Answer
+                      {q.type === "SHORT_ANSWER" ? (
+                        <div className="rounded-xl border border-emerald-600 bg-emerald-50/50 px-4 py-3 text-sm font-medium text-emerald-900 dark:border-emerald-500 dark:bg-emerald-950/30 dark:text-emerald-200">
+                          <span className="text-xs font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                            Answer key
+                          </span>
+                          <p className="mt-0.5">{q.correctAnswer || "—"}</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 pt-2">
+                          {(q.options || []).map((opt: any, i: number) => {
+                            // Compared by position, not text: the option's
+                            // wording can change after the quiz is published,
+                            // and the index is what actually decides grading.
+                            const isCorrect = i === q.correctOptionIndex;
+                            return (
+                              <div
+                                key={i}
+                                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
+                                  isCorrect
+                                    ? "border-emerald-600 bg-emerald-50/50 text-emerald-900 dark:border-emerald-500 dark:bg-emerald-950/30 dark:text-emerald-200"
+                                    : "border-slate-200 bg-slate-50/50 text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
+                                }`}
+                              >
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-xs font-bold">
+                                  {String.fromCharCode(65 + i)}
                                 </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                                <span>{opt}</span>
+                                {isCorrect && (
+                                  <span className="ml-auto text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                    ✓ Correct Answer
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (

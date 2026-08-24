@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useSecureFileBlob } from "@/lib/hooks/useSecureFileBlob";
 
 interface SecurePdfViewerProps {
   fileUrl: string;
@@ -19,7 +20,12 @@ export function SecurePdfViewer({ fileUrl, className = "" }: SecurePdfViewerProp
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "fallback">("loading");
 
+  // Read from an in-memory blob so the storage URL never reaches the DOM.
+  const { blobUrl, status: blobStatus } = useSecureFileBlob(fileUrl);
+  const sourceUrl = blobUrl ?? fileUrl;
+
   useEffect(() => {
+    if (blobStatus === "loading") return;
     let cancelled = false;
 
     async function render() {
@@ -27,7 +33,7 @@ export function SecurePdfViewer({ fileUrl, className = "" }: SecurePdfViewerProp
         const pdfjsLib = await import("pdfjs-dist");
         pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
-        const pdf = await pdfjsLib.getDocument({ url: fileUrl }).promise;
+        const pdf = await pdfjsLib.getDocument({ url: sourceUrl }).promise;
         if (cancelled || !containerRef.current) return;
 
         containerRef.current.innerHTML = "";
@@ -60,16 +66,25 @@ export function SecurePdfViewer({ fileUrl, className = "" }: SecurePdfViewerProp
     return () => {
       cancelled = true;
     };
-  }, [fileUrl]);
+  }, [sourceUrl, blobStatus]);
 
   if (status === "fallback") {
-    const docViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+    // Deliberately not Google's viewer. Falling back to
+    // `docs.google.com/viewer?url=…` handed the presigned file URL to a third
+    // party, which then fetched the document itself — the exact leak this
+    // viewer exists to prevent.
     return (
-      <iframe
-        src={docViewerUrl}
-        className={`relative z-0 w-full h-full border-none ${className}`}
-        title="Document"
-      />
+      <div
+        className={`relative z-0 flex h-full w-full flex-col items-center justify-center gap-2 p-6 text-center text-slate-400 ${className}`}
+      >
+        <p className="text-sm font-semibold text-slate-300">
+          This document could not be displayed
+        </p>
+        <p className="max-w-sm text-xs">
+          It could not be rendered in the secure viewer, and it is not sent to
+          any outside service to be read.
+        </p>
+      </div>
     );
   }
 

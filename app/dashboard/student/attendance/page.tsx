@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Loader2,
   AlertCircle,
@@ -38,7 +39,12 @@ const barColor = (r: number) =>
   r >= 90 ? "bg-emerald-500" : r >= 80 ? "bg-amber-500" : "bg-rose-500";
 
 export default function StudentAttendancePage() {
-  const [filterClassroom, setFilterClassroom] = useState<string>("ALL");
+  // A notification (marked absent/late) links here with ?classroomId= so the
+  // click lands pre-filtered to that class, not the unfiltered full history.
+  const searchParams = useSearchParams();
+  const [filterClassroom, setFilterClassroom] = useState<string>(
+    () => searchParams.get("classroomId") || "ALL"
+  );
 
   const { data: profile, isLoading: loadingProfile } = useGetStudentProfileQuery();
   const studentId = profile?.studentId || "";
@@ -133,6 +139,51 @@ export default function StudentAttendancePage() {
         </div>
       ) : (
         <>
+          {/* Overall + per-course summary */}
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Overall Attendance</p>
+              <p className={`mt-1 text-3xl font-bold ${rateColor(overallRate)}`}>{overallRate}%</p>
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                {totalAttended} of {totalClasses} sessions
+              </p>
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div
+                  className={`h-full rounded-full ${barColor(overallRate)}`}
+                  style={{ width: `${overallRate}%` }}
+                />
+              </div>
+              {overallRate < 80 && (
+                <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  Below the 80% exam requirement
+                </div>
+              )}
+            </div>
+
+            {courseSummaries.map((c) => (
+              <div
+                key={c.classroomId}
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              >
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  {c.code}
+                </div>
+                <p className="mt-0.5 truncate text-sm font-bold text-slate-900 dark:text-slate-100" title={c.course}>
+                  {c.course}
+                </p>
+                <p className={`mt-1 text-2xl font-bold ${rateColor(c.rate)}`}>{c.rate}%</p>
+                <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                  {c.attended} of {c.total} sessions
+                </p>
+                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div className={`h-full rounded-full ${barColor(c.rate)}`} style={{ width: `${c.rate}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Detailed Daily Attendance Table */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-4">

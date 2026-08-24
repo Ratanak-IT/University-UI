@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Award,
   BookOpen,
   CheckCircle2,
-  Clock,
-  FileText,
-  HelpCircle,
   Megaphone,
   Star,
   UserCheck,
   Bell,
+  AtSign,
+  MessageSquare,
 } from "lucide-react";
 
 type NotificationType =
@@ -19,7 +19,9 @@ type NotificationType =
   | "ASSIGNMENT"
   | "CERTIFICATE"
   | "ANNOUNCEMENT"
-  | "ATTENDANCE";
+  | "ATTENDANCE"
+  | "MENTION"
+  | "COMMENT_REPLY";
 
 type TabValue = "ALL" | "UNREAD" | NotificationType;
 
@@ -33,6 +35,7 @@ type Notification = {
   context: string;
   time: string;
   unread: boolean;
+  link: string | null;
 };
 
 const typeBadgeClass: Record<NotificationType, string> = {
@@ -41,6 +44,8 @@ const typeBadgeClass: Record<NotificationType, string> = {
   CERTIFICATE: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
   ANNOUNCEMENT: "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300",
   ATTENDANCE: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+  MENTION: "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300",
+  COMMENT_REPLY: "bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300",
 };
 
 const typeIconMap: Record<NotificationType, React.ElementType> = {
@@ -49,21 +54,23 @@ const typeIconMap: Record<NotificationType, React.ElementType> = {
   CERTIFICATE: Award,
   ANNOUNCEMENT: Megaphone,
   ATTENDANCE: UserCheck,
+  MENTION: AtSign,
+  COMMENT_REPLY: MessageSquare,
 };
 
 function NotificationRow({
   item,
-  onToggleRead,
+  onOpen,
 }: {
   item: Notification;
-  onToggleRead: (id: string) => void;
+  onOpen: (item: Notification) => void;
 }) {
-  const IconComponent = typeIconMap[item.type];
+  const IconComponent = typeIconMap[item.type] ?? Megaphone;
 
   return (
     <button
       type="button"
-      onClick={() => onToggleRead(item.id)}
+      onClick={() => onOpen(item)}
       className={`flex w-full items-start gap-4 rounded-2xl border p-4.5 text-left transition-all ${
         item.unread
           ? "border-indigo-200/80 bg-indigo-50/40 dark:border-indigo-900/50 dark:bg-indigo-950/20"
@@ -106,7 +113,6 @@ import {
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
 } from "@/lib/redux/apiSlice";
-import { Loader2 } from "lucide-react";
 import { TableRowsSkeleton } from "@/components/shared/Skeletons";
 
 export default function NotificationsPage() {
@@ -115,18 +121,27 @@ export default function NotificationsPage() {
   const [markAllReadApi] = useMarkAllNotificationsReadMutation();
 
   const [activeTab, setActiveTab] = useState<TabValue>("ALL");
+  const router = useRouter();
 
-  const notifications: Notification[] = apiNotifications.map((n: any) => ({
-    id: n.id || n.notificationId,
-    initials: n.actor ? n.actor.substring(0, 2).toUpperCase() : "UM",
-    avatarClass: typeBadgeClass[n.type as NotificationType] || "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300",
-    actor: n.actor || n.title || "System",
-    action: n.message || n.title,
-    type: (n.type as NotificationType) || "ANNOUNCEMENT",
-    context: n.context || "Notification",
-    time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
-    unread: !n.isRead,
-  }));
+  const notifications: Notification[] = apiNotifications.map((n) => {
+    const type = (typeBadgeClass[n.type as NotificationType] ? n.type : "ANNOUNCEMENT") as NotificationType;
+    return {
+      id: n.id,
+      initials: n.actor ? n.actor.substring(0, 2).toUpperCase() : "UM",
+      avatarClass: typeBadgeClass[type],
+      actor: n.actor || n.title || "System",
+      action: n.message || n.title,
+      type,
+      context: n.context || "Notification",
+      time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
+      unread: !n.isRead,
+      link:
+        n.link ??
+        (n.resourceType === "CLASSROOM" && n.resourceId
+          ? `/dashboard/student/my-classes/${n.resourceId}`
+          : null),
+    };
+  });
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
@@ -158,6 +173,16 @@ export default function NotificationsPage() {
       value: "ATTENDANCE",
       count: notifications.filter((n) => n.type === "ATTENDANCE").length,
     },
+    {
+      label: "Mentions",
+      value: "MENTION",
+      count: notifications.filter((n) => n.type === "MENTION").length,
+    },
+    {
+      label: "Replies",
+      value: "COMMENT_REPLY",
+      count: notifications.filter((n) => n.type === "COMMENT_REPLY").length,
+    },
   ];
 
   const filtered = notifications.filter((n) => {
@@ -166,11 +191,15 @@ export default function NotificationsPage() {
     return n.type === activeTab;
   });
 
-  async function toggleRead(id: string) {
-    try {
-      await markSingleRead(id).unwrap();
-    } catch (err) {
-      console.error("Failed to mark notification as read", err);
+
+  async function openNotification(item: Notification) {
+    if (item.unread) {
+      markSingleRead(item.id)
+        .unwrap()
+        .catch((err) => console.error("Failed to mark notification as read", err));
+    }
+    if (item.link) {
+      router.push(item.link);
     }
   }
 
@@ -259,7 +288,7 @@ export default function NotificationsPage() {
         ) : (
           <div className="space-y-3">
             {filtered.map((item) => (
-              <NotificationRow key={item.id} item={item} onToggleRead={toggleRead} />
+              <NotificationRow key={item.id} item={item} onOpen={openNotification} />
             ))}
           </div>
         )}

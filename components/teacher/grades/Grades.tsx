@@ -1,20 +1,17 @@
 "use client";
 
 import { toast } from "@/components/shared/Toast";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   Users,
   CheckCircle2,
   TrendingUp,
   AlertTriangle,
-  ChevronDown,
   Download,
   Save,
   MoreVertical,
   ChevronLeft,
   ChevronRight,
-  SlidersHorizontal,
-  RefreshCw,
   Search,
 } from "lucide-react";
 import {
@@ -24,8 +21,59 @@ import {
   useSaveExamScoresMutation,
   useGetTeacherProfileQuery,
 } from "@/lib/redux/apiSlice";
-import { ExamType } from "@/lib/api/teacher";
+import type { ExamType, ExamScoreResponse } from "@/lib/api/teacher";
+import type {
+  ClassroomResponse,
+  ClassroomStudentResponse,
+} from "@/lib/api/student";
+import { apiErrorMessage } from "@/lib/api/errors";
 import ModernSelect from "@/components/shared/ModernSelect";
+import PersonAvatar from "@/components/shared/PersonAvatar";
+
+/** One student's five score cells. */
+type ScoreRow = {
+  midterm: number | "";
+  final: number | "";
+  assign: number | "";
+  quiz: number | "";
+  attend: number | "";
+};
+
+type ScoreField = keyof ScoreRow;
+
+const EMPTY_ROW: ScoreRow = {
+  midterm: "",
+  final: "",
+  assign: "",
+  quiz: "",
+  attend: "",
+};
+
+/**
+ * The max score per column, in one place. Previously this same set of
+ * numbers (100/100/20/10/10) was hand-copied into four separate spots — the
+ * keystroke clamp, the save request, each <input max>, and the column
+ * headers — which is exactly the shape of bug where one gets updated and the
+ * other three quietly don't.
+ */
+const SCORE_LIMITS: Record<ScoreField, { max: number; label: string }> = {
+  midterm: { max: 100, label: "Midterm" },
+  final: { max: 100, label: "Final" },
+  assign: { max: 20, label: "Assignment" },
+  quiz: { max: 10, label: "Quiz" },
+  attend: { max: 10, label: "Attendance" },
+};
+
+/**
+ * Stable empty arrays for the query fallbacks.
+ *
+ * A `= []` default builds a new array on every render, so anything holding it
+ * in a dependency array re-runs every render. Paired with a `setState`, that is
+ * an unbreakable render loop — the one that froze the attendance screen.
+ */
+const NO_CLASSROOMS: ClassroomResponse[] = [];
+const NO_STUDENTS: ClassroomStudentResponse[] = [];
+const NO_SCORES: ExamScoreResponse[] = [];
 
 type GradeLetter = "A" | "B" | "C" | "D" | "F";
 type Status = "Passed" | "Failed" | "Pending";
@@ -129,20 +177,22 @@ function StatCard({
 const PAGE_SIZE = 10;
 
 export default function Attendan2Grades() {
-  const { data: classrooms = [], isLoading: loadingClassrooms } = useGetTeacherClassroomsQuery();
+  const { data: classroomData, isLoading: loadingClassrooms } =
+    useGetTeacherClassroomsQuery();
+  const classrooms = classroomData ?? NO_CLASSROOMS;
   const { data: teacherProfile } = useGetTeacherProfileQuery();
 
-  const [selectedClassroomId, setSelectedClassroomId] = useState<string>("");
+  /** Empty until the teacher picks one, so the default can follow the filters. */
+  const [pickedClassroomId, setPickedClassroomId] = useState<string>("");
   const [selectedYearLevel, setSelectedYearLevel] = useState<string>("All Years");
   const [selectedSemester, setSelectedSemester] = useState<string>("All Semesters");
   const [statusFilter, setStatusFilter] = useState<string>("All Statuses");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [page, setPage] = useState<number>(1);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   // Filter classrooms by selected Year Level & Semester
   const filteredClassrooms = useMemo(() => {
-    return classrooms.filter((c: any) => {
+    return classrooms.filter((c) => {
       const yLevel = c.yearLevel || 2;
       const matchYear =
         selectedYearLevel === "All Years" ||
@@ -157,80 +207,76 @@ export default function Attendan2Grades() {
     });
   }, [classrooms, selectedYearLevel, selectedSemester]);
 
-  // Sync selectedClassroomId whenever filteredClassrooms or filters change
-  useEffect(() => {
-    if (filteredClassrooms.length > 0) {
-      const exists = filteredClassrooms.some((c: any) => c.classroomId === selectedClassroomId);
-      if (!exists) {
-        setSelectedClassroomId(filteredClassrooms[0].classroomId);
-        setPage(1);
-      }
-    } else if (selectedClassroomId) {
-      setSelectedClassroomId("");
-    }
-  }, [filteredClassrooms, selectedClassroomId]);
+  // Derived, not synced through an effect. Changing Year/Semester can filter
+  // the current classroom out of the list; falling back to the first remaining
+  // one is a pure function of the filters, so it needs no state of its own.
+  // Writing it back with setState inside an effect is what the lint rule
+  // `react-hooks/set-state-in-effect` is warning about.
+  const selectedClassroomId = filteredClassrooms.some(
+    (c) => c.classroomId === pickedClassroomId
+  )
+    ? pickedClassroomId
+    : (filteredClassrooms[0]?.classroomId ?? "");
 
-  const { data: students = [], isLoading: loadingStudents } = useGetClassroomStudentsQuery(
+  const { data: studentData, isLoading: loadingStudents } =
+    useGetClassroomStudentsQuery(selectedClassroomId, {
+      skip: !selectedClassroomId,
+    });
+  const students = studentData ?? NO_STUDENTS;
+
+  const { data: examScoreData, isLoading: loadingScores } = useGetExamScoresQuery(
     selectedClassroomId,
     { skip: !selectedClassroomId }
   );
-
-  const { data: examScores = [], isLoading: loadingScores } = useGetExamScoresQuery(
-    selectedClassroomId,
-    { skip: !selectedClassroomId }
-  );
+  const examScores = examScoreData ?? NO_SCORES;
 
   const [saveExamScores, { isLoading: isSaving }] = useSaveExamScoresMutation();
 
-  // Local grid matrix scores state: { [studentId]: { midterm, final, assign, quiz, attend } }
-  const [matrixScores, setMatrixScores] = useState<
-    Record<
-      string,
-      {
-        midterm: number | "";
-        final: number | "";
-        assign: number | "";
-        quiz: number | "";
-        attend: number | "";
-      }
-    >
-  >({});
+  /**
+   * What the server currently holds, derived rather than copied into state.
+   *
+   * Mirroring a query into state through an effect is what the two removed
+   * effects here were doing; it also meant a slow refetch could overwrite
+   * whatever the teacher had just typed.
+   */
+  const serverMatrix = useMemo(() => {
+    const matrix: Record<string, ScoreRow> = {};
 
-  // Sync existing backend examScores into matrixScores
-  useEffect(() => {
-    if (!students || students.length === 0) return;
-
-    const newMatrix: Record<
-      string,
-      {
-        midterm: number | "";
-        final: number | "";
-        assign: number | "";
-        quiz: number | "";
-        attend: number | "";
-      }
-    > = {};
-
-    students.forEach((s: any) => {
-      const studentId = s.studentId || s.id;
-      const sScores = examScores.filter((es) => es.studentId === studentId);
-
+    for (const student of students) {
+      const own = examScores.filter((es) => es.studentId === student.studentId);
       const findScore = (type: ExamType): number | "" => {
-        const found = sScores.find((es) => es.examType === type);
+        const found = own.find((es) => es.examType === type);
         return found !== undefined && found.score !== null ? found.score : "";
       };
 
-      newMatrix[studentId] = {
+      matrix[student.studentId] = {
         midterm: findScore("MIDTERM"),
         final: findScore("FINAL"),
         assign: findScore("ASSIGNMENT"),
         quiz: findScore("QUIZ"),
         attend: findScore("ATTENDANCE"),
       };
-    });
+    }
 
-    setMatrixScores(newMatrix);
-  }, [students, examScores, selectedClassroomId]);
+    return matrix;
+  }, [students, examScores]);
+
+  /** Only the cells the teacher has changed and not yet saved. */
+  const [edits, setEdits] = useState<Record<string, Partial<ScoreRow>>>({});
+
+  const matrixScores = useMemo(() => {
+    const studentIds = Object.keys(edits);
+    if (studentIds.length === 0) return serverMatrix;
+
+    const merged: Record<string, ScoreRow> = { ...serverMatrix };
+    for (const studentId of studentIds) {
+      merged[studentId] = {
+        ...(merged[studentId] ?? EMPTY_ROW),
+        ...edits[studentId],
+      };
+    }
+    return merged;
+  }, [serverMatrix, edits]);
 
   function triggerToast(msg: string) {
     if (msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("select")) {
@@ -242,36 +288,31 @@ export default function Attendan2Grades() {
 
   function handleScoreCellChange(
     studentId: string,
-    field: "midterm" | "final" | "assign" | "quiz" | "attend",
+    field: ScoreField,
     val: string
   ) {
     let num: number | "" = val === "" ? "" : Number(val);
     if (typeof num === "number" && isNaN(num)) return;
 
-    const maxLimits = {
-      midterm: 100,
-      final: 100,
-      assign: 20,
-      quiz: 10,
-      attend: 10,
-    };
+    const { max, label } = SCORE_LIMITS[field];
 
-    if (typeof num === "number") {
-      num = Math.min(Math.max(0, num), maxLimits[field]);
+    if (typeof num === "number" && num > max) {
+      // Warn only on the keystroke that first crosses the limit, not on
+      // every further digit typed while already pinned at max — otherwise
+      // typing "999" into a /20 field would fire three toasts in a row.
+      const current = matrixScores[studentId]?.[field];
+      if (current !== max) {
+        toast.error(`${label} cannot exceed ${max}.`);
+      }
     }
 
-    setMatrixScores((prev) => ({
+    if (typeof num === "number") {
+      num = Math.min(Math.max(0, num), max);
+    }
+
+    setEdits((prev) => ({
       ...prev,
-      [studentId]: {
-        ...(prev[studentId] || {
-          midterm: "",
-          final: "",
-          assign: "",
-          quiz: "",
-          attend: "",
-        }),
-        [field]: num,
-      },
+      [studentId]: { ...prev[studentId], [field]: num },
     }));
   }
 
@@ -281,18 +322,18 @@ export default function Attendan2Grades() {
       return;
     }
 
-    const categories: { key: "midterm" | "final" | "assign" | "quiz" | "attend"; examType: ExamType; maxScore: number }[] = [
-      { key: "midterm", examType: "MIDTERM", maxScore: 100 },
-      { key: "final", examType: "FINAL", maxScore: 100 },
-      { key: "assign", examType: "ASSIGNMENT", maxScore: 20 },
-      { key: "quiz", examType: "QUIZ", maxScore: 10 },
-      { key: "attend", examType: "ATTENDANCE", maxScore: 10 },
+    const categories: { key: ScoreField; examType: ExamType; maxScore: number }[] = [
+      { key: "midterm", examType: "MIDTERM", maxScore: SCORE_LIMITS.midterm.max },
+      { key: "final", examType: "FINAL", maxScore: SCORE_LIMITS.final.max },
+      { key: "assign", examType: "ASSIGNMENT", maxScore: SCORE_LIMITS.assign.max },
+      { key: "quiz", examType: "QUIZ", maxScore: SCORE_LIMITS.quiz.max },
+      { key: "attend", examType: "ATTENDANCE", maxScore: SCORE_LIMITS.attend.max },
     ];
 
     try {
       for (const cat of categories) {
         const payloadScores = Object.entries(matrixScores)
-          .filter(([_, row]) => row[cat.key] !== "")
+          .filter(([, row]) => row[cat.key] !== "")
           .map(([studentId, row]) => ({
             studentId,
             score: Number(row[cat.key]),
@@ -309,9 +350,12 @@ export default function Attendan2Grades() {
           }).unwrap();
         }
       }
+      // The overlay has been persisted, so the server response is now the
+      // source of truth again.
+      setEdits({});
       triggerToast("All grade columns saved to server successfully!");
-    } catch (err: any) {
-      triggerToast(err?.data?.message || "Failed to save grades. Please try again.");
+    } catch (err) {
+      triggerToast(apiErrorMessage(err, "Failed to save grades. Please try again."));
     }
   }
 
@@ -326,15 +370,9 @@ export default function Attendan2Grades() {
     const selectedClassroomObj = classrooms.find((c) => c.classroomId === selectedClassroomId);
     const classroomName = selectedClassroomObj ? selectedClassroomObj.className : "CS202-A";
 
-    return students.map((s: any, i: number) => {
-      const studentId = s.studentId || s.id;
-      const name =
-        s.fullName ||
-        s.studentFullName ||
-        s.studentName ||
-        (s.firstName ? `${s.firstName} ${s.lastName || ""}`.trim() : null) ||
-        s.name ||
-        "Student";
+    return students.map((s, i: number) => {
+      const studentId = s.studentId;
+      const name = s.fullName || "Student";
       const studentCode = s.studentCode || "STU-00";
 
       const scores = matrixScores[studentId] || {
@@ -380,7 +418,7 @@ export default function Attendan2Grades() {
         studentId,
         name,
         studentCode,
-        avatarUrl: s.avatarUrl || s.avatar || s.profileUrl || null,
+        avatarUrl: s.avatarUrl || null,
         initials: initialsOf(name),
         avatarColor: avatarColors[i % avatarColors.length],
         classroom: classroomName,
@@ -450,11 +488,11 @@ export default function Attendan2Grades() {
       "Student Code",
       "Student Name",
       "Classroom",
-      "Midterm (/100)",
-      "Final (/100)",
-      "Assignment (/20)",
-      "Quiz (/10)",
-      "Attendance (/10)",
+      `Midterm (/${SCORE_LIMITS.midterm.max})`,
+      `Final (/${SCORE_LIMITS.final.max})`,
+      `Assignment (/${SCORE_LIMITS.assign.max})`,
+      `Quiz (/${SCORE_LIMITS.quiz.max})`,
+      `Attendance (/${SCORE_LIMITS.attend.max})`,
       "Total (%)",
       "Grade",
       "GPA",
@@ -491,12 +529,6 @@ export default function Attendan2Grades() {
 
   return (
     <div className="min-h-screen bg-background px-6 py-6 space-y-6">
-      {toastMsg && (
-        <div className="fixed top-5 right-5 z-50 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl animate-in fade-in slide-in-from-top-2">
-          {toastMsg}
-        </div>
-      )}
-
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -534,14 +566,16 @@ export default function Attendan2Grades() {
               label="Classroom"
               value={selectedClassroomId}
               onChange={(val) => {
-                setSelectedClassroomId(val);
+                setPickedClassroomId(val);
+                // Unsaved cells belong to the classroom they were typed in.
+                setEdits({});
                 setPage(1);
               }}
               disabled={loadingClassrooms}
               options={
                 filteredClassrooms.length === 0
                   ? [{ value: "", label: "No classrooms for this Year/Semester" }]
-                  : filteredClassrooms.map((c: any) => ({
+                  : filteredClassrooms.map((c) => ({
                       value: c.classroomId,
                       label: `${c.className} (${c.classCode || "Class"})`,
                       badge: `Y${c.yearLevel || 2} S${c.semester || 2}`,
@@ -665,19 +699,19 @@ export default function Attendan2Grades() {
                 <th className="px-3 py-3 font-medium">Classroom</th>
                 <th className="px-3 py-3 font-medium">Semester</th>
                 <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
-                  Midterm (/100)
+                  Midterm (/{SCORE_LIMITS.midterm.max})
                 </th>
                 <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
-                  Final (/100)
+                  Final (/{SCORE_LIMITS.final.max})
                 </th>
                 <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
-                  Assign (/20)
+                  Assign (/{SCORE_LIMITS.assign.max})
                 </th>
                 <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
-                  Quiz (/10)
+                  Quiz (/{SCORE_LIMITS.quiz.max})
                 </th>
                 <th className="px-3 py-3 font-medium text-center bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300">
-                  Attend (/10)
+                  Attend (/{SCORE_LIMITS.attend.max})
                 </th>
                 <th className="px-3 py-3 font-medium text-center">Total</th>
                 <th className="px-3 py-3 font-medium text-center">Grade</th>
@@ -708,19 +742,12 @@ export default function Attendan2Grades() {
                   >
                     {/* Student Info with Profile Avatar */}
                     <td className="flex items-center gap-3.5 px-5 py-3.5">
-                      {s.avatarUrl ? (
-                        <img
-                          src={s.avatarUrl}
-                          alt={s.name}
-                          className="h-9 w-9 rounded-full object-cover ring-2 ring-indigo-500/20 shadow-sm"
-                        />
-                      ) : (
-                        <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-sm ${s.avatarColor}`}
-                        >
-                          {s.initials}
-                        </div>
-                      )}
+                      <PersonAvatar
+                        name={s.name}
+                        avatarUrl={s.avatarUrl}
+                        size="sm"
+                        className="ring-2 ring-indigo-500/20 shadow-sm"
+                      />
                       <div>
                         <div className="font-bold text-card-foreground hover:text-indigo-600 transition-colors">
                           {s.name}
@@ -739,7 +766,7 @@ export default function Attendan2Grades() {
                       <input
                         type="number"
                         min={0}
-                        max={100}
+                        max={SCORE_LIMITS.midterm.max}
                         value={s.midterm}
                         onChange={(e) => handleScoreCellChange(s.studentId, "midterm", e.target.value)}
                         placeholder="-"
@@ -752,7 +779,7 @@ export default function Attendan2Grades() {
                       <input
                         type="number"
                         min={0}
-                        max={100}
+                        max={SCORE_LIMITS.final.max}
                         value={s.final}
                         onChange={(e) => handleScoreCellChange(s.studentId, "final", e.target.value)}
                         placeholder="-"
@@ -765,7 +792,7 @@ export default function Attendan2Grades() {
                       <input
                         type="number"
                         min={0}
-                        max={20}
+                        max={SCORE_LIMITS.assign.max}
                         value={s.assign}
                         onChange={(e) => handleScoreCellChange(s.studentId, "assign", e.target.value)}
                         placeholder="-"
@@ -778,7 +805,7 @@ export default function Attendan2Grades() {
                       <input
                         type="number"
                         min={0}
-                        max={10}
+                        max={SCORE_LIMITS.quiz.max}
                         value={s.quiz}
                         onChange={(e) => handleScoreCellChange(s.studentId, "quiz", e.target.value)}
                         placeholder="-"
@@ -791,7 +818,7 @@ export default function Attendan2Grades() {
                       <input
                         type="number"
                         min={0}
-                        max={10}
+                        max={SCORE_LIMITS.attend.max}
                         value={s.attend}
                         onChange={(e) => handleScoreCellChange(s.studentId, "attend", e.target.value)}
                         placeholder="-"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Loader2,
   FileText,
@@ -55,7 +56,16 @@ interface CombinedAssignment {
 }
 
 export default function CoursesPage() {
-  const [activeTab, setActiveTab] = useState("Overview");
+  // A notification (a new quiz, an assignment, ...) links here with
+  // ?classroomId=&tab= so the click lands on the exact class and tab it was
+  // about, not on whichever classroom happens to load first.
+  const searchParams = useSearchParams();
+  const linkedClassroomId = searchParams.get("classroomId");
+  const linkedTab = searchParams.get("tab");
+
+  const [activeTab, setActiveTab] = useState(
+    linkedTab && TABS.includes(linkedTab) ? linkedTab : "Overview"
+  );
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [classrooms, setClassrooms] = useState<ClassroomResponse[]>([]);
@@ -75,7 +85,17 @@ export default function CoursesPage() {
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizResult, setQuizResult] = useState<QuizAttemptResponse | null>(null);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  /**
+   * Keyed by questionId. `selectedOptionIndex` is what grading actually uses
+   * for a choice question; `answer` carries the option's text (for the
+   * result screen and as a fallback) or the typed text for a SHORT_ANSWER
+   * question. Storing the index rather than only the text is what lets a
+   * teacher reword an option after publishing without silently breaking
+   * every student's already-recorded answer.
+   */
+  const [answers, setAnswers] = useState<
+    Record<string, { selectedOptionIndex?: number; answer: string }>
+  >({});
   const [currentQ, setCurrentQ] = useState(0);
 
   // Load profile + classrooms on mount
@@ -86,11 +106,18 @@ export default function CoursesPage() {
       if (p) setProfile(p);
       if (c && c.length > 0) {
         setClassrooms(c);
-        setSelectedClassroom(c[0].classroomId);
+        const linked = linkedClassroomId
+          ? c.find((cls) => cls.classroomId === linkedClassroomId)
+          : undefined;
+        setSelectedClassroom(linked ? linked.classroomId : c[0].classroomId);
       }
       setLoading(false);
     }
     load();
+    // Deliberately mount-only: this loads the profile and roster once. A
+    // later change to the URL's ?classroomId= isn't expected here — the
+    // dependency is only read for the initial selection above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load detail when selectedClassroom changes
@@ -190,11 +217,15 @@ export default function CoursesPage() {
     if (!activeQuizModal || !profile || !attemptData) return;
     setSubmittingQuiz(true);
 
-    // Build answers array: [{ questionId, answer }]
-    const answerItems = attemptData.questions.map((q) => ({
-      questionId: q.questionId,
-      answer: answers[q.questionId] ?? "",
-    }));
+    // Build answers array: [{ questionId, selectedOptionIndex?, answer? }]
+    const answerItems = attemptData.questions.map((q) => {
+      const given = answers[q.questionId];
+      return {
+        questionId: q.questionId,
+        selectedOptionIndex: given?.selectedOptionIndex,
+        answer: given?.answer ?? "",
+      };
+    });
 
     const result = await submitQuizAttempt(
       profile.studentId,
@@ -740,7 +771,7 @@ export default function CoursesPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
                       <span>Question {currentQ + 1} of {sortedQuestions.length}</span>
-                      <span>{Object.keys(answers).filter((k) => answers[k]).length} answered</span>
+                      <span>{Object.values(answers).filter((a) => a.answer).length} answered</span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-slate-100">
                       <div
@@ -759,7 +790,7 @@ export default function CoursesPage() {
                         className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
                           i === currentQ
                             ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
-                            : answers[q.questionId]
+                            : answers[q.questionId]?.answer
                             ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
                             : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                         }`}
@@ -782,29 +813,51 @@ export default function CoursesPage() {
                         </div>
                         <p className="text-base font-semibold text-slate-900">{q.questionText}</p>
 
-                        {/* Answer options */}
-                        <div className="space-y-2">
-                          {q.options.map((opt, oi) => (
-                            <label
-                              key={oi}
-                              className={`flex items-center gap-3 rounded-xl border p-3.5 text-sm cursor-pointer transition-all ${
-                                answers[q.questionId] === opt
-                                  ? "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-200"
-                                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                name={`q-${q.questionId}`}
-                                value={opt}
-                                checked={answers[q.questionId] === opt}
-                                onChange={() => setAnswers((prev) => ({ ...prev, [q.questionId]: opt }))}
-                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-600"
-                              />
-                              <span className="text-slate-800 font-medium">{opt}</span>
-                            </label>
-                          ))}
-                        </div>
+                        {/* Answer input: a typed box for SHORT_ANSWER, choice
+                            buttons for everything else (TRUE_FALSE is just a
+                            two-option MULTIPLE_CHOICE and needs no separate UI). */}
+                        {q.type === "SHORT_ANSWER" ? (
+                          <textarea
+                            value={answers[q.questionId]?.answer ?? ""}
+                            onChange={(e) =>
+                              setAnswers((prev) => ({
+                                ...prev,
+                                [q.questionId]: { answer: e.target.value },
+                              }))
+                            }
+                            rows={3}
+                            placeholder="Type your answer…"
+                            className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                          />
+                        ) : (
+                          <div className="space-y-2">
+                            {q.options.map((opt, oi) => (
+                              <label
+                                key={oi}
+                                className={`flex items-center gap-3 rounded-xl border p-3.5 text-sm cursor-pointer transition-all ${
+                                  answers[q.questionId]?.selectedOptionIndex === oi
+                                    ? "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-200"
+                                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`q-${q.questionId}`}
+                                  value={oi}
+                                  checked={answers[q.questionId]?.selectedOptionIndex === oi}
+                                  onChange={() =>
+                                    setAnswers((prev) => ({
+                                      ...prev,
+                                      [q.questionId]: { selectedOptionIndex: oi, answer: opt },
+                                    }))
+                                  }
+                                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-600"
+                                />
+                                <span className="text-slate-800 font-medium">{opt}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })()}

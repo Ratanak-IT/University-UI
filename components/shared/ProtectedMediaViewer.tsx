@@ -3,6 +3,7 @@
 import { FileText, Lock } from "lucide-react";
 import { LessonPlayer } from "@/components/teacher/detail-lesson/LessonPlayer.tsx";
 import { SecurePdfViewer } from "@/components/shared/SecurePdfViewer";
+import { useSecureFileBlob } from "@/lib/hooks/useSecureFileBlob";
 
 interface ProtectedMediaViewerProps {
   fileName: string;
@@ -27,8 +28,6 @@ export function ProtectedMediaViewer({
   const isPdf = fileName.toLowerCase().endsWith(".pdf") || fileUrl.toLowerCase().includes(".pdf");
   const isImage = /\.(jpg|jpeg|png|webp|gif|svg)/i.test(fileName) || /\.(jpg|jpeg|png|webp|gif|svg)/i.test(fileUrl);
   const isOffice = /\.(pptx|ppt|docx|doc|xlsx|xls)/i.test(fileName) || /\.(pptx|ppt|docx|doc|xlsx|xls)/i.test(fileUrl);
-
-  const docViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
 
   if (isVideo) {
     return (
@@ -58,12 +57,7 @@ export function ProtectedMediaViewer({
 
   if (isImage) {
     return (
-      <img
-        src={fileUrl}
-        alt={fileName}
-        onContextMenu={(e) => e.preventDefault()}
-        className={`relative z-0 max-h-full max-w-full object-contain pointer-events-none select-none ${className}`}
-      />
+      <SecureImage fileName={fileName} fileUrl={fileUrl} className={className} />
     );
   }
 
@@ -87,8 +81,85 @@ export function ProtectedMediaViewer({
         </div>
       );
     }
-    return <iframe src={docViewerUrl} className={`relative z-0 w-full h-full border-none ${className}`} title={fileName} />;
+    return <UnsupportedPreview fileName={fileName} kind="Office document" className={className} />;
   }
 
-  return <iframe src={`${fileUrl}#toolbar=0`} className={`relative z-0 w-full h-full border-none ${className}`} title={fileName} />;
+  // Anything else: no native plugin viewer, which would come with its own
+  // download and print buttons that no script on this page can intercept.
+  return <UnsupportedPreview fileName={fileName} kind="File" className={className} />;
+}
+
+function SecureImage({
+  fileName,
+  fileUrl,
+  className,
+}: {
+  fileName: string;
+  fileUrl: string;
+  className: string;
+}) {
+  const { blobUrl, status } = useSecureFileBlob(fileUrl);
+
+  if (status === "loading") {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-sm text-slate-400">
+        Loading…
+      </div>
+    );
+  }
+
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element --
+       a blob: URL only exists in this browser tab, so next/image cannot fetch
+       it server-side to optimise. A plain <img> is the correct element here. */
+    <img
+      src={blobUrl ?? ""}
+      alt={fileName}
+      onContextMenu={(e) => e.preventDefault()}
+      draggable={false}
+      className={`relative z-0 max-h-full max-w-full object-contain pointer-events-none select-none ${className}`}
+    />
+  );
+}
+
+/**
+ * Shown instead of shipping the file somewhere else to be rendered.
+ *
+ * The previous fallback embedded `docs.google.com/viewer?url=<presigned url>`,
+ * which sent the document's address to Google so Google could fetch and render
+ * it. For a file the platform is trying to keep private, that is the leak — not
+ * a preview feature.
+ */
+function UnsupportedPreview({
+  fileName,
+  kind,
+  className,
+}: {
+  fileName: string;
+  kind: string;
+  className: string;
+}) {
+  return (
+    <div
+      className={`relative z-0 flex flex-col items-center justify-center gap-3 self-center rounded-3xl border border-slate-800 bg-slate-900 p-8 text-center ${className}`}
+    >
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-700 bg-slate-800 text-slate-400">
+        <FileText className="h-8 w-8" />
+      </div>
+      <div>
+        <h4 className="font-bold text-white">{fileName}</h4>
+        <p className="mt-1 text-xs font-semibold text-slate-400">
+          {kind} · preview not available
+        </p>
+        <p className="mt-3 max-w-sm text-xs leading-relaxed text-slate-500">
+          This format cannot be rendered inside the secure viewer, and it is not
+          sent to any outside service to be displayed. Ask your teacher to
+          upload it as a PDF.
+        </p>
+      </div>
+      <div className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-300">
+        <Lock className="h-4 w-4 text-emerald-400" /> Content stays on this server
+      </div>
+    </div>
+  );
 }

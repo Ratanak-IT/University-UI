@@ -46,20 +46,40 @@ export function CreateQuizForm() {
       contributesToFinalGrade: true,
       questions: targetQuiz.questions && targetQuiz.questions.length > 0
         ? targetQuiz.questions.map((q, idx) => {
-            const opts = q.options || ["Option A", "Option B"];
-            const correctIdx = opts.findIndex(
-              (opt) => (typeof opt === "string" ? opt : (opt as any)?.text) === q.correctAnswer
-            );
+            const backendType = q.type ?? "MULTIPLE_CHOICE";
+
+            if (backendType === "SHORT_ANSWER") {
+              return {
+                id: q.questionId || String(idx),
+                content: q.questionText || "",
+                type: "short_answer" as const,
+                points: q.score || 10,
+                options: [{ id: "short_1", text: q.correctAnswer || "" }],
+                correctOptionId: "short_1",
+              };
+            }
+
+            const opts = q.options && q.options.length > 0 ? q.options : ["Option A", "Option B"];
+            // The server's own index, not a text match against the option
+            // list: an option can be reworded after publishing, and a text
+            // match would then point at the wrong option or none at all.
+            const correctIdx = q.correctOptionIndex ?? 0;
+
             return {
               id: q.questionId || String(idx),
               content: q.questionText || "",
-              type: "multiple_choice",
+              type: backendType === "TRUE_FALSE" ? ("true_false" as const) : ("multiple_choice" as const),
               points: q.score || 10,
               options: opts.map((opt, oIdx) => ({
-                id: String(oIdx),
-                text: typeof opt === "string" ? opt : (opt as any)?.text || "Option",
+                id: backendType === "TRUE_FALSE" ? (oIdx === 0 ? "true" : "false") : String(oIdx),
+                text: opt,
               })),
-              correctOptionId: String(correctIdx >= 0 ? correctIdx : 0),
+              correctOptionId:
+                backendType === "TRUE_FALSE"
+                  ? correctIdx === 0
+                    ? "true"
+                    : "false"
+                  : String(correctIdx),
             };
           })
         : [createEmptyQuestion(0)],
@@ -100,46 +120,67 @@ export function CreateQuizForm() {
     return fallback;
   }
 
+  /** Frontend's lowercase union -> the backend's `QuestionType` enum. */
+  function toBackendType(type: string): "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" {
+    if (type === "true_false") return "TRUE_FALSE";
+    if (type === "short_answer") return "SHORT_ANSWER";
+    return "MULTIPLE_CHOICE";
+  }
+
   function buildPayloadQuestions(questions: any[]) {
     if (!questions || questions.length === 0) {
       return [
         {
           questionText: "Sample Question 1",
           options: ["Option A", "Option B"],
-          correctAnswer: "Option A",
+          correctOptionIndex: 0,
+          type: "MULTIPLE_CHOICE" as const,
           score: 1.0,
           questionOrder: 1,
         },
       ];
     }
     return questions.map((q, idx) => {
+      const qText = (q.content || q.questionText || "").trim();
+      const type = toBackendType(q.type);
+      const questionText = qText.length > 0 ? qText : `Question ${idx + 1}`;
+      const score = Number(q.points) > 0 ? Number(q.points) : 1.0;
+
+      if (type === "SHORT_ANSWER") {
+        // The one "option" this question type carries is the answer key
+        // itself, per QuestionCard's short-answer editor above.
+        const answerKey = (q.options?.[0]?.text || "").trim();
+        return {
+          questionText,
+          options: [],
+          correctAnswer: answerKey,
+          type,
+          score,
+          questionOrder: idx + 1,
+        };
+      }
+
       const optionTexts = (q.options || [])
         .map((opt: any) => (typeof opt === "string" ? opt : opt?.text || "").trim())
         .filter((t: string) => Boolean(t));
-      
-      const validOptions = optionTexts.length > 0
-        ? optionTexts
-        : ["Option A", "Option B"];
-      
-      let correctAnswer = validOptions[0];
-      if (q.correctOptionId !== undefined && q.options) {
-        const found = q.options.find((opt: any) => String(opt.id) === String(q.correctOptionId));
-        if (found) {
-          const txt = (typeof found === "string" ? found : found.text || "").trim();
-          if (txt) correctAnswer = txt;
-        }
-      }
-      if (!validOptions.includes(correctAnswer)) {
-        correctAnswer = validOptions[0];
-      }
+      const validOptions = optionTexts.length > 0 ? optionTexts : ["Option A", "Option B"];
 
-      const qText = (q.content || q.questionText || "").trim();
+      // The index the teacher actually marked, not a text lookup: sending the
+      // position rather than a copy of the label is what keeps a later
+      // reword of that option from silently invalidating every submitted
+      // answer, since grading now compares index to index.
+      let correctIndex = 0;
+      if (q.correctOptionId !== undefined && q.options) {
+        const idx2 = q.options.findIndex((opt: any) => String(opt.id) === String(q.correctOptionId));
+        if (idx2 >= 0 && idx2 < validOptions.length) correctIndex = idx2;
+      }
 
       return {
-        questionText: qText.length > 0 ? qText : `Question ${idx + 1}`,
+        questionText,
         options: validOptions,
-        correctAnswer: correctAnswer,
-        score: Number(q.points) > 0 ? Number(q.points) : 1.0,
+        correctOptionIndex: correctIndex,
+        type,
+        score,
         questionOrder: idx + 1,
       };
     });

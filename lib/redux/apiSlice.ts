@@ -17,6 +17,27 @@ import {
   SetExamScoresRequest,
   RecordAttendancePayload,
 } from "@/lib/api/teacher";
+import type { SubmissionResponse } from "@/lib/api/assignment";
+import {
+  toArray,
+  toObject,
+  pick,
+  pickNum,
+  str,
+  num,
+  type Dict,
+} from "@/lib/api/normalize";
+import type {
+  AttendancePolicy,
+  AttendanceStatus,
+  AttendanceSummary,
+  ClassSession,
+  OpenSessionResult,
+  SessionRegister,
+  SessionStatus,
+  SessionStudentMark,
+  SessionType,
+} from "@/lib/types/attendance";
 
 function getAuthHeaderToken(): string | null {
   if (typeof window !== "undefined") {
@@ -25,10 +46,22 @@ function getAuthHeaderToken(): string | null {
   return null;
 }
 
+/** Mirrors the backend `QuestionType` enum. */
+export type QuestionType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+
 export interface QuizQuestionPayload {
   questionText: string;
   options: string[];
-  correctAnswer: string;
+  /**
+   * Zero-based index of the correct option — the source of truth for choice
+   * questions. Sending the option's text instead meant that rewording an
+   * option later silently invalidated every student's stored answer.
+   */
+  correctOptionIndex?: number;
+  /** Required for SHORT_ANSWER; a fallback locator for choice questions. */
+  correctAnswer?: string;
+  /** Defaults to MULTIPLE_CHOICE on the server when omitted. */
+  type?: QuestionType;
   score: number;
   questionOrder?: number;
 }
@@ -58,13 +91,101 @@ export interface QuizManageResponse {
     questionId: string;
     questionText: string;
     options: string[];
+    correctOptionIndex: number | null;
     correctAnswer: string;
+    type: QuestionType;
     score: number;
     questionOrder: number;
   }[];
 }
 
 import { API_BASE } from "../api/config";
+
+/* ------------------------------------------------------------------ */
+/* Attendance mappers                                                  */
+/*                                                                     */
+/* Each of these runs once per fetch inside `transformResponse`, so the */
+/* cached result keeps a stable identity across renders. That is what   */
+/* makes it safe for components to depend on the query data directly.   */
+/* ------------------------------------------------------------------ */
+
+function mapSession(row: Dict): ClassSession {
+  return {
+    sessionId: pick(row, ["sessionId"], ""),
+    classroomId: pick(row, ["classroomId"], ""),
+    sessionDate: pick(row, ["sessionDate"], ""),
+    startTime: pick(row, ["startTime"], ""),
+    endTime: str(row, "endTime"),
+    type: pick(row, ["type"], "LECTURE") as SessionType,
+    status: pick(row, ["status"], "SCHEDULED") as SessionStatus,
+    topic: str(row, "topic"),
+    cancellationReason: str(row, "cancellationReason"),
+    takenAt: str(row, "takenAt"),
+    rosterSize: pickNum(row, ["rosterSize"], 0),
+    markedCount: pickNum(row, ["markedCount"], 0),
+    presentCount: pickNum(row, ["presentCount"], 0),
+    lateCount: pickNum(row, ["lateCount"], 0),
+    absentCount: pickNum(row, ["absentCount"], 0),
+    excusedCount: pickNum(row, ["excusedCount"], 0),
+  };
+}
+
+function mapStudentMark(row: Dict): SessionStudentMark {
+  const status = str(row, "status");
+  return {
+    studentId: pick(row, ["studentId"], ""),
+    studentCode: pick(row, ["studentCode"], "—"),
+    fullName: pick(row, ["fullName"], "—"),
+    avatarUrl: str(row, "avatarUrl") ?? undefined,
+    // Kept as null rather than defaulted to PRESENT: an unmarked student is
+    // not a present one, and the register has to be able to show the gap.
+    status: (status as AttendanceStatus) ?? null,
+    minutesLate: num(row, "minutesLate"),
+    remark: str(row, "remark"),
+    excuseReference: str(row, "excuseReference"),
+    attendancePercent: num(row, "attendancePercent"),
+  };
+}
+
+function mapRegister(raw: unknown): SessionRegister {
+  const d = toObject(raw);
+  return {
+    session: mapSession(toObject(d.session)),
+    className: pick(d, ["className"], "—"),
+    subjectName: str(d, "subjectName"),
+    students: toArray(d.students).map(mapStudentMark),
+  };
+}
+
+function mapSummary(row: Dict): AttendanceSummary {
+  return {
+    studentId: pick(row, ["studentId"], ""),
+    studentCode: pick(row, ["studentCode"], "—"),
+    fullName: pick(row, ["fullName"], "—"),
+    avatarUrl: str(row, "avatarUrl") ?? undefined,
+    sessionsHeld: pickNum(row, ["sessionsHeld"], 0),
+    present: pickNum(row, ["present"], 0),
+    late: pickNum(row, ["late"], 0),
+    absent: pickNum(row, ["absent"], 0),
+    excused: pickNum(row, ["excused"], 0),
+    unmarked: pickNum(row, ["unmarked"], 0),
+    attendancePercent: num(row, "attendancePercent"),
+    eligibleForExam: row.eligibleForExam !== false,
+    minPercentToSitExam: num(row, "minPercentToSitExam"),
+  };
+}
+
+function mapPolicy(raw: unknown): AttendancePolicy {
+  const d = toObject(raw);
+  return {
+    policyId: str(d, "policyId"),
+    classroomId: pick(d, ["classroomId"], ""),
+    lateCredit: pickNum(d, ["lateCredit"], 0.5),
+    lateBecomesAbsentAfterMinutes: num(d, "lateBecomesAbsentAfterMinutes"),
+    minPercentToSitExam: num(d, "minPercentToSitExam"),
+    excusedAbsencesIgnored: d.excusedAbsencesIgnored !== false,
+  };
+}
 
 export const apiSlice = createApi({
   reducerPath: "api",
@@ -99,6 +220,10 @@ export const apiSlice = createApi({
     "SavedAssignments",
     "Submissions",
     "QuizAttempts",
+    "AttendanceSessions",
+    "AttendanceRegister",
+    "AttendanceSummary",
+    "AttendancePolicy",
   ],
   endpoints: (builder) => ({
     getClassroomById: builder.query<ClassroomResponse, string>({
@@ -195,6 +320,15 @@ export const apiSlice = createApi({
       invalidatesTags: ["ClassroomStudents"],
     }),
 
+    /**
+     * @deprecated The backend has no `GET/POST /classrooms/{id}/attendance` —
+     * only `/attendance/summary` and `/attendance/policy`. Both of these
+     * return 404. Use the session endpoints below (`useOpenSessionMutation`,
+     * `useGetRegisterQuery`, `useMarkAttendanceMutation`) instead.
+     *
+     * Kept only because `lib/api/teacher.ts` re-exports the hooks. Nothing
+     * calls them.
+     */
     getTeacherAttendance: builder.query<
       any[],
       { classroomId: string; date?: string }
@@ -290,9 +424,19 @@ export const apiSlice = createApi({
         userId: string;
         title: string;
         message: string;
-        type: "GRADE" | "ASSIGNMENT" | "CERTIFICATE" | "ANNOUNCEMENT" | "ATTENDANCE";
+        type:
+          | "GRADE"
+          | "ASSIGNMENT"
+          | "CERTIFICATE"
+          | "ANNOUNCEMENT"
+          | "ATTENDANCE"
+          | "MENTION"
+          | "COMMENT_REPLY";
         context: string;
         actor: string;
+        link: string | null;
+        resourceType: string | null;
+        resourceId: string | null;
         isRead: boolean;
         createdAt: string;
       }[],
@@ -403,32 +547,57 @@ export const apiSlice = createApi({
     }),
 
     // --- Assignment Submissions & Grading ---
-    getAssignmentDetail: builder.query<any, string>({
+    getAssignmentDetail: builder.query<AssignmentResponse, string>({
       query: (id) => `/assignments/${id}`,
       providesTags: ["ClassroomAssignments"],
     }),
 
-    getAssignmentSubmissions: builder.query<any[], string>({
+    getAssignmentSubmissions: builder.query<SubmissionResponse[], string>({
       query: (assignmentId) => `/assignments/${assignmentId}/submissions`,
       providesTags: ["Submissions"],
     }),
 
-    gradeSubmission: builder.mutation<any, { submissionId: string; grade: number; feedback?: string }>({
-      query: ({ submissionId, grade, feedback }) => ({
+    /**
+     * PATCH /submissions/{id}/grade
+     *
+     * The backend maps this with `@PatchMapping` and reads `score` off the
+     * body. This mutation previously sent `POST` with a `grade` key, so every
+     * call through it failed — the screen only worked because it bypassed RTK
+     * and called `lib/api/assignment.ts` directly, losing cache invalidation.
+     */
+    gradeSubmission: builder.mutation<
+      SubmissionResponse,
+      { submissionId: string; score: number; feedback?: string }
+    >({
+      query: ({ submissionId, score, feedback }) => ({
         url: `/submissions/${submissionId}/grade`,
-        method: "POST",
-        body: { grade, feedback },
+        method: "PATCH",
+        body: { score, feedback },
       }),
-      invalidatesTags: ["Submissions", "StudentGrades"],
+      invalidatesTags: ["Submissions", "StudentGrades", "ClassroomAssignments"],
     }),
 
-    submitAssignment: builder.mutation<any, { assignmentId: string; fileUrl: string }>({
-      query: ({ assignmentId, fileUrl }) => ({
+    /**
+     * POST /assignments/{id}/submissions (multipart/form-data)
+     *
+     * The controller consumes `MULTIPART_FORM_DATA_VALUE` and reads a
+     * `files` part. This previously posted JSON `{ fileUrl }`, which the
+     * endpoint cannot accept — every call through it would have failed. The
+     * student screen works because it calls `lib/api/student.ts` directly.
+     *
+     * Pass a FormData with one or more `files` entries; the browser sets the
+     * multipart boundary, so no content-type header is set here.
+     */
+    submitAssignment: builder.mutation<
+      SubmissionResponse,
+      { assignmentId: string; files: FormData }
+    >({
+      query: ({ assignmentId, files }) => ({
         url: `/assignments/${assignmentId}/submissions`,
         method: "POST",
-        body: { fileUrl },
+        body: files,
       }),
-      invalidatesTags: ["Submissions", "ClassroomAssignments"],
+      invalidatesTags: ["Submissions", "ClassroomAssignments", "StudentGrades"],
     }),
 
     // --- Avatars ---
@@ -466,6 +635,187 @@ export const apiSlice = createApi({
         body: { answers },
       }),
       invalidatesTags: ["QuizAttempts", "StudentGrades"],
+    }),
+
+    /* ---------------------------------------------------------------- */
+    /* Session-based attendance                                          */
+    /*                                                                   */
+    /* Attendance is recorded against a session, not a bare date. The     */
+    /* older flat `GET/POST /classrooms/{id}/attendance?date=` route this */
+    /* screen used to call does not exist on the backend and returned 404 */
+    /* on every render.                                                   */
+    /* ---------------------------------------------------------------- */
+
+    /** GET /classrooms/{id}/sessions */
+    getSessions: builder.query<
+      ClassSession[],
+      { classroomId: string; from?: string; to?: string }
+    >({
+      query: ({ classroomId, from, to }) => ({
+        url: `/classrooms/${classroomId}/sessions`,
+        params: { ...(from ? { from } : {}), ...(to ? { to } : {}) },
+      }),
+      transformResponse: (raw: unknown) => toArray(raw).map(mapSession),
+      providesTags: ["AttendanceSessions"],
+    }),
+
+    /** POST /classrooms/{id}/sessions */
+    createSession: builder.mutation<
+      ClassSession,
+      {
+        classroomId: string;
+        sessionDate: string;
+        startTime: string;
+        endTime?: string;
+        type?: SessionType;
+        topic?: string;
+      }
+    >({
+      query: ({ classroomId, ...body }) => ({
+        url: `/classrooms/${classroomId}/sessions`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (raw: unknown) => mapSession(toObject(raw)),
+      invalidatesTags: ["AttendanceSessions", "AttendanceRegister"],
+    }),
+
+    /**
+     * POST /classrooms/{id}/sessions/open
+     *
+     * Opens (or reuses) the day's session and returns its register in one
+     * call, so taking attendance is a single action rather than
+     * create-then-load. `opened: false` is a normal answer for a day the
+     * class does not meet.
+     */
+    openSession: builder.mutation<
+      OpenSessionResult,
+      { classroomId: string; date?: string }
+    >({
+      query: ({ classroomId, date }) => ({
+        url: `/classrooms/${classroomId}/sessions/open`,
+        method: "POST",
+        params: date ? { date } : undefined,
+      }),
+      transformResponse: (raw: unknown): OpenSessionResult => {
+        const d = toObject(raw);
+        const opened = d.opened === true;
+        return {
+          opened,
+          reason: str(d, "reason"),
+          register: opened ? mapRegister(d.register) : null,
+        };
+      },
+      invalidatesTags: ["AttendanceSessions"],
+    }),
+
+    /** GET /classrooms/{id}/sessions/{sessionId}/register */
+    getRegister: builder.query<
+      SessionRegister,
+      { classroomId: string; sessionId: string }
+    >({
+      query: ({ classroomId, sessionId }) =>
+        `/classrooms/${classroomId}/sessions/${sessionId}/register`,
+      transformResponse: mapRegister,
+      providesTags: ["AttendanceRegister"],
+    }),
+
+    /** POST /classrooms/{id}/sessions/{sessionId}/register */
+    markAttendance: builder.mutation<
+      SessionRegister,
+      {
+        classroomId: string;
+        sessionId: string;
+        marks: {
+          studentId: string;
+          status: AttendanceStatus;
+          minutesLate?: number | null;
+          remark?: string | null;
+          excuseReference?: string | null;
+        }[];
+        markSessionHeld?: boolean;
+      }
+    >({
+      query: ({ classroomId, sessionId, ...body }) => ({
+        url: `/classrooms/${classroomId}/sessions/${sessionId}/register`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: mapRegister,
+      invalidatesTags: [
+        "AttendanceSessions",
+        "AttendanceRegister",
+        "AttendanceSummary",
+        "StudentAttendance",
+      ],
+    }),
+
+    /** POST /classrooms/{id}/sessions/{sessionId}/cancel */
+    cancelSession: builder.mutation<
+      ClassSession,
+      { classroomId: string; sessionId: string; reason: string }
+    >({
+      query: ({ classroomId, sessionId, reason }) => ({
+        url: `/classrooms/${classroomId}/sessions/${sessionId}/cancel`,
+        method: "POST",
+        body: { reason },
+      }),
+      transformResponse: (raw: unknown) => mapSession(toObject(raw)),
+      invalidatesTags: [
+        "AttendanceSessions",
+        "AttendanceRegister",
+        "AttendanceSummary",
+      ],
+    }),
+
+    /** DELETE /classrooms/{id}/sessions/{sessionId} */
+    deleteSession: builder.mutation<
+      void,
+      { classroomId: string; sessionId: string }
+    >({
+      query: ({ classroomId, sessionId }) => ({
+        url: `/classrooms/${classroomId}/sessions/${sessionId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [
+        "AttendanceSessions",
+        "AttendanceRegister",
+        "AttendanceSummary",
+      ],
+    }),
+
+    /** GET /classrooms/{id}/attendance/summary */
+    getAttendanceSummary: builder.query<AttendanceSummary[], string>({
+      query: (classroomId) => `/classrooms/${classroomId}/attendance/summary`,
+      transformResponse: (raw: unknown) => toArray(raw).map(mapSummary),
+      providesTags: ["AttendanceSummary"],
+    }),
+
+    /** GET /classrooms/{id}/attendance/policy */
+    getAttendancePolicy: builder.query<AttendancePolicy, string>({
+      query: (classroomId) => `/classrooms/${classroomId}/attendance/policy`,
+      transformResponse: mapPolicy,
+      providesTags: ["AttendancePolicy"],
+    }),
+
+    /** PUT /classrooms/{id}/attendance/policy */
+    saveAttendancePolicy: builder.mutation<
+      AttendancePolicy,
+      {
+        classroomId: string;
+        lateCredit?: number;
+        lateBecomesAbsentAfterMinutes?: number | null;
+        minPercentToSitExam?: number | null;
+        excusedAbsencesIgnored?: boolean;
+      }
+    >({
+      query: ({ classroomId, ...body }) => ({
+        url: `/classrooms/${classroomId}/attendance/policy`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: mapPolicy,
+      invalidatesTags: ["AttendancePolicy", "AttendanceSummary"],
     }),
   }),
 });
@@ -517,4 +867,15 @@ export const {
   useUploadTeacherAvatarMutation,
   useStartQuizAttemptMutation,
   useSubmitQuizAttemptMutation,
+  // Session-based attendance
+  useGetSessionsQuery,
+  useCreateSessionMutation,
+  useOpenSessionMutation,
+  useGetRegisterQuery,
+  useMarkAttendanceMutation,
+  useCancelSessionMutation,
+  useDeleteSessionMutation,
+  useGetAttendanceSummaryQuery,
+  useGetAttendancePolicyQuery,
+  useSaveAttendancePolicyMutation,
 } = apiSlice;

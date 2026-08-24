@@ -4,10 +4,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   FileText,
-  Users,
-  Send,
   Plus,
-  MessageSquare,
   Loader2,
   Upload,
   CheckCircle2,
@@ -25,11 +22,15 @@ import {
 } from "@/lib/api/student";
 import Link from "next/link";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
+import CommentThread from "@/components/shared/CommentThread";
+import PrivateCommentThread from "@/components/shared/PrivateCommentThread";
 
 function AssignmentDetailInner() {
   const params = useSearchParams();
   const assignmentId = params.get("assignmentId");
   const classroomId = params.get("classroomId");
+  // Set when arriving from a mention/reply notification.
+  const focusCommentId = params.get("comment");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(true);
@@ -317,24 +318,16 @@ function AssignmentDetailInner() {
             </div>
           )}
 
-          {/* Class comments placeholder */}
+       
           <div className="mt-8 border-t border-slate-100 pt-5">
-            <div className="mb-3 flex items-center gap-2">
-              <Users className="h-4 w-4 text-slate-500" />
-              <p className="text-sm font-bold text-slate-900">Class comments</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-sm">
-                {profile?.firstName?.charAt(0)?.toUpperCase() ?? "S"}
-              </div>
-              <div className="flex flex-1 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5">
-                <input
-                  placeholder="Add class comment..."
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-                />
-                <Send className="h-4 w-4 shrink-0 text-indigo-600 cursor-pointer hover:text-indigo-700" />
-              </div>
-            </div>
+            {assignmentId && (
+              <CommentThread
+                scope={{ kind: "assignment", id: assignmentId }}
+                focusCommentId={focusCommentId}
+                title="Class comments"
+                emptyHint="Ask about the brief — mention a classmate or your teacher with @"
+              />
+            )}
           </div>
         </div>
 
@@ -426,14 +419,7 @@ function AssignmentDetailInner() {
             )}
           </div>
 
-          {/* Private comments */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-2 flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-slate-500" />
-              <p className="text-sm font-bold text-slate-900">Private comments</p>
-            </div>
-            <p className="text-xs font-semibold text-indigo-600 cursor-pointer hover:underline">+ Add private comment</p>
-          </div>
+          <PrivateCommentThread assignmentId={assignmentId} target={{ role: "student" }} />
         </div>
       </main>
 

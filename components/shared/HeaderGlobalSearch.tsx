@@ -1,89 +1,121 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { Search, X, BookOpen, FileText, Award, Calendar, Users, Star, ArrowRight, ShieldCheck, LayoutGrid } from "lucide-react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
+import {
+  Search,
+  X,
+  BookOpen,
+  BookMarked,
+  FileText,
+  Award,
+  Calendar,
+  Users,
+  Star,
+  ArrowRight,
+  Bell,
+  UserCircle,
+  GraduationCap,
+  ClipboardList,
+  LayoutDashboard,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import {
+  useGetMyClassroomsQuery,
+  useGetTeacherClassroomsQuery,
+} from "@/lib/redux/apiSlice";
+
+type SearchCategory = "Pages" | "Courses";
 
 interface SearchItem {
   id: string;
   title: string;
-  category: "Courses" | "Pages" | "Assignments" | "Quizzes";
+  subtitle?: string;
+  category: SearchCategory;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
 }
 
-interface RouteSuggestion {
-  path: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-// Known dashboard routes for both roles, used to power "/path" autocomplete suggestions.
-const KNOWN_ROUTES: RouteSuggestion[] = [
-  { path: "/dashboard/student", label: "Student Dashboard", icon: LayoutGrid },
-  { path: "/dashboard/student/courses", label: "My Courses", icon: BookOpen },
-  { path: "/dashboard/student/grades", label: "Grades", icon: Star },
-  { path: "/dashboard/student/attendance", label: "Attendance", icon: Calendar },
-  { path: "/dashboard/student/certificates", label: "Certificates", icon: Award },
-  { path: "/dashboard/student/notifications", label: "Notifications", icon: ShieldCheck },
-  { path: "/dashboard/student/profile", label: "My Profile", icon: Users },
-
-  { path: "/dashboard/teacher", label: "Teacher Dashboard", icon: LayoutGrid },
-  { path: "/dashboard/teacher/my-classroom", label: "My Classrooms", icon: Users },
-  { path: "/dashboard/teacher/my-student", label: "My Students", icon: Users },
-  { path: "/dashboard/teacher/lessons", label: "Lessons", icon: BookOpen },
-  { path: "/dashboard/teacher/assignments", label: "Assignments", icon: FileText },
-  { path: "/dashboard/teacher/quiz", label: "Quizzes", icon: Award },
-  { path: "/dashboard/teacher/attendance", label: "Attendance", icon: Calendar },
-  { path: "/dashboard/teacher/grades", label: "Grades", icon: Star },
-  { path: "/dashboard/teacher/notifications", label: "Notifications", icon: ShieldCheck },
-  { path: "/dashboard/teacher/profile", label: "My Profile", icon: Users },
+// Every href below is a real route under app/dashboard/{role}/ — verified
+// against the file tree, not guessed, so a result never 404s.
+const STUDENT_PAGES: SearchItem[] = [
+  { id: "s-courses", title: "My Courses", category: "Pages", href: "/dashboard/student/courses", icon: BookOpen },
+  { id: "s-myclasses", title: "My Classes", category: "Pages", href: "/dashboard/student/my-classes", icon: Users },
+  { id: "s-assignments", title: "Assignments", category: "Pages", href: "/dashboard/student/assignments", icon: FileText },
+  { id: "s-quizzes", title: "Quizzes", category: "Pages", href: "/dashboard/student/quizzes", icon: Award },
+  { id: "s-lessons", title: "Lessons", category: "Pages", href: "/dashboard/student/lessons", icon: BookMarked },
+  { id: "s-grades", title: "Grades & GPA", category: "Pages", href: "/dashboard/student/grades", icon: Star },
+  { id: "s-attendance", title: "Attendance", category: "Pages", href: "/dashboard/student/attendance", icon: Calendar },
+  { id: "s-certificates", title: "Certificates", category: "Pages", href: "/dashboard/student/certificates", icon: GraduationCap },
+  { id: "s-timetable", title: "Timetable", category: "Pages", href: "/dashboard/student/timetable", icon: ClipboardList },
+  { id: "s-notifications", title: "Notifications", category: "Pages", href: "/dashboard/student/notifications", icon: Bell },
+  { id: "s-profile", title: "My Profile", category: "Pages", href: "/dashboard/student/profile", icon: UserCircle },
 ];
 
-const SEARCH_ITEMS: SearchItem[] = [
-  // Pages
-  { id: "p1", title: "My Classes & Courses", category: "Pages", href: "/dashboard/student/courses", icon: BookOpen, badge: "Page" },
-  { id: "p2", title: "Assignments & Homework", category: "Pages", href: "/dashboard/student/courses", icon: FileText, badge: "Page" },
-  { id: "p3", title: "Quizzes & Online Assessments", category: "Pages", href: "/dashboard/student/courses", icon: Award, badge: "Page" },
-  { id: "p4", title: "Academic Grades & GPA Records", category: "Pages", href: "/dashboard/student/grades", icon: Star, badge: "Page" },
-  { id: "p5", title: "Attendance History & Logs", category: "Pages", href: "/dashboard/student/attendance", icon: Calendar, badge: "Page" },
-  { id: "p6", title: "Notifications Center", category: "Pages", href: "/dashboard/student/notifications", icon: ShieldCheck, badge: "Page" },
-
-  // Courses
-  { id: "c1", title: "CS201 Data Structures & Algorithms", category: "Courses", href: "/dashboard/student/courses", icon: BookOpen, badge: "Course" },
-  { id: "c2", title: "CS202 Database Systems & SQL", category: "Courses", href: "/dashboard/student/courses", icon: BookOpen, badge: "Course" },
-  { id: "c3", title: "CS204 Web Frontend Architecture", category: "Courses", href: "/dashboard/student/courses", icon: BookOpen, badge: "Course" },
-  { id: "c4", title: "CS203 Object-Oriented Programming Java", category: "Courses", href: "/dashboard/student/courses", icon: BookOpen, badge: "Course" },
-
-  // Teacher specific shortcuts
-  { id: "t1", title: "Teacher Classroom Management", category: "Pages", href: "/dashboard/teacher/my-classroom", icon: Users, badge: "Teacher" },
-  { id: "t2", title: "Teacher Gradebook & Scores", category: "Pages", href: "/dashboard/teacher/grades", icon: Star, badge: "Teacher" },
-  { id: "t3", title: "Teacher Quiz Builder", category: "Pages", href: "/dashboard/teacher/quiz", icon: Award, badge: "Teacher" },
+const TEACHER_PAGES: SearchItem[] = [
+  { id: "t-overview", title: "Overview", category: "Pages", href: "/dashboard/teacher/overview", icon: LayoutDashboard },
+  { id: "t-classroom", title: "My Classrooms", category: "Pages", href: "/dashboard/teacher/my-classroom", icon: Users },
+  { id: "t-students", title: "My Students", category: "Pages", href: "/dashboard/teacher/my-student", icon: Users },
+  { id: "t-assignments", title: "Assignments", category: "Pages", href: "/dashboard/teacher/assignments", icon: FileText },
+  { id: "t-quiz", title: "Quiz Builder", category: "Pages", href: "/dashboard/teacher/quiz", icon: Award },
+  { id: "t-lessons", title: "Lessons", category: "Pages", href: "/dashboard/teacher/lessons", icon: BookMarked },
+  { id: "t-grades", title: "Gradebook", category: "Pages", href: "/dashboard/teacher/grades", icon: Star },
+  { id: "t-attendance", title: "Attendance", category: "Pages", href: "/dashboard/teacher/attendance", icon: Calendar },
+  { id: "t-notifications", title: "Notifications", category: "Pages", href: "/dashboard/teacher/notifications", icon: Bell },
+  { id: "t-profile", title: "My Profile", category: "Pages", href: "/dashboard/teacher/profile", icon: UserCircle },
 ];
 
-export default function HeaderGlobalSearch({ placeholder = "Search classes, lessons, assignments, or grades... or type a path like /dashboard" }: { placeholder?: string }) {
+/**
+ * Global header search — deliberately split by `role`. A student and a
+ * teacher share almost nothing here: different pages, different routes into
+ * a classroom, and each only sees classrooms they are actually a member of
+ * (the same `/classrooms/my-classrooms` endpoint each role's own pages
+ * already use, scoped server-side by the caller's identity, not by any
+ * client-side filtering).
+ */
+export default function HeaderGlobalSearch({
+  role,
+  placeholder,
+}: {
+  role: "student" | "teacher";
+  placeholder?: string;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const { data: studentClassrooms = [] } = useGetMyClassroomsQuery(undefined, {
+    skip: role !== "student",
+  });
+  const { data: teacherClassrooms = [] } = useGetTeacherClassroomsQuery(undefined, {
+    skip: role !== "teacher",
+  });
+  const classrooms = role === "student" ? studentClassrooms : teacherClassrooms;
+
+  const items = useMemo<SearchItem[]>(() => {
+    const pages = role === "student" ? STUDENT_PAGES : TEACHER_PAGES;
+    const courseHrefBase =
+      role === "student" ? "/dashboard/student/my-classes" : "/dashboard/teacher/my-classroom";
+    const courses: SearchItem[] = classrooms.map((c) => ({
+      id: c.classroomId,
+      title: c.subjectName || c.className,
+      subtitle: `${c.classCode}${c.className && c.className !== (c.subjectName || c.className) ? ` · ${c.className}` : ""}`,
+      category: "Courses",
+      href: `${courseHrefBase}/${c.classroomId}`,
+      icon: BookOpen,
+    }));
+    return [...pages, ...courses];
+  }, [role, classrooms]);
+
   const trimmedQuery = query.trim();
   const isPathQuery = trimmedQuery.startsWith("/");
 
-  // Typing a path (e.g. "/dash") suggests known routes that start with it, so
-  // the list narrows live as the user keeps typing — real autocomplete.
+  // Typing a path (e.g. "/dashboard/student") suggests known routes that
+  // start with it, so the list narrows live as the user keeps typing.
   const routeSuggestions: SearchItem[] = isPathQuery
-    ? KNOWN_ROUTES.filter((r) =>
-        r.path.toLowerCase().startsWith(trimmedQuery.toLowerCase())
-      ).map((r) => ({
-        id: `route-${r.path}`,
-        title: r.label,
-        category: "Pages",
-        href: r.path,
-        icon: r.icon,
-        badge: "Route",
-      }))
+    ? items
+        .filter((item) => item.href.toLowerCase().startsWith(trimmedQuery.toLowerCase()))
+        .map((item) => ({ ...item, id: `route-${item.href}` }))
     : [];
 
   const hasExactRouteMatch = routeSuggestions.some(
@@ -99,16 +131,20 @@ export default function HeaderGlobalSearch({ placeholder = "Search classes, less
           category: "Pages",
           href: trimmedQuery,
           icon: ArrowRight,
-          badge: "Go to path",
         }
       : null;
 
-  const filteredResults = trimmedQuery === ""
-    ? []
-    : SEARCH_ITEMS.filter((item) =>
-        item.title.toLowerCase().includes(query.toLowerCase()) ||
-        item.category.toLowerCase().includes(query.toLowerCase())
-      );
+  const filteredResults =
+    trimmedQuery === ""
+      ? []
+      : items.filter((item) => {
+          const q = query.toLowerCase();
+          return (
+            item.title.toLowerCase().includes(q) ||
+            item.category.toLowerCase().includes(q) ||
+            (item.subtitle?.toLowerCase().includes(q) ?? false)
+          );
+        });
 
   const displayedResults = isPathQuery
     ? [...routeSuggestions, ...(directNavItem ? [directNavItem] : [])]
@@ -154,7 +190,7 @@ export default function HeaderGlobalSearch({ placeholder = "Search classes, less
             setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={placeholder ?? "Search pages and your courses..."}
           className="w-full rounded-xl border border-slate-200 bg-slate-50/60 py-2.5 pl-11 pr-10 text-sm font-medium text-slate-800 placeholder-slate-400 transition-all focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600/20 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:border-indigo-500 dark:focus:bg-slate-900"
         />
 
@@ -187,7 +223,6 @@ export default function HeaderGlobalSearch({ placeholder = "Search classes, less
               {displayedResults.map((item) => {
                 const ItemIcon = item.icon;
                 const isDirect = item.id === "direct-nav";
-                const isRoute = item.id.startsWith("route-");
                 return (
                   <button
                     key={item.id}
@@ -206,21 +241,15 @@ export default function HeaderGlobalSearch({ placeholder = "Search classes, less
                           {isDirect ? `Go to ${item.title}` : item.title}
                         </p>
                         <p className="text-[11px] font-medium text-slate-400 truncate">
-                          {isDirect
-                            ? "Press Enter to navigate directly"
-                            : isRoute
-                            ? item.href
-                            : `Category: ${item.category}`}
+                          {item.subtitle || item.category}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      {item.badge && (
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                          {item.badge}
-                        </span>
-                      )}
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        {item.category}
+                      </span>
                       <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
                     </div>
                   </button>
