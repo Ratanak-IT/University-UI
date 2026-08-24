@@ -2,9 +2,9 @@ import Image from "next/image";
 import { LogIn, LayoutGrid, TrendingUp } from "lucide-react";
 
 const STEPS = [
-  { bg: "bg-teal", icon: LogIn, title: "Login Securely", body: "Students, teachers, and administrators access the platform using their accounts." },
-  { bg: "bg-cyan", icon: LayoutGrid, title: "Manage Academic Activities", body: "View courses, attendance, schedules, assignments, and grades in one place." },
-  { bg: "bg-[#f59e0b]", icon: TrendingUp, title: "Track Progress & Performance", body: "Monitor GPA, attendance records, and academic achievements in real time." },
+  { bg: "bg-teal-500", icon: LogIn, title: "Login Securely", body: "Students, teachers, and administrators access the platform using their accounts." },
+  { bg: "bg-cyan-500", icon: LayoutGrid, title: "Manage Academic Activities", body: "View courses, attendance, schedules, assignments, and grades in one place." },
+  { bg: "bg-amber-500", icon: TrendingUp, title: "Track Progress & Performance", body: "Monitor GPA, attendance records, and academic achievements in real time." },
 ];
 
 export default function HowItWorks() {

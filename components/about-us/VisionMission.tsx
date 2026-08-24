@@ -23,7 +23,7 @@ const missionItems = [
 
 export default function VisionMission() {
   return (
-    <section className="bg-background py-16 text-primary-foreground">
+    <section className="bg-background py-16 text-foreground">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-6 md:grid-cols-2">
 
         {/* Vision */}
@@ -33,13 +33,13 @@ export default function VisionMission() {
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
           whileHover={{ y: -8 }}
-          className="rounded-2xl bg-primary-foreground/10 p-10 backdrop-blur-sm"
+          className="rounded-2xl bg-card p-10 text-card-foreground shadow-lg"
         >
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-sm font-semibold uppercase tracking-wide text-[#F2B134]"
+            className="text-sm font-semibold uppercase tracking-wide text-secondary"
           >
             The Future
           </motion.p>
@@ -66,9 +66,9 @@ export default function VisionMission() {
           whileHover={{ y: -8 }}
           className="relative rounded-2xl bg-card p-10 text-card-foreground shadow-lg"
         >
-          <span className="absolute left-0 top-8 h-24 w-1.5 rounded-r-full bg-[#F2B134]" />
+          <span className="absolute left-0 top-8 h-24 w-1.5 rounded-r-full bg-secondary" />
 
-          <p className="text-sm font-semibold uppercase tracking-wide text-[#F2B134]">
+          <p className="text-sm font-semibold uppercase tracking-wide text-secondary">
             Our Commitment
           </p>
 
@@ -95,7 +95,7 @@ export default function VisionMission() {
                     scale: 1.15,
                     rotate: 5,
                   }}
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#F2B134]/15 text-[#F2B134]"
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-secondary/15 text-secondary"
                 >
                   <Icon className="h-5 w-5" />
                 </motion.span>

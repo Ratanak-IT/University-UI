@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
-import { Moon, Sun } from "lucide-react";
+import { useState } from "react";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import Image from "next/image";
 
 const navLinks = [
@@ -16,20 +15,10 @@ const navLinks = [
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  useEffect(() => setMounted(true), []);
-
-  const isDark = mounted && (resolvedTheme === "dark" || theme === "dark");
-
-  const toggleTheme = () => {
-    setTheme(isDark ? "light" : "dark");
-  };
-
   return (
-    <header className="bg-primary text-primary-foreground transition-colors duration-200">
+    <header className="sticky top-0 z-50 bg-primary text-primary-foreground transition-colors duration-200">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
@@ -62,13 +51,7 @@ export default function Navbar() {
 
         {/* Desktop Right Section */}
         <div className="hidden items-center gap-4 md:flex">
-          <button
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="rounded-full p-2 text-primary-foreground/90 transition hover:bg-primary-foreground/10 hover:text-secondary"
-          >
-            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </button>
+          <ThemeToggle variant="bar" />
           <Link href="/login">
             <button className="rounded-md bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
               Login
@@ -118,13 +101,7 @@ export default function Navbar() {
             })}
             <li className="flex items-center justify-between pl-4">
               <span className="text-muted-foreground">Theme</span>
-              <button
-                onClick={toggleTheme}
-                aria-label="Toggle theme"
-                className="rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              >
-                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </button>
+              <ThemeToggle />
             </li>
             <li>
               <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>

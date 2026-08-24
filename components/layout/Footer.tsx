@@ -27,7 +27,7 @@ export default function Footer() {
           
           {/* ISTAD */}
           <div className="flex flex-col items-center text-center">
-            <h4 className="mb-5 text-[24px] font-bold text-primary">
+            <h4 className="mb-5 text-[24px] font-bold text-primary dark:text-gray-200">
               Organized By
             </h4>
             <img
@@ -44,7 +44,7 @@ export default function Footer() {
 
           {/* Brand Logo (UML / UMS) */}
           <div className="flex flex-col items-center text-center">
-            <h4 className="mb-5 text-[24px] font-bold text-primary">
+            <h4 className="mb-5 text-[24px] font-bold text-primary dark:text-gray-200">
               UMS Platform
             </h4>
             <img
@@ -68,8 +68,8 @@ export default function Footer() {
         {/* Dynamic Link Columns */}
         {columns.map((col) => (
           <div key={col.title}>
-            <h4 className="text-[24px] font-bold text-primary mb-5">{col.title}</h4>
-            <ul className="space-y-2 text-[18px] text-muted-foreground">
+            <h4 className="text-[24px] font-bold text-primary dark:text-gray-200 mb-5">{col.title}</h4>
+            <ul className="space-y-2 text-[18px] text-muted-foreground dark:text-gray-200">
               {col.links.map((link) => (
                 <li key={link}>
                   <a 
@@ -86,12 +86,12 @@ export default function Footer() {
 
         {/* Contact Column with Lucide Icons */}
         <div>
-          <h4 className="text-[24px] font-bold text-primary mb-5">Get in Touch</h4>
-          <div className="space-y-4 text-sm text-muted-foreground">
+          <h4 className="text-[24px] font-bold text-primary dark:text-gray-200 mb-5">Get in Touch</h4>
+          <div className="space-y-4 text-sm text-muted-foreground dark:text-gray-200">
             <div className="flex items-start gap-2.5">
               <Mail className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
               <div>
-                <p className="text-[20px] font-semibold text-primary tracking-wider">EMAIL</p>
+                <p className="text-[20px] font-semibold text-primary dark:text-gray-200 tracking-wider">EMAIL</p>
                 <a href="mailto:info.istad@gmail.com" className="hover:text-primary transition underline decoration-primary/40 text-[18px]">
                   info.istad@gmail.com
                 </a>
@@ -101,7 +101,7 @@ export default function Footer() {
             <div className="flex items-start gap-2.5">
               <Phone className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
               <div>
-                <p className="text-[20px] font-semibold text-primary tracking-wider">PHONE</p>
+                <p className="text-[20px] font-semibold text-primary dark:text-gray-200 tracking-wider">PHONE</p>
                 <a href="tel:+18001234567" className="hover:text-primary transition underline decoration-primary/40 text-[18px]">
                   +1 (800) 123-4567
                 </a>
@@ -111,7 +111,7 @@ export default function Footer() {
             <div className="flex items-start gap-2.5">
               <MapPin className="h-5 w-5 mt-1 text-primary flex-shrink-0" />
               <div>
-                <p className="text-[20px] font-semibold text-primary tracking-wider">ADDRESS</p>
+                <p className="text-[20px] font-semibold text-primary dark:text-gray-200 tracking-wider">ADDRESS</p>
                 <p className="text-[18px]">Phnom Penh, Cambodia</p>
               </div>
             </div>

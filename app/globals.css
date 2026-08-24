@@ -29,7 +29,7 @@ html {
 
 /* 2. Target .dark on html directly */
 .dark {
-  --background: #0a0a0a;
+  --background: #020617;
   --foreground: #ededed;
 
   --card: #0f172a;

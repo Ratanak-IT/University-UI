@@ -47,9 +47,9 @@ export default function About() {
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-primary">About UML</p>
+          <p className="text-sm font-semibold text-primary dark:text-gray-200">About UML</p>
           <h2 className="mt-2 text-[34px] font-bold text-foreground sm:text-[40px]">Learning Possibilities.</h2>
-          <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-muted-foreground">
+          <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-muted-foreground dark:text-gray-200">
             At UML, we provide innovative digital solutions that enhance academic
             management and improve the learning experience for students,
             lecturers, and administrators.
@@ -63,7 +63,7 @@ export default function About() {
                   </span>
                   <span className="text-lg font-medium text-foreground">{p.title}</span>
                 </div>
-                {p.body && <p className="mt-2 pl-9 text-[15px] leading-[1.7] text-muted-foreground">{p.body}</p>}
+                {p.body && <p className="mt-2 pl-9 text-[15px] leading-[1.7] text-muted-foreground dark:text-gray-200">{p.body}</p>}
               </li>
             ))}
           </ul>

@@ -43,7 +43,7 @@ export default function Testimonials() {
     <section id="fqa" className="bg-background py-28 text-foreground transition-colors duration-200 dark:bg-background dark:text-foreground">
       <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
         <div className="text-center">
-          <p className="font-hanken text-xs font-bold tracking-[0.1em] text-testired">TESTIMONIALS</p>
+          <p className="font-hanken text-xs font-bold tracking-[0.1em] text-red-600 dark:text-gray-200">TESTIMONIALS</p>
           <h2 className="font-hanken mt-2 text-[28px] font-bold uppercase text-foreground dark:text-foreground sm:text-[32px]">
             Hear From Our Students
           </h2>
@@ -81,10 +81,10 @@ export default function Testimonials() {
             </div>
 
             <div className="relative text-center sm:text-left">
-              <Quote className="mb-3 h-8 w-8 text-primary/30 dark:text-primary/40" />
-              <h3 className="font-hanken text-2xl text-primary">{t.name}</h3>
-              <p className="font-hanken mt-1 text-lg font-semibold text-testired">{t.role}</p>
-              <p className="font-hanken mt-4 max-w-md text-lg italic leading-[1.6] text-muted-foreground dark:text-muted-foreground">
+              <Quote className="mb-3 h-8 w-8 text-primary/30 dark:text-gray-200" />
+              <h3 className="font-hanken text-2xl text-primary dark:text-gray-200">{t.name}</h3>
+              <p className="font-hanken mt-1 text-lg font-semibold text-red-600 dark:text-gray-200">{t.role}</p>
+              <p className="font-hanken mt-4 max-w-md text-lg italic leading-[1.6] text-muted-foreground dark:text-gray-200">
                 &ldquo;{t.quote}&rdquo;
               </p>
             </div>

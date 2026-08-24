@@ -105,20 +105,20 @@ const DEFAULT_YEARS: YearData[] = [
 function SemesterColumn({ label, courses }: { label: string; courses: Course[] }) {
   return (
     <div className="flex-1">
-      <h4 className="text-xs font-bold uppercase tracking-wider text-[#ca8a04] mb-5">
+      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-5">
         {label}
       </h4>
       {courses.length === 0 ? (
-        <p className="text-xs italic text-[#9ca3af] py-2">No courses assigned yet.</p>
+        <p className="text-xs italic text-muted-foreground py-2">No courses assigned yet.</p>
       ) : (
         <div className="space-y-3">
           {courses.map((c, idx) => (
             <div
               key={`${c.name}-${idx}`}
-              className="flex items-center justify-between border-b border-[#e2e8f0] pb-2.5 text-xs md:text-sm leading-relaxed"
+              className="flex items-center justify-between border-b border-border pb-2.5 text-xs md:text-sm leading-relaxed"
             >
-              <span className="font-normal text-[#334155]">{c.name}</span>
-              <span className="font-extrabold text-[#0c20a6] pl-4 shrink-0">{c.credits}</span>
+              <span className="font-normal text-foreground">{c.name}</span>
+              <span className="font-extrabold text-primary dark:text-white pl-4 shrink-0">{c.credits}</span>
             </div>
           ))}
         </div>
@@ -270,16 +270,16 @@ export default function Curriculum() {
   }, [selectedProgramId]);
 
   return (
-    <section id="curriculum" className="bg-white py-20 text-foreground">
+    <section id="curriculum" className="bg-background py-20 text-foreground">
       <div className="mx-auto max-w-[1240px] px-6 lg:px-8">
         <div className="text-center mb-12">
-          <p className="font-sans text-xs md:text-sm font-extrabold uppercase tracking-widest text-[#dc2626] mb-1">
+          <p className="font-sans text-xs md:text-sm font-extrabold uppercase tracking-widest text-red-600 dark:text-gray-200 mb-1">
             PROGRAM STRUCTURE
           </p>
-          <h2 className="font-sans text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-wide text-[#0c20a6] mb-3">
+          <h2 className="font-sans text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-wide text-primary mb-3 dark:text-gray-200">
             CURRICULUM
           </h2>
-          <p className="mx-auto max-w-2xl text-center text-xs md:text-sm font-normal text-[#64748b] leading-relaxed">
+          <p className="mx-auto max-w-2xl text-center text-sm md:text-lg font-normal text-muted-foreground leading-relaxed dark:text-gray-200">
             A comprehensive roadmap designed to take you from foundational concepts to advanced industry expertise.
           </p>
 
@@ -294,8 +294,8 @@ export default function Curriculum() {
                     onClick={() => setSelectedProgramId(p.id)}
                     className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                       isSelected
-                        ? "bg-[#0c20a6] text-white shadow-xs"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                     }`}
                   >
                     {p.name}
@@ -309,10 +309,10 @@ export default function Curriculum() {
         <div className="space-y-10">
           {yearsData.map((y) => (
             <div key={y.year} className="overflow-hidden rounded-2xl shadow-xs">
-              <div className="bg-[#0c20a6] px-8 py-3.5 rounded-t-xl">
-                <h3 className="text-lg font-bold tracking-wider text-white uppercase">{y.year}</h3>
+              <div className="bg-primary px-8 py-3.5 rounded-t-xl">
+                <h3 className="text-lg font-bold tracking-wider text-primary-foreground uppercase">{y.year}</h3>
               </div>
-              <div className="border border-[#e2e8f0] border-t-0 bg-[#f8fafc] px-8 py-8 rounded-b-2xl">
+              <div className="border border-border border-t-0 bg-muted/60 px-8 py-8 rounded-b-2xl">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-3">
                   <SemesterColumn label={y.sem1.label} courses={y.sem1.courses} />
                   <SemesterColumn label={y.sem2.label} courses={y.sem2.courses} />

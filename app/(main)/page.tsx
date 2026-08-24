@@ -10,8 +10,6 @@ import Curriculum from "@/components/landing/Curriculum";
 import CTABanner from "@/components/landing/CTABanner";
 import Instructors from "@/components/landing/Instructors";
 import Testimonials from "@/components/landing/Testimonials";
-import Footer from "@/components/landing/Footer";
-import Navbar from "@/components/layout/Navbar";
 
 const title = "UML — Every Course, Every Skill, One Powerful Platform";
 const description = "Learn Information Technology with UML: courses, curriculum, instructors, and a full university management system in one place.";
@@ -24,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-background">
       <main className="flex-1">
         <Hero />
         <WhyChoose />

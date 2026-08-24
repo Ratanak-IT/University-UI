@@ -34,12 +34,12 @@ export default function Hero() {
           <h1 className="text-[40px] font-bold leading-[1.15] tracking-tight sm:text-[56px] sm:leading-[1.12]">
             <span className="text-secondary">Every Course,</span>
             <br />
-            <span className="text-primary">Every Skill — One</span>
+            <span className="text-primary dark:text-gray-200">Every Skill — One</span>
             <br />
-            <span className="ums-underline text-primary">Powerful Platform.</span>
+            <span className="ums-underline text-primary dark:text-gray-200">Powerful Platform.</span>
           </h1>
 
-          <p className="mt-7 max-w-md text-base leading-[1.7] text-muted-foreground">
+          <p className="mt-7 max-w-md text-base leading-[1.7] text-muted-foreground dark:text-gray-200">
             UML is your best choice to study Information Technology — built for
             students, instructors, and institutions to thrive in a connected
             learning world.

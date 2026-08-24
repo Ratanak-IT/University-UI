@@ -31,7 +31,7 @@ export default function ScrollToTopButton() {
       onClick={scrollToTop}
       className={`cursor-pointer fixed bottom-6 right-6 z-50 p-3 rounded-full shadow-lg transition-all duration-300 ${
         isVisible ? "opacity-100 scale-100" : "opacity-0 scale-50 pointer-events-none"
-      } bg-blue-600 text-white hover:bg-blue-800 active:scale-95`}
+      } bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95`}
       aria-label="Scroll to top"
     >
       <IoIosArrowUp size={20} />
