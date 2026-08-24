@@ -113,7 +113,6 @@ import {
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
 } from "@/lib/redux/apiSlice";
-import { Loader2 } from "lucide-react";
 import { TableRowsSkeleton } from "@/components/shared/Skeletons";
 
 export default function NotificationsPage() {
@@ -124,23 +123,25 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<TabValue>("ALL");
   const router = useRouter();
 
-  const notifications: Notification[] = apiNotifications.map((n: any) => ({
-    id: n.id || n.notificationId,
-    initials: n.actor ? n.actor.substring(0, 2).toUpperCase() : "UM",
-    avatarClass: typeBadgeClass[n.type as NotificationType] || "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300",
-    actor: n.actor || n.title || "System",
-    action: n.message || n.title,
-    type: (n.type as NotificationType) || "ANNOUNCEMENT",
-    context: n.context || "Notification",
-    time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
-    unread: !n.isRead,
-  
-    link:
-      n.link ??
-      (n.resourceType === "CLASSROOM" && n.resourceId
-        ? `/dashboard/student/my-classes/${n.resourceId}`
-        : null),
-  }));
+  const notifications: Notification[] = apiNotifications.map((n) => {
+    const type = (typeBadgeClass[n.type as NotificationType] ? n.type : "ANNOUNCEMENT") as NotificationType;
+    return {
+      id: n.id,
+      initials: n.actor ? n.actor.substring(0, 2).toUpperCase() : "UM",
+      avatarClass: typeBadgeClass[type],
+      actor: n.actor || n.title || "System",
+      action: n.message || n.title,
+      type,
+      context: n.context || "Notification",
+      time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
+      unread: !n.isRead,
+      link:
+        n.link ??
+        (n.resourceType === "CLASSROOM" && n.resourceId
+          ? `/dashboard/student/my-classes/${n.resourceId}`
+          : null),
+    };
+  });
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 

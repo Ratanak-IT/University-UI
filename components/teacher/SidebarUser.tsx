@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { useGetTeacherProfileQuery } from "@/lib/redux/apiSlice";
+import PersonAvatar from "@/components/shared/PersonAvatar";
 
 /**
  * Footer profile banner + sign-out, shared by the desktop rail and the
@@ -29,16 +29,12 @@ export default function SidebarUser({ onNavigate }: { onNavigate?: () => void })
       onClick={onNavigate}
       className="flex items-center gap-3 border-t border-border bg-muted/50 px-5 py-4 transition-colors hover:bg-muted"
     >
-      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border">
-        {profile?.avatarUrl ? (
-          <Image src={profile.avatarUrl} alt="Profile" fill className="object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-indigo-100 text-xs font-bold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-            {profile?.firstName?.[0] || "T"}
-            {profile?.lastName?.[0] || ""}
-          </div>
-        )}
-      </div>
+      <PersonAvatar
+        name={profile ? `${profile.firstName} ${profile.lastName}` : "Teacher"}
+        avatarUrl={profile?.avatarUrl}
+        size="sm"
+        className="border border-border"
+      />
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-muted-foreground">Teacher</p>

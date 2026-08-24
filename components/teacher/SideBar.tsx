@@ -7,6 +7,7 @@ import { useState } from "react";
 import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { navSections } from "./SidebarNav";
 import { useGetTeacherProfileQuery } from "@/lib/redux/apiSlice";
+import PersonAvatar from "@/components/shared/PersonAvatar";
 
 /**
  * The permanent rail, from `lg` up. Below that the same navigation is served
@@ -120,20 +121,12 @@ export default function Sidebar() {
           isCollapsed ? "justify-center" : ""
         }`}
       >
-        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border">
-          {profile?.avatarUrl ? (
-            <Image
-              src={profile.avatarUrl}
-              alt="Profile"
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-bold text-xs">
-              {profile?.firstName?.[0] || "T"}{profile?.lastName?.[0] || ""}
-            </div>
-          )}
-        </div>
+        <PersonAvatar
+          name={profile ? `${profile.firstName} ${profile.lastName}` : "Teacher"}
+          avatarUrl={profile?.avatarUrl}
+          size="sm"
+          className="border border-border"
+        />
 
         {!isCollapsed && (
           <>

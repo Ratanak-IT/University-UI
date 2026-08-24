@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TableRowsSkeleton } from "@/components/shared/Skeletons";
 import {
@@ -31,13 +31,6 @@ interface NotificationItem {
   unread: boolean;
   /** Route to open on click; null when there is nothing to navigate to. */
   link: string | null;
-}
-
-interface Settings {
-  emailAlerts: boolean;
-  pushNotifications: boolean;
-  submissionAlerts: boolean;
-  weeklyDigest: boolean;
 }
 
 const typeStyles: Record<NotificationType, string> = {
@@ -103,25 +96,6 @@ function NotificationRow({
   );
 }
 
-function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={on}
-      className={`relative box-border inline-flex h-5 w-9 shrink-0 items-center rounded-full border-0 p-0 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 ${
-        on ? "bg-primary" : "bg-muted"
-      }`}
-    >
-      <span
-        className={`pointer-events-none absolute left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-          on ? "translate-x-4" : "translate-x-0"
-        }`}
-      />
-    </button>
-  );
-}
-
 export default function NotificationsPage() {
   const { data: apiNotifications = [], isLoading } = useGetMyNotificationsQuery();
   const [markSingleRead] = useMarkNotificationReadMutation();
@@ -129,30 +103,27 @@ export default function NotificationsPage() {
 
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<FilterKey>("All");
-  const [settings, setSettings] = useState<Settings>({
-    emailAlerts: true,
-    pushNotifications: true,
-    submissionAlerts: true,
-    weeklyDigest: false,
-  });
 
   const notifications: NotificationItem[] = useMemo(() => {
-    return apiNotifications.map((n: any) => ({
-      id: n.id || n.notificationId,
-      actor: n.actor || n.title || "System",
-      action: n.message || n.title,
-      type: (n.type as NotificationType) || "ANNOUNCEMENT",
-      context: n.context || "Classroom",
-      time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
-      initials: n.actor ? n.actor.substring(0, 2).toUpperCase() : "UM",
-      avatarColor: typeStyles[n.type as NotificationType] || "bg-indigo-100 text-indigo-800",
-      unread: !n.isRead,
-      link:
-        n.link ??
-        (n.resourceType === "CLASSROOM" && n.resourceId
-          ? `/dashboard/teacher/my-classroom/${n.resourceId}`
-          : null),
-    }));
+    return apiNotifications.map((n) => {
+      const type = (typeStyles[n.type as NotificationType] ? n.type : "ANNOUNCEMENT") as NotificationType;
+      return {
+        id: n.id,
+        actor: n.actor || n.title || "System",
+        action: n.message || n.title,
+        type,
+        context: n.context || "Classroom",
+        time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "Just now",
+        initials: n.actor ? n.actor.substring(0, 2).toUpperCase() : "UM",
+        avatarColor: typeStyles[type],
+        unread: !n.isRead,
+        link:
+          n.link ??
+          (n.resourceType === "CLASSROOM" && n.resourceId
+            ? `/dashboard/teacher/my-classroom/${n.resourceId}`
+            : null),
+      };
+    });
   }, [apiNotifications]);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
@@ -203,10 +174,6 @@ export default function NotificationsPage() {
     if (n.link) {
       router.push(n.link);
     }
-  }
-
-  function toggleSetting(key: keyof Settings) {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   if (isLoading) {
@@ -295,28 +262,6 @@ export default function NotificationsPage() {
                   <span className="font-semibold text-card-foreground font-mono">{t.count}</span>
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold text-card-foreground">Notification settings</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-card-foreground/80">Email alerts</span>
-                <Toggle on={settings.emailAlerts} onClick={() => toggleSetting("emailAlerts")} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-card-foreground/80">Push notifications</span>
-                <Toggle on={settings.pushNotifications} onClick={() => toggleSetting("pushNotifications")} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-card-foreground/80">Submission alerts</span>
-                <Toggle on={settings.submissionAlerts} onClick={() => toggleSetting("submissionAlerts")} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-card-foreground/80">Weekly digest</span>
-                <Toggle on={settings.weeklyDigest} onClick={() => toggleSetting("weeklyDigest")} />
-              </div>
             </div>
           </div>
         </div>

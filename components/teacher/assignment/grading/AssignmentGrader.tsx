@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/shared/Toast";
 import PersonAvatar from "@/components/shared/PersonAvatar";
+import PrivateCommentThread from "@/components/shared/PrivateCommentThread";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 import { apiErrorMessage } from "@/lib/api/errors";
 import {
@@ -454,6 +455,7 @@ export default function AssignmentGrader({
 
         {/* ---- grader ---- */}
         {selected ? (
+          <div className="space-y-5">
           <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             {/* who, and how to move on */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4 dark:border-slate-800">
@@ -624,6 +626,13 @@ export default function AssignmentGrader({
                 </div>
               </>
             )}
+          </div>
+
+          <PrivateCommentThread
+            assignmentId={assignmentId}
+            target={{ role: "teacher", studentId: selected.studentId }}
+            otherPartyName={selected.fullName}
+          />
           </div>
         ) : (
           <div className="rounded-2xl border border-slate-200 bg-white px-6 py-20 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">

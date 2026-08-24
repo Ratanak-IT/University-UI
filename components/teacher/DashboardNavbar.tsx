@@ -1,21 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bell, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Bell } from "lucide-react";
 import Link from "next/link";
 import HeaderGlobalSearch from "@/components/shared/HeaderGlobalSearch";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import MobileNav from "./MobileNav";
-import { useGetTeacherProfileQuery } from "@/lib/redux/apiSlice";
+import { useGetTeacherProfileQuery, useGetMyNotificationsQuery } from "@/lib/redux/apiSlice";
+import { useNotifyUnreadOnce } from "@/lib/hooks/useNotifyUnreadOnce";
 
 export default function DashboardNavbar() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   // Shares its cache with the sidebar's own profile query, so opening the
   // rail, the drawer, and this navbar together still costs one request.
   const { data: profile } = useGetTeacherProfileQuery();
+  // Shares its cache with the hook below, and with the notifications page
+  // when it's open — one query, read in three places.
+  const { data: notifications = [] } = useGetMyNotificationsQuery();
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  useEffect(() => setMounted(true), []);
+  useNotifyUnreadOnce();
 
   return (
     <header className="flex w-full items-center justify-between gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:px-8 dark:border-slate-800 dark:bg-slate-900">
@@ -35,7 +37,7 @@ export default function DashboardNavbar() {
           narrow header, so it only joins in from md up — same threshold the
           student navbar already uses for the same reason. */}
       <div className="hidden min-w-0 flex-1 md:block">
-        <HeaderGlobalSearch placeholder="Search students, classes, or files..." />
+        <HeaderGlobalSearch role="teacher" placeholder="Search your classrooms and pages..." />
       </div>
 
       <div className="flex items-center gap-6">
@@ -45,19 +47,14 @@ export default function DashboardNavbar() {
           className="relative rounded-full p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
         >
           <Bell className="h-6 w-6 stroke-[1.75]" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-extrabold text-white ring-2 ring-white dark:ring-slate-900">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
         </Link>
 
-        <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label="Toggle theme"
-          className="rounded-full p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-        >
-          {mounted && theme === "dark" ? (
-            <Sun className="h-6 w-6 stroke-[1.75]" />
-          ) : (
-            <Moon className="h-6 w-6 stroke-[1.75]" />
-          )}
-        </button>
+        <ThemeToggle />
 
         <Link
           href="/dashboard/teacher/profile"

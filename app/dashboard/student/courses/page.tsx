@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Loader2,
   FileText,
@@ -55,7 +56,16 @@ interface CombinedAssignment {
 }
 
 export default function CoursesPage() {
-  const [activeTab, setActiveTab] = useState("Overview");
+  // A notification (a new quiz, an assignment, ...) links here with
+  // ?classroomId=&tab= so the click lands on the exact class and tab it was
+  // about, not on whichever classroom happens to load first.
+  const searchParams = useSearchParams();
+  const linkedClassroomId = searchParams.get("classroomId");
+  const linkedTab = searchParams.get("tab");
+
+  const [activeTab, setActiveTab] = useState(
+    linkedTab && TABS.includes(linkedTab) ? linkedTab : "Overview"
+  );
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [classrooms, setClassrooms] = useState<ClassroomResponse[]>([]);
@@ -96,11 +106,18 @@ export default function CoursesPage() {
       if (p) setProfile(p);
       if (c && c.length > 0) {
         setClassrooms(c);
-        setSelectedClassroom(c[0].classroomId);
+        const linked = linkedClassroomId
+          ? c.find((cls) => cls.classroomId === linkedClassroomId)
+          : undefined;
+        setSelectedClassroom(linked ? linked.classroomId : c[0].classroomId);
       }
       setLoading(false);
     }
     load();
+    // Deliberately mount-only: this loads the profile and roster once. A
+    // later change to the URL's ?classroomId= isn't expected here — the
+    // dependency is only read for the initial selection above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load detail when selectedClassroom changes

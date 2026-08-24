@@ -424,9 +424,19 @@ export const apiSlice = createApi({
         userId: string;
         title: string;
         message: string;
-        type: "GRADE" | "ASSIGNMENT" | "CERTIFICATE" | "ANNOUNCEMENT" | "ATTENDANCE";
+        type:
+          | "GRADE"
+          | "ASSIGNMENT"
+          | "CERTIFICATE"
+          | "ANNOUNCEMENT"
+          | "ATTENDANCE"
+          | "MENTION"
+          | "COMMENT_REPLY";
         context: string;
         actor: string;
+        link: string | null;
+        resourceType: string | null;
+        resourceId: string | null;
         isRead: boolean;
         createdAt: string;
       }[],

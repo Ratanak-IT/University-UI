@@ -1,25 +1,23 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Bell, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Bell } from "lucide-react";
 import Link from "next/link";
 import HeaderGlobalSearch from "@/components/shared/HeaderGlobalSearch";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import MobileNav from "./MobileNav";
 import {
   useGetStudentProfileQuery,
   useGetMyNotificationsQuery,
 } from "@/lib/redux/apiSlice";
+import { useNotifyUnreadOnce } from "@/lib/hooks/useNotifyUnreadOnce";
 
 export default function NavbarStudent() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const { data: profile } = useGetStudentProfileQuery();
   const { data: notifications = [] } = useGetMyNotificationsQuery();
 
-  useEffect(() => setMounted(true), []);
+  useNotifyUnreadOnce();
 
-  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const studentName = profile
     ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || profile.username
@@ -44,7 +42,7 @@ export default function NavbarStudent() {
       </div>
 
       <div className="hidden sm:block flex-1 max-w-xl mx-6">
-        <HeaderGlobalSearch placeholder="Search courses, grades, or certificates..." />
+        <HeaderGlobalSearch role="student" placeholder="Search your courses and pages..." />
       </div>
 
       <div className="flex items-center gap-4">
@@ -61,18 +59,7 @@ export default function NavbarStudent() {
           )}
         </Link>
 
-        <button
-          type="button"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label="Toggle theme"
-          className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-        >
-          {mounted && theme === "dark" ? (
-            <Sun className="h-5 w-5 stroke-[1.75] text-amber-400" />
-          ) : (
-            <Moon className="h-5 w-5 stroke-[1.75]" />
-          )}
-        </button>
+        <ThemeToggle />
 
         <Link
           href="/dashboard/student/profile"

@@ -12,6 +12,7 @@ import {
   updateComment,
 } from "@/lib/api/comments";
 import { toast } from "@/components/shared/Toast";
+import PersonAvatar from "@/components/shared/PersonAvatar";
 import CommentComposer from "./CommentComposer";
 
 const ROLE_BADGE: Record<string, string> = {
@@ -107,9 +108,7 @@ function CommentCard({
       } ${isReply ? "shadow-none" : "shadow-sm"}`}
     >
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
-          {comment.authorName.slice(0, 2).toUpperCase()}
-        </div>
+        <PersonAvatar name={comment.authorName} avatarUrl={comment.authorAvatarUrl} size="sm" />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">

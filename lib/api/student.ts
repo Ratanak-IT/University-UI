@@ -136,7 +136,37 @@ export interface StudentAssignmentResponse {
   submissionFiles: FileResponse[];
 }
 
+/**
+ * One graded component of a course — e.g. "Midterm" or "Final Exam" if the
+ * teacher types it in by hand, or "Assignments"/"Quizzes"/"Attendance" if the
+ * classroom's scheme derives it automatically. A classroom's component list
+ * is configurable per classroom, not a fixed set, so this is read as a list
+ * to render, never looked up by a hard-coded name.
+ */
+export interface GradeComponentBreakdown {
+  componentId: string;
+  name: string;
+  source: "MANUAL" | "ASSIGNMENT" | "QUIZ" | "ATTENDANCE";
+  weightPercent: number;
+  /** Null when nothing in this component has been marked yet. */
+  percent: number | null;
+  earnedPoints: number;
+  possiblePoints: number;
+  gradedItems: number;
+  totalItems: number;
+}
+
+/**
+ * Mirrors the backend `CourseGradeResponse` record exactly — one course on a
+ * transcript. This previously declared fields the API has never sent
+ * (`gradedAssignments`, `totalAssignments`, a flat `scores` array), which
+ * made every field on this type read as `undefined` at runtime.
+ */
 export interface GradeResponse {
+  courseGradeId: string;
+  studentId: string;
+  studentCode: string;
+  fullName: string;
   classroomId: string;
   className: string;
   subjectId: string;
@@ -145,24 +175,28 @@ export interface GradeResponse {
   credit: number;
   academicYear: string;
   semester: number;
-  gradedAssignments: number;
-  totalAssignments: number;
-  scorePercent: number;
-  letterGrade: string;
-  gradePoint: number;
-  scores?: {
-    examScoreId: string;
-    examType: "MIDTERM" | "FINAL" | "ASSIGNMENT" | "QUIZ" | "ATTENDANCE" | "OTHER";
-    score: number;
-    maxScore: number;
-  }[];
+  scorePercent: number | null;
+  letterGrade: string | null;
+  gradePoint: number | null;
+  creditsEarned: number | null;
+  completenessPercent: number | null;
+  /** IN_PROGRESS while the teacher is still marking; POSTED is the only status a transcript reads. */
+  status: "IN_PROGRESS" | "SUBMITTED" | "POSTED";
+  countsInGpa: boolean;
+  postedAt: string | null;
+  remark: string | null;
+  breakdown: GradeComponentBreakdown[];
 }
 
 export interface GpaResponse {
   studentId: string;
   studentCode: string;
+  /** Official GPA — posted grades only. */
   cumulativeGpa: number;
-  totalCredits: number;
+  /** Includes courses still being marked. */
+  currentGpa: number;
+  creditsEarned: number;
+  creditsAttempted: number;
   subjects: GradeResponse[];
 }
 
