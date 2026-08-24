@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, LogOut, UserCircle } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import {
+  useGetUserProfileQuery,
+  useGetStudentProfileQuery,
+  useGetTeacherProfileQuery,
+} from "@/lib/redux/apiSlice";
+import PersonAvatar from "@/components/shared/PersonAvatar";
 import Image from "next/image";
 
 const navLinks = [
@@ -15,7 +22,47 @@ const navLinks = [
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  // Whether a session token exists is only knowable client-side (localStorage
+  // isn't visible during SSR), so this starts false and is filled in on
+  // mount — the same one-render delay `ThemeToggle` already accepts to avoid
+  // a hydration mismatch, not a bug.
+  const [isAuthed, setIsAuthed] = useState(false);
   const pathname = usePathname();
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsAuthed(!!(localStorage.getItem("token") || localStorage.getItem("access_token")));
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const { data: profile } = useGetUserProfileQuery(undefined, { skip: !isAuthed });
+  const dashboardBase = profile?.role === "STUDENT" ? "/dashboard/student" : "/dashboard/teacher";
+
+  // `/auth/me` (above) is role-agnostic and has no `avatarUrl` — the picture
+  // only exists on the role-specific profile, so it's fetched separately
+  // once the role is known.
+  const { data: studentProfile } = useGetStudentProfileQuery(undefined, {
+    skip: profile?.role !== "STUDENT",
+  });
+  const { data: teacherProfile } = useGetTeacherProfileQuery(undefined, {
+    skip: profile?.role !== "TEACHER",
+  });
+  const avatarUrl = studentProfile?.avatarUrl ?? teacherProfile?.avatarUrl ?? null;
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = "/login";
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-primary text-primary-foreground transition-colors duration-200">
@@ -52,11 +99,52 @@ export default function Navbar() {
         {/* Desktop Right Section */}
         <div className="hidden items-center gap-4 md:flex">
           <ThemeToggle variant="bar" />
-          <Link href="/login">
-            <button className="rounded-md bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
-              Login
-            </button>
-          </Link>
+          {isAuthed && profile ? (
+            <div className="relative" ref={profileRef}>
+              <button
+                type="button"
+                onClick={() => setIsProfileOpen((v) => !v)}
+                className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3 transition hover:bg-primary-foreground/10"
+              >
+                <PersonAvatar name={profile.fullName} avatarUrl={avatarUrl} size="sm" className="ring-1 ring-primary-foreground/20" />
+                <span className="max-w-[140px] truncate text-sm font-semibold">{profile.fullName}</span>
+                <ChevronDown
+                  className={`h-4 w-4 text-primary-foreground/70 transition-transform ${isProfileOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {isProfileOpen && (
+                <div className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border bg-card py-1.5 text-card-foreground shadow-xl">
+                  <div className="border-b border-border px-4 py-2.5">
+                    <p className="truncate text-sm font-bold">{profile.fullName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{profile.email}</p>
+                  </div>
+                  <Link
+                    href={`${dashboardBase}/profile`}
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
+                  >
+                    <UserCircle className="h-4 w-4 text-muted-foreground" />
+                    My Profile
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Log Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link href="/login">
+              <button className="rounded-md bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
+                Login
+              </button>
+            </Link>
+          )}
         </div>
 
         {/* Mobile Menu Toggle Button */}
@@ -103,13 +191,49 @@ export default function Navbar() {
               <span className="text-muted-foreground">Theme</span>
               <ThemeToggle />
             </li>
-            <li>
-              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                <button className="mt-4 w-full rounded-md bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
-                  Apply Now
-                </button>
-              </Link>
-            </li>
+
+            {isAuthed && profile ? (
+              <>
+                <li className="flex items-center gap-3 border-t border-border pt-4 pl-4">
+                  <PersonAvatar name={profile.fullName} avatarUrl={avatarUrl} size="sm" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-foreground">{profile.fullName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{profile.email}</p>
+                  </div>
+                </li>
+                <li>
+                  <Link
+                    href={`${dashboardBase}/profile`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 pl-4 text-muted-foreground transition hover:text-foreground"
+                  >
+                    <UserCircle className="h-4 w-4" />
+                    My Profile
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="flex items-center gap-2.5 pl-4 text-rose-600 transition hover:text-rose-700 dark:text-rose-400"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Log Out
+                  </button>
+                </li>
+              </>
+            ) : (
+              <li>
+                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <button className="mt-4 w-full rounded-md bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground transition hover:brightness-95">
+                    Apply Now
+                  </button>
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
       )}
