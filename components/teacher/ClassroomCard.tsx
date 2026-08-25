@@ -34,7 +34,7 @@ export default function ClassroomCard({
   return (
     <Link
       href={`/dashboard/teacher/my-classroom/${id || classCode}`}
-      className="block overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
+      className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
     >
       {/* Colored header */}
       <div className={`relative px-5 py-5 ${headerClass}`}>

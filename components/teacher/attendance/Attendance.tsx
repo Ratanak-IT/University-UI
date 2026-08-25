@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   BarChart3,
   CalendarCheck,
+  CalendarClock,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -30,6 +31,7 @@ import { formatSessionDate, localToday } from "./attendanceDisplay";
 import SessionRegister, { type MarkDrafts } from "./SessionRegister";
 import SessionHistory from "./SessionHistory";
 import AttendanceOverview from "./AttendanceOverview";
+import TimetableModal from "./TimetableModal";
 
 /**
  * A module-level constant, not a `= []` default inside the component.
@@ -73,6 +75,7 @@ export default function Attendance() {
 
   const [pickedClassroomId, setPickedClassroomId] = useState("");
   const [classroomOpen, setClassroomOpen] = useState(false);
+  const [timetableOpen, setTimetableOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("take");
   /** Null until the teacher picks one, so the default can follow the term. */
   const [pickedDate, setPickedDate] = useState<string | null>(null);
@@ -289,6 +292,17 @@ export default function Attendance() {
             so a course that meets twice a day keeps both.
           </p>
         </div>
+
+        {classroomId && (
+          <button
+            type="button"
+            onClick={() => setTimetableOpen(true)}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <CalendarClock className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            Set timetable
+          </button>
+        )}
       </div>
 
       {/* Filters: classroom + date */}
@@ -517,6 +531,12 @@ export default function Attendance() {
           {tab === "overview" && <AttendanceOverview classroomId={classroomId} />}
         </>
       )}
+
+      <TimetableModal
+        open={timetableOpen}
+        onClose={() => setTimetableOpen(false)}
+        classroomId={classroomId}
+      />
     </div>
   );
 }

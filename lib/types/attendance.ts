@@ -8,7 +8,7 @@
 
 export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
 export type SessionStatus = "SCHEDULED" | "HELD" | "CANCELLED";
-export type SessionType = "LECTURE" | "LAB" | "TUTORIAL" | "EXAM" | "OTHER";
+export type SessionType = "LECTURE" | "LAB" | "TUTORIAL" | "SEMINAR" | "EXAM" | "OTHER";
 export type Weekday =
   | "MONDAY"
   | "TUESDAY"
@@ -87,4 +87,25 @@ export interface AttendancePolicy {
   lateBecomesAbsentAfterMinutes: number | null;
   minPercentToSitExam: number | null;
   excusedAbsencesIgnored: boolean;
+}
+
+/**
+ * A recurring weekly slot — "Mondays, 08:00–10:00" — not a single meeting.
+ * Sessions for the whole term are generated from these.
+ */
+export interface ScheduleSlot {
+  scheduleId: string;
+  dayOfWeek: Weekday;
+  startTime: string;
+  endTime: string | null;
+  type: SessionType;
+  room: string | null;
+}
+
+export interface GenerateSessionsResult {
+  created: number;
+  skippedExisting: number;
+  skippedHolidays: number;
+  from: string;
+  to: string;
 }

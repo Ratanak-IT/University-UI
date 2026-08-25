@@ -1,5 +1,3 @@
-import Footer from "@/components/layout/Footer";
-import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
 import NavbarStudent from "@/components/student/NavbarStudent";
 import Sidebar from "@/components/student/SideBar";
 import RoleGuard from "@/components/shared/RoleGuard";

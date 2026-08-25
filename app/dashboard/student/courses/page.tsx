@@ -255,7 +255,7 @@ export default function CoursesPage() {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
       </div>
     );
   }
@@ -263,418 +263,433 @@ export default function CoursesPage() {
   if (classrooms.length === 0) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-2">
-        <p className="text-lg font-semibold text-slate-700">No courses found</p>
-        <p className="text-sm text-slate-500">You are not enrolled in any classroom yet.</p>
+        <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">No courses found</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">You are not enrolled in any classroom yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-slate-50 dark:bg-slate-950 transition-colors">
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 px-4 py-6 sm:px-6 lg:px-8">
-        {/* Classroom selector header */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-black tracking-tight text-indigo-950 dark:text-slate-100 sm:text-2xl">
-                {current?.className}
-              </h1>
-              <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-                Teacher: <span className="font-semibold text-slate-700 dark:text-slate-200">{current?.teacherName ?? "—"}</span> &nbsp;•&nbsp; {current?.academicYear ?? ""} &nbsp;•&nbsp; Semester {current?.semester ?? ""}
-              </p>
+    <div className="min-h-screen bg-background text-foreground px-4 sm:px-6 lg:px-8 py-6 space-y-6 transition-colors">
+      {/* Header — same eyebrow/title/subtitle pattern as Grades, Attendance,
+          Certificates and Notifications. */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+            <BookOpen className="h-4 w-4" />
+            My Learning
+          </div>
+          <h1 className="mt-1 text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+            My Courses
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+            Lessons, assignments and quizzes for each class you&apos;re enrolled in.
+          </p>
+        </div>
+      </div>
+
+      {/* Classroom selector */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-black tracking-tight text-indigo-950 dark:text-slate-100 sm:text-2xl">
+              {current?.className}
+            </h2>
+            <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
+              Teacher: <span className="font-semibold text-slate-700 dark:text-slate-200">{current?.teacherName ?? "—"}</span> &nbsp;•&nbsp; {current?.academicYear ?? ""} &nbsp;•&nbsp; Semester {current?.semester ?? ""}
+            </p>
+          </div>
+          {classrooms.length > 1 && (
+            <div className="w-60">
+              <ModernSelect
+                value={selectedClassroom ?? ""}
+                onChange={(val) => setSelectedClassroom(val)}
+                options={classrooms.map((c) => ({
+                  value: c.classroomId,
+                  label: `${c.className} (${c.classCode})`,
+                }))}
+              />
             </div>
-            {classrooms.length > 1 && (
-              <div className="w-60">
-                <ModernSelect
-                  value={selectedClassroom ?? ""}
-                  onChange={(val) => setSelectedClassroom(val)}
-                  options={classrooms.map((c) => ({
-                    value: c.classroomId,
-                    label: `${c.className} (${c.classCode})`,
-                  }))}
-                />
-              </div>
-            )}
-          </div>
+          )}
         </div>
+      </div>
 
-        {/* Navigation Tabs */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap gap-1">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
-                  tab === activeTab
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none"
-                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+      {/* Navigation Tabs */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap gap-1">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
+                tab === activeTab
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
+      </div>
 
-        {loadingDetail ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-          </div>
-        ) : (
-          <>
-            {/* TAB 1: OVERVIEW */}
-            {activeTab === "Overview" && (
-              <div className="space-y-4">
-                {/* Stats cards */}
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{lessons.length}</p>
-                    <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Lessons</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <p className="text-3xl font-black text-amber-600 dark:text-amber-400">{assignments.length}</p>
-                    <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Assignments</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                    <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{quizzes.length}</p>
-                    <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Quizzes</p>
-                  </div>
+      {loadingDetail ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+        </div>
+      ) : (
+        <>
+          {/* TAB 1: OVERVIEW */}
+          {activeTab === "Overview" && (
+            <div className="space-y-4">
+              {/* Stats cards */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{lessons.length}</p>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Lessons</p>
                 </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <p className="text-3xl font-black text-amber-600 dark:text-amber-400">{assignments.length}</p>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Assignments</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{quizzes.length}</p>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Quizzes</p>
+                </div>
+              </div>
 
-                {/* Recent Activity */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                  <h3 className="mb-4 text-base font-bold text-indigo-950 dark:text-slate-100">Classroom Content & Activity</h3>
-                  {assignments.length === 0 && lessons.length === 0 && quizzes.length === 0 ? (
-                    <p className="py-6 text-center text-sm font-medium text-slate-500">No content published in this classroom yet.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {assignments.map((a) => {
-                        const isSubmitted = a.submissionStatus === "SUBMITTED" || a.submissionStatus === "TURNED IN" || a.submissionStatus === "GRADED";
-                        return (
-                          <div key={a.assignmentId} className={`flex items-center justify-between gap-3 rounded-xl border p-4 transition-colors ${
-                            isSubmitted ? "border-emerald-200 bg-emerald-50/30" : "border-slate-100 hover:bg-slate-50"
-                          }`}>
-                            <div className="flex items-center gap-3">
-                              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                                isSubmitted ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                              }`}>
-                                <ClipboardCheck className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-bold text-slate-900">{a.title}</p>
-                                  {isSubmitted && (
-                                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                                      SUBMITTED
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs font-medium text-slate-500">
-                                  Assignment • {a.maxScore} pts {a.dueDate ? `• Due ${new Date(a.dueDate).toLocaleDateString()}` : ""}
-                                </p>
-                              </div>
-                            </div>
-                            <Link
-                              href={`/dashboard/student/courses/assignment?classroomId=${selectedClassroom}&assignmentId=${a.assignmentId}`}
-                              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-colors ${
-                                isSubmitted
-                                  ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                                  : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-                              }`}
-                            >
-                              {isSubmitted ? "View Submission" : "View & Submit"} <ArrowRight className="h-3.5 w-3.5" />
-                            </Link>
-                          </div>
-                        );
-                      })}
-
-                      {quizzes.map((q) => (
-                        <div key={q.quizId} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 p-4 transition-colors hover:bg-slate-50">
+              {/* Recent Activity */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <h3 className="mb-4 text-base font-bold text-indigo-950 dark:text-slate-100">Classroom Content & Activity</h3>
+                {assignments.length === 0 && lessons.length === 0 && quizzes.length === 0 ? (
+                  <p className="py-6 text-center text-sm font-medium text-slate-500 dark:text-slate-400">No content published in this classroom yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {assignments.map((a) => {
+                      const isSubmitted = a.submissionStatus === "SUBMITTED" || a.submissionStatus === "TURNED IN" || a.submissionStatus === "GRADED";
+                      return (
+                        <div key={a.assignmentId} className={`flex items-center justify-between gap-3 rounded-xl border p-4 transition-colors ${
+                          isSubmitted ? "border-emerald-200 bg-emerald-50/30 dark:border-emerald-900 dark:bg-emerald-950/20" : "border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                        }`}>
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
-                              <HelpCircle className="h-5 w-5" />
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                              isSubmitted ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400"
+                            }`}>
+                              <ClipboardCheck className="h-5 w-5" />
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-slate-900">{q.title}</p>
-                              <p className="text-xs font-medium text-slate-500">
-                                Quiz • {q.durationMinutes} mins • Attempts: {q.attemptsUsed}/{q.maxAttempts}
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{a.title}</p>
+                                {isSubmitted && (
+                                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                    SUBMITTED
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                Assignment • {a.maxScore} pts {a.dueDate ? `• Due ${new Date(a.dueDate).toLocaleDateString()}` : ""}
                               </p>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleStartQuiz(q)}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-violet-700"
+                          <Link
+                            href={`/dashboard/student/courses/assignment?classroomId=${selectedClassroom}&assignmentId=${a.assignmentId}`}
+                            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-colors ${
+                              isSubmitted
+                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-950"
+                                : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                            }`}
                           >
-                            Take Quiz <Play className="h-3.5 w-3.5 fill-current" />
-                          </button>
+                            {isSubmitted ? "View Submission" : "View & Submit"} <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
                         </div>
-                      ))}
+                      );
+                    })}
 
-                      {lessons.map((l) => (
-                        <div key={l.lessonId} className="flex items-center gap-3 rounded-xl border border-slate-100 p-4">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                            <BookOpen className="h-5 w-5" />
+                    {quizzes.map((q) => (
+                      <div key={q.quizId} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 p-4 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-400">
+                            <HelpCircle className="h-5 w-5" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-slate-900">{l.title}</p>
-                            <p className="text-xs font-medium text-slate-500">Lesson • {new Date(l.createdAt).toLocaleDateString()}</p>
+                            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{q.title}</p>
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              Quiz • {q.durationMinutes} mins • Attempts: {q.attemptsUsed}/{q.maxAttempts}
+                            </p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                        <button
+                          onClick={() => handleStartQuiz(q)}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-violet-700"
+                        >
+                          Take Quiz <Play className="h-3.5 w-3.5 fill-current" />
+                        </button>
+                      </div>
+                    ))}
 
-            {/* TAB 2: LESSONS */}
-            {activeTab === "Lessons" && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="mb-4 text-base font-bold text-indigo-950">Lessons ({lessons.length})</h3>
-                {lessons.length === 0 ? (
-                  <p className="py-12 text-center text-sm font-medium text-slate-500">No lessons posted in this classroom yet.</p>
-                ) : (
-                  <div className="space-y-4">
                     {lessons.map((l) => (
-                      <div key={l.lessonId} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 transition-all hover:bg-slate-50">
-                        <h4 className="text-base font-bold text-indigo-950">{l.title}</h4>
-                        {l.content && <p className="mt-2 text-sm text-slate-600 whitespace-pre-line">{l.content}</p>}
-                        
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {l.videoLink && (
-                            <button
-                              type="button"
-                              onClick={() => setViewerFile({ name: `${l.title} (Video)`, url: l.videoLink || "", isVideo: true })}
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-100 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-200 cursor-pointer"
-                            >
-                              <Video className="h-4 w-4" /> Watch Video Lesson
-                            </button>
-                          )}
-                          {l.files?.map((f) => (
-                            <button
-                              key={f.fileId}
-                              type="button"
-                              onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl || "", isVideo: false })}
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
-                            >
-                              <FileText className="h-4 w-4 text-indigo-600" /> {f.fileOriginalName}
-                            </button>
-                          ))}
+                      <div key={l.lessonId} className="flex items-center gap-3 rounded-xl border border-slate-100 p-4 dark:border-slate-800">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+                          <BookOpen className="h-5 w-5" />
                         </div>
-                        <p className="mt-3 text-xs font-medium text-slate-400">
-                          Posted by {l.createdBy} on {new Date(l.createdAt).toLocaleDateString()}
-                        </p>
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{l.title}</p>
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Lesson • {new Date(l.createdAt).toLocaleDateString()}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* TAB 3: ASSIGNMENTS (WITH SUBMIT FUNCTIONALITY) */}
-            {activeTab === "Assignments" && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-base font-bold text-indigo-950">Assignments ({assignments.length})</h3>
+          {/* TAB 2: LESSONS */}
+          {activeTab === "Lessons" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="mb-4 text-base font-bold text-indigo-950 dark:text-slate-100">Lessons ({lessons.length})</h3>
+              {lessons.length === 0 ? (
+                <p className="py-12 text-center text-sm font-medium text-slate-500 dark:text-slate-400">No lessons posted in this classroom yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {lessons.map((l) => (
+                    <div key={l.lessonId} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800/30 dark:hover:bg-slate-800/50">
+                      <h4 className="text-base font-bold text-indigo-950 dark:text-slate-100">{l.title}</h4>
+                      {l.content && <p className="mt-2 text-sm text-slate-600 whitespace-pre-line dark:text-slate-300">{l.content}</p>}
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {l.videoLink && (
+                          <button
+                            type="button"
+                            onClick={() => setViewerFile({ name: `${l.title} (Video)`, url: l.videoLink || "", isVideo: true })}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-100 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-200 cursor-pointer dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                          >
+                            <Video className="h-4 w-4" /> Watch Video Lesson
+                          </button>
+                        )}
+                        {l.files?.map((f) => (
+                          <button
+                            key={f.fileId}
+                            type="button"
+                            onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl || "", isVideo: false })}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> {f.fileOriginalName}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="mt-3 text-xs font-medium text-slate-400 dark:text-slate-500">
+                        Posted by {l.createdBy} on {new Date(l.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
                 </div>
+              )}
+            </div>
+          )}
 
-                {assignments.length === 0 ? (
-                  <div className="py-12 text-center">
-                    <ClipboardCheck className="mx-auto h-12 w-12 text-slate-300" />
-                    <p className="mt-2 text-base font-bold text-slate-700">No assignments yet</p>
-                    <p className="mt-1 text-sm text-slate-500">Your teacher hasn&apos;t assigned any tasks for this classroom.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {assignments.map((a) => {
-                      const isGraded = a.submissionStatus === "GRADED";
-                      const isSubmitted = a.submissionStatus === "SUBMITTED" || a.submissionStatus === "TURNED IN" || isGraded;
+          {/* TAB 3: ASSIGNMENTS (WITH SUBMIT FUNCTIONALITY) */}
+          {activeTab === "Assignments" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-base font-bold text-indigo-950 dark:text-slate-100">Assignments ({assignments.length})</h3>
+              </div>
 
-                      const statusColor = isGraded
-                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                        : isSubmitted
-                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                        : "bg-amber-50 text-amber-700 border-amber-200";
+              {assignments.length === 0 ? (
+                <div className="py-12 text-center">
+                  <ClipboardCheck className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
+                  <p className="mt-2 text-base font-bold text-slate-700 dark:text-slate-200">No assignments yet</p>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Your teacher hasn&apos;t assigned any tasks for this classroom.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {assignments.map((a) => {
+                    const isGraded = a.submissionStatus === "GRADED";
+                    const isSubmitted = a.submissionStatus === "SUBMITTED" || a.submissionStatus === "TURNED IN" || isGraded;
 
-                      const statusLabel = isGraded
-                        ? `GRADED: ${a.score}/${a.maxScore}`
-                        : isSubmitted
-                        ? "SUBMITTED"
-                        : "ASSIGNED";
+                    const statusColor = isGraded
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                      : isSubmitted
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                      : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900";
 
-                      const cardStyle = isSubmitted
-                        ? "border-emerald-300 bg-emerald-50/30 shadow-sm"
-                        : "border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md";
+                    const statusLabel = isGraded
+                      ? `GRADED: ${a.score}/${a.maxScore}`
+                      : isSubmitted
+                      ? "SUBMITTED"
+                      : "ASSIGNED";
 
-                      const buttonStyle = isSubmitted
-                        ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
-                        : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200";
+                    const cardStyle = isSubmitted
+                      ? "border-emerald-300 bg-emerald-50/30 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20"
+                      : "border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-800";
 
-                      return (
-                        <div
-                          key={a.assignmentId}
-                          className={`rounded-2xl border p-5 transition-all ${cardStyle}`}
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="space-y-1 min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-base font-bold text-slate-900">{a.title}</h4>
-                                <span className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-extrabold ${statusColor}`}>
-                                  {isSubmitted && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />}
-                                  {statusLabel}
+                    const buttonStyle = isSubmitted
+                      ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 dark:shadow-none"
+                      : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none";
+
+                    return (
+                      <div
+                        key={a.assignmentId}
+                        className={`rounded-2xl border p-5 transition-all ${cardStyle}`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-base font-bold text-slate-900 dark:text-slate-100">{a.title}</h4>
+                              <span className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-extrabold ${statusColor}`}>
+                                {isSubmitted && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+                                {statusLabel}
+                              </span>
+                            </div>
+                            {a.description && (
+                              <p className="text-sm text-slate-600 line-clamp-2 dark:text-slate-300">{a.description}</p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400 pt-1">
+                              <span className="font-bold text-indigo-600 dark:text-indigo-400">{a.maxScore} points</span>
+                              {a.dueDate && (
+                                <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+                                  <Clock className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+                                  Due {new Date(a.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                                 </span>
-                              </div>
-                              {a.description && (
-                                <p className="text-sm text-slate-600 line-clamp-2">{a.description}</p>
                               )}
-                              <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500 pt-1">
-                                <span className="font-bold text-indigo-600">{a.maxScore} points</span>
-                                {a.dueDate && (
-                                  <span className="flex items-center gap-1 text-slate-600">
-                                    <Clock className="h-3.5 w-3.5 text-slate-400" />
-                                    Due {new Date(a.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                  </span>
-                                )}
-                              </div>
                             </div>
+                          </div>
 
-                            {/* View & Submit Button */}
-                            <div className="shrink-0">
-                              <Link
-                                href={`/dashboard/student/courses/assignment?classroomId=${selectedClassroom}&assignmentId=${a.assignmentId}`}
-                                className={`flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors shadow-sm ${buttonStyle}`}
-                              >
-                                <Upload className="h-4 w-4" />
-                                {isSubmitted ? "View Submission" : "Submit Assignment"}
-                              </Link>
-                            </div>
+                          {/* View & Submit Button */}
+                          <div className="shrink-0">
+                            <Link
+                              href={`/dashboard/student/courses/assignment?classroomId=${selectedClassroom}&assignmentId=${a.assignmentId}`}
+                              className={`flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-colors shadow-sm ${buttonStyle}`}
+                            >
+                              <Upload className="h-4 w-4" />
+                              {isSubmitted ? "View Submission" : "Submit Assignment"}
+                            </Link>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB 4: QUIZZES (TEACHER STYLE + TAKE QUIZ SUBMISSION) */}
-            {activeTab === "Quizzes" && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-base font-bold text-indigo-950">Quizzes ({quizzes.length})</h3>
+                      </div>
+                    );
+                  })}
                 </div>
+              )}
+            </div>
+          )}
 
-                {quizzes.length === 0 ? (
-                  <div className="py-12 text-center">
-                    <HelpCircle className="mx-auto h-12 w-12 text-slate-300" />
-                    <p className="mt-2 text-base font-bold text-slate-700">No quizzes available</p>
-                    <p className="mt-1 text-sm text-slate-500">No quizzes are currently scheduled for this course.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    {quizzes.map((q) => {
-                      const now = new Date();
-                      const start = q.startAt ? new Date(q.startAt) : null;
-                      const end = q.endAt ? new Date(q.endAt) : null;
-                      const isActive = (!start || now >= start) && (!end || now <= end);
-                      const isExpired = end && now > end;
-                      const isCompleted = q.attemptsUsed > 0 && q.attemptsUsed >= q.maxAttempts;
+          {/* TAB 4: QUIZZES (TEACHER STYLE + TAKE QUIZ SUBMISSION) */}
+          {activeTab === "Quizzes" && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-base font-bold text-indigo-950 dark:text-slate-100">Quizzes ({quizzes.length})</h3>
+              </div>
 
-                      const statusBadgeClass = isCompleted
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : isExpired
-                        ? "bg-rose-50 text-rose-700 border-rose-200"
-                        : isActive
-                        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                        : "bg-slate-100 text-slate-600 border-slate-200";
+              {quizzes.length === 0 ? (
+                <div className="py-12 text-center">
+                  <HelpCircle className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700" />
+                  <p className="mt-2 text-base font-bold text-slate-700 dark:text-slate-200">No quizzes available</p>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">No quizzes are currently scheduled for this course.</p>
+                </div>
+              ) : (
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {quizzes.map((q) => {
+                    const now = new Date();
+                    const start = q.startAt ? new Date(q.startAt) : null;
+                    const end = q.endAt ? new Date(q.endAt) : null;
+                    const isActive = (!start || now >= start) && (!end || now <= end);
+                    const isExpired = end && now > end;
+                    const isCompleted = q.attemptsUsed > 0 && q.attemptsUsed >= q.maxAttempts;
 
-                      const statusText = isCompleted
-                        ? "COMPLETED"
-                        : isExpired
-                        ? "EXPIRED"
-                        : isActive
-                        ? "OPEN"
-                        : "UPCOMING";
+                    const statusBadgeClass = isCompleted
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900"
+                      : isExpired
+                      ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900"
+                      : isActive
+                      ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900"
+                      : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
 
-                      return (
-                        <div
-                          key={q.quizId}
-                          className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md"
-                        >
-                          <div>
-                            {/* Card top */}
-                            <div className="flex items-center justify-between">
-                              <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusBadgeClass}`}>
-                                {statusText}
-                              </span>
-                              <span className="text-xs font-semibold text-slate-400">
-                                Attempts: {q.attemptsUsed}/{q.maxAttempts}
-                              </span>
-                            </div>
+                    const statusText = isCompleted
+                      ? "COMPLETED"
+                      : isExpired
+                      ? "EXPIRED"
+                      : isActive
+                      ? "OPEN"
+                      : "UPCOMING";
 
-                            {/* Title & description */}
-                            <h4 className="mt-3 text-lg font-bold text-indigo-950">{q.title}</h4>
-                            <p className="mt-1.5 text-xs text-slate-500 line-clamp-2">
-                              {q.description || "No description provided."}
-                            </p>
-
-                            {/* Meta */}
-                            <div className="mt-4 flex items-center gap-4 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
-                              <span className="flex items-center gap-1.5">
-                                <Clock className="h-4 w-4 text-indigo-600" />
-                                {q.durationMinutes} Mins
-                              </span>
-                              {q.bestScore !== null && (
-                                <span className="flex items-center gap-1.5 font-bold text-emerald-600">
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  Best Score: {q.bestScore} pts
-                                </span>
-                              )}
-                            </div>
+                    return (
+                      <div
+                        key={q.quizId}
+                        className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                      >
+                        <div>
+                          {/* Card top */}
+                          <div className="flex items-center justify-between">
+                            <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusBadgeClass}`}>
+                              {statusText}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                              Attempts: {q.attemptsUsed}/{q.maxAttempts}
+                            </span>
                           </div>
 
-                          {/* Submit / Take Quiz Button */}
-                          <div className="mt-5">
-                            {isCompleted ? (
-                              <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-50 py-2.5 text-xs font-bold text-emerald-700">
-                                <CheckCircle2 className="h-4 w-4" /> Completed
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => handleStartQuiz(q)}
-                                disabled={!isActive}
-                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
-                              >
-                                <Play className="h-3.5 w-3.5 fill-current" />
-                                {isActive ? "Start Quiz Attempt" : "Not Available Yet"}
-                              </button>
+                          {/* Title & description */}
+                          <h4 className="mt-3 text-lg font-bold text-indigo-950 dark:text-slate-100">{q.title}</h4>
+                          <p className="mt-1.5 text-xs text-slate-500 line-clamp-2 dark:text-slate-400">
+                            {q.description || "No description provided."}
+                          </p>
+
+                          {/* Meta */}
+                          <div className="mt-4 flex items-center gap-4 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                            <span className="flex items-center gap-1.5">
+                              <Clock className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                              {q.durationMinutes} Mins
+                            </span>
+                            {q.bestScore !== null && (
+                              <span className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                                <CheckCircle2 className="h-4 w-4" />
+                                Best Score: {q.bestScore} pts
+                              </span>
                             )}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </main>
+
+                        {/* Submit / Take Quiz Button */}
+                        <div className="mt-5">
+                          {isCompleted ? (
+                            <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-50 py-2.5 text-xs font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                              <CheckCircle2 className="h-4 w-4" /> Completed
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleStartQuiz(q)}
+                              disabled={!isActive}
+                              className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-200 dark:shadow-none"
+                            >
+                              <Play className="h-3.5 w-3.5 fill-current" />
+                              {isActive ? "Start Quiz Attempt" : "Not Available Yet"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
       {/* QUIZ ATTEMPT MODAL */}
       {activeQuizModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
             {/* Modal Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4 rounded-t-3xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4 rounded-t-3xl dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
                   <HelpCircle className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-indigo-950">{activeQuizModal.title}</h3>
-                  <p className="text-xs text-slate-500">
+                  <h3 className="text-lg font-bold text-indigo-950 dark:text-slate-100">{activeQuizModal.title}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {activeQuizModal.durationMinutes} Minutes • {activeQuizModal.maxAttempts} Max Attempts
                     {attemptData && ` • ${sortedQuestions.length} Questions`}
                   </p>
@@ -682,7 +697,7 @@ export default function CoursesPage() {
               </div>
               <button
                 onClick={() => setActiveQuizModal(null)}
-                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -692,8 +707,8 @@ export default function CoursesPage() {
               {/* STATE: Loading quiz */}
               {startingQuiz && (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-                  <p className="mt-3 text-sm font-semibold text-slate-600">Loading quiz questions...</p>
+                  <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+                  <p className="mt-3 text-sm font-semibold text-slate-600 dark:text-slate-300">Loading quiz questions...</p>
                 </div>
               )}
 
@@ -701,15 +716,15 @@ export default function CoursesPage() {
               {quizCompleted && (
                 <div className="py-8 space-y-6">
                   <div className="text-center space-y-3">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
                       <CheckCircle2 className="h-8 w-8" />
                     </div>
-                    <h4 className="text-xl font-bold text-slate-900">Quiz Submitted!</h4>
+                    <h4 className="text-xl font-bold text-slate-900 dark:text-slate-100">Quiz Submitted!</h4>
                     {quizResult && quizResult.earnedScore !== null && (
-                      <div className="mx-auto w-fit rounded-2xl bg-indigo-50 px-8 py-4 border border-indigo-100">
-                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">Your Score</p>
-                        <p className="text-3xl font-black text-indigo-950">
-                          {quizResult.earnedScore} <span className="text-lg font-bold text-slate-400">/ {quizResult.totalScore}</span>
+                      <div className="mx-auto w-fit rounded-2xl bg-indigo-50 px-8 py-4 border border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-900">
+                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Your Score</p>
+                        <p className="text-3xl font-black text-indigo-950 dark:text-slate-100">
+                          {quizResult.earnedScore} <span className="text-lg font-bold text-slate-400 dark:text-slate-500">/ {quizResult.totalScore}</span>
                         </p>
                       </div>
                     )}
@@ -718,7 +733,7 @@ export default function CoursesPage() {
                   {/* Show answer results if available */}
                   {quizResult?.answers && quizResult.answers.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Results</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Results</p>
                       {quizResult.answers.map((ar, i) => {
                         const q = sortedQuestions.find((sq) => sq.questionId === ar.questionId);
                         return (
@@ -726,23 +741,23 @@ export default function CoursesPage() {
                             key={ar.questionId}
                             className={`flex items-center justify-between rounded-xl border p-3 ${
                               ar.isCorrect
-                                ? "border-emerald-200 bg-emerald-50"
-                                : "border-rose-200 bg-rose-50"
+                                ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30"
+                                : "border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/30"
                             }`}
                           >
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-slate-900 truncate">
+                              <p className="text-sm font-semibold text-slate-900 truncate dark:text-slate-100">
                                 Q{i + 1}: {q?.questionText ?? "Question"}
                               </p>
-                              <p className="text-xs text-slate-600">Your answer: {ar.answer || "—"}</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300">Your answer: {ar.answer || "—"}</p>
                             </div>
                             <div className="shrink-0 ml-3">
                               {ar.isCorrect ? (
-                                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                                   +{ar.earnedScore}
                                 </span>
                               ) : (
-                                <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-700">
+                                <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
                                   0
                                 </span>
                               )}
@@ -769,11 +784,11 @@ export default function CoursesPage() {
                 <div className="space-y-5">
                   {/* Progress bar */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
                       <span>Question {currentQ + 1} of {sortedQuestions.length}</span>
                       <span>{Object.values(answers).filter((a) => a.answer).length} answered</span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-slate-100">
+                    <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800">
                       <div
                         className="h-2 rounded-full bg-indigo-600 transition-all duration-300"
                         style={{ width: `${((currentQ + 1) / sortedQuestions.length) * 100}%` }}
@@ -789,10 +804,10 @@ export default function CoursesPage() {
                         onClick={() => setCurrentQ(i)}
                         className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
                           i === currentQ
-                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
+                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none"
                             : answers[q.questionId]?.answer
-                            ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                            : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                            ? "bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-900"
+                            : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
                         }`}
                       >
                         {i + 1}
@@ -804,14 +819,14 @@ export default function CoursesPage() {
                   {(() => {
                     const q = sortedQuestions[currentQ];
                     return (
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 space-y-4">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 space-y-4 dark:border-slate-800 dark:bg-slate-800/30">
                         <div>
-                          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                             Question {currentQ + 1}
                           </span>
-                          <span className="text-xs text-slate-400 ml-2">({q.score} pts)</span>
+                          <span className="text-xs text-slate-400 ml-2 dark:text-slate-500">({q.score} pts)</span>
                         </div>
-                        <p className="text-base font-semibold text-slate-900">{q.questionText}</p>
+                        <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{q.questionText}</p>
 
                         {/* Answer input: a typed box for SHORT_ANSWER, choice
                             buttons for everything else (TRUE_FALSE is just a
@@ -827,7 +842,7 @@ export default function CoursesPage() {
                             }
                             rows={3}
                             placeholder="Type your answer…"
-                            className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                            className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-indigo-800"
                           />
                         ) : (
                           <div className="space-y-2">
@@ -836,8 +851,8 @@ export default function CoursesPage() {
                                 key={oi}
                                 className={`flex items-center gap-3 rounded-xl border p-3.5 text-sm cursor-pointer transition-all ${
                                   answers[q.questionId]?.selectedOptionIndex === oi
-                                    ? "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-200"
-                                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                                    ? "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-200 dark:border-indigo-700 dark:bg-indigo-950/40 dark:ring-indigo-900"
+                                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                                 }`}
                               >
                                 <input
@@ -853,7 +868,7 @@ export default function CoursesPage() {
                                   }
                                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-600"
                                 />
-                                <span className="text-slate-800 font-medium">{opt}</span>
+                                <span className="text-slate-800 font-medium dark:text-slate-200">{opt}</span>
                               </label>
                             ))}
                           </div>
@@ -863,11 +878,11 @@ export default function CoursesPage() {
                   })()}
 
                   {/* Navigation & Submit */}
-                  <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                  <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <button
                       onClick={() => setCurrentQ((p) => Math.max(0, p - 1))}
                       disabled={currentQ === 0}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
                       Previous
                     </button>
@@ -883,7 +898,7 @@ export default function CoursesPage() {
                       <button
                         onClick={handleSubmitQuiz}
                         disabled={submittingQuiz}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-md shadow-emerald-200"
+                        className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-md shadow-emerald-200 dark:shadow-none"
                       >
                         {submittingQuiz ? (
                           <>
@@ -903,12 +918,12 @@ export default function CoursesPage() {
               {/* STATE: No questions returned */}
               {!startingQuiz && !quizCompleted && attemptData && sortedQuestions.length === 0 && (
                 <div className="py-12 text-center space-y-3">
-                  <HelpCircle className="mx-auto h-10 w-10 text-slate-300" />
-                  <p className="text-base font-bold text-slate-700">No questions available</p>
-                  <p className="text-sm text-slate-500">This quiz has no questions yet. Contact your teacher.</p>
+                  <HelpCircle className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700" />
+                  <p className="text-base font-bold text-slate-700 dark:text-slate-200">No questions available</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">This quiz has no questions yet. Contact your teacher.</p>
                   <button
                     onClick={() => { setActiveQuizModal(null); setAttemptData(null); }}
-                    className="rounded-xl border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    className="rounded-xl border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
                     Close
                   </button>
@@ -918,12 +933,12 @@ export default function CoursesPage() {
               {/* STATE: Failed to start */}
               {!startingQuiz && !quizCompleted && !attemptData && (
                 <div className="py-12 text-center space-y-3">
-                  <AlertCircle className="mx-auto h-10 w-10 text-rose-400" />
-                  <p className="text-base font-bold text-slate-700">Could not start quiz</p>
-                  <p className="text-sm text-slate-500">You may have used all attempts or the quiz is not available.</p>
+                  <AlertCircle className="mx-auto h-10 w-10 text-rose-400 dark:text-rose-500" />
+                  <p className="text-base font-bold text-slate-700 dark:text-slate-200">Could not start quiz</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">You may have used all attempts or the quiz is not available.</p>
                   <button
                     onClick={() => setActiveQuizModal(null)}
-                    className="rounded-xl border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    className="rounded-xl border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
                     Close
                   </button>

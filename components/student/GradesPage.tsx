@@ -201,7 +201,7 @@ export default function GradesPage() {
             <div className="rounded-xl border border-slate-100 bg-slate-50 p-3.5 text-center dark:border-slate-800 dark:bg-slate-800/50">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cumulative GPA</p>
               <p className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">
-                {gpaData ? gpaData.cumulativeGpa.toFixed(2) : "0.00"}
+                {gpaData?.cumulativeGpa != null ? gpaData.cumulativeGpa.toFixed(2) : "0.00"}
               </p>
             </div>
 
@@ -289,15 +289,15 @@ export default function GradesPage() {
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">Cumulative GPA</p>
               <p className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-50">
-                {gpaData?.cumulativeGpa.toFixed(2) ?? "0.00"}
+                {gpaData?.cumulativeGpa != null ? gpaData.cumulativeGpa.toFixed(2) : "0.00"}
               </p>
               <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                Official (posted) grades only — {gpaData?.currentGpa.toFixed(2) ?? "0.00"} including in-progress
+                Official (posted) grades only — {gpaData?.currentGpa != null ? gpaData.currentGpa.toFixed(2) : "0.00"} including in-progress
               </p>
               <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                 <div
                   className="h-full rounded-full bg-indigo-600 dark:bg-indigo-500"
-                  style={{ width: `${gpaData ? (gpaData.cumulativeGpa / 4) * 100 : 0}%` }}
+                  style={{ width: `${((gpaData?.cumulativeGpa ?? 0) / 4) * 100}%` }}
                 />
               </div>
             </div>
@@ -319,7 +319,7 @@ export default function GradesPage() {
                   style={{
                     width: `${
                       gpaData?.creditsAttempted
-                        ? Math.min((gpaData.creditsEarned / gpaData.creditsAttempted) * 100, 100)
+                        ? Math.min(((gpaData.creditsEarned ?? 0) / gpaData.creditsAttempted) * 100, 100)
                         : 0
                     }%`,
                   }}
@@ -471,7 +471,7 @@ export default function GradesPage() {
           </div>
 
           {/* Dean's list banner */}
-          {gpaData && gpaData.cumulativeGpa >= 3.5 && (
+          {gpaData?.cumulativeGpa != null && gpaData.cumulativeGpa >= 3.5 && (
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-indigo-700 to-indigo-600 p-6 shadow-sm dark:from-indigo-800 dark:to-indigo-700">
               <div className="max-w-xl">
                 <h3 className="text-base font-bold text-white">Dean&apos;s List Qualification</h3>

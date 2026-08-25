@@ -6,11 +6,16 @@ import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
   BookOpen,
-  Star,
-  UserCheck,
+  Users,
+  BookMarked,
+  FileText,
   Award,
+  Star,
+  Calendar,
+  ClipboardList,
+  GraduationCap,
   Bell,
-  User,
+  UserCircle,
 } from "lucide-react";
 
 type NavItem = {
@@ -29,26 +34,59 @@ type NavSection = {
  * mobile drawer. One list means a route added here shows up in both places
  * automatically — the two are never able to drift apart the way they would
  * if each surface kept its own copy.
+ *
+ * Sectioned the same way the teacher rail is (Overview / grouped work areas /
+ * account), rather than one flat list — and every route under
+ * app/dashboard/student actually has an entry here, which a flat "Overview"
+ * list previously missed for five of them.
  */
 export const navSections: NavSection[] = [
   {
     title: "Overview",
     items: [
       { label: "Dashboard", href: "/dashboard/student", icon: LayoutGrid },
+    ],
+  },
+  {
+    title: "My Learning",
+    items: [
       { label: "My Courses", href: "/dashboard/student/courses", icon: BookOpen },
+      { label: "My Classes", href: "/dashboard/student/my-classes", icon: Users },
+    ],
+  },
+  {
+    title: "Content",
+    items: [
+      { label: "Lessons", href: "/dashboard/student/lessons", icon: BookMarked },
+      { label: "Assignments", href: "/dashboard/student/assignments", icon: FileText },
+      { label: "Quizzes", href: "/dashboard/student/quizzes", icon: Award },
+    ],
+  },
+  {
+    title: "Progress",
+    items: [
       { label: "Grades", href: "/dashboard/student/grades", icon: Star },
-      { label: "Attendance", href: "/dashboard/student/attendance", icon: UserCheck },
-      { label: "Certificates", href: "/dashboard/student/certificates", icon: Award },
+      { label: "Attendance", href: "/dashboard/student/attendance", icon: Calendar },
+      { label: "Timetable", href: "/dashboard/student/timetable", icon: ClipboardList },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      { label: "Certificates", href: "/dashboard/student/certificates", icon: GraduationCap },
       { label: "Notifications", href: "/dashboard/student/notifications", icon: Bell },
-      { label: "My Profile", href: "/dashboard/student/profile", icon: User },
+      { label: "My Profile", href: "/dashboard/student/profile", icon: UserCircle },
     ],
   },
 ];
 
-/** The UMS mark. */
+/** The UMS mark, linking home the same way the teacher rail's does. */
 export function SidebarBrand() {
   return (
-    <div className="flex items-center gap-3 border-b border-border/50 bg-indigo-50/60 px-6 py-5.5 dark:bg-indigo-950/40">
+    <Link
+      href="/"
+      className="flex items-center gap-3 border-b border-border/50 bg-indigo-50/60 px-6 py-5.5 dark:bg-indigo-950/40"
+    >
       <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
         <Image
           src="/logo-rm.png"
@@ -64,7 +102,7 @@ export function SidebarBrand() {
         </p>
         <p className="text-xs font-semibold text-muted-foreground">Student Portal</p>
       </div>
-    </div>
+    </Link>
   );
 }
 

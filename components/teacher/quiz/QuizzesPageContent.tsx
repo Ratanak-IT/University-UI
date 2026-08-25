@@ -1,7 +1,7 @@
 // "use client";
 
 // import { useEffect, useState, useCallback } from "react";
-// import { Plus } from "lucide-react";
+// import { Plus, X, Clock, HelpCircle, Tag, CheckCircle2 } from "lucide-react";
 
 // import QuizFilterBar, { ViewMode } from "./QuizFilterBar";
 // import QuizGrid from "./QuizGrid";
@@ -135,7 +135,7 @@
 
 import { toast } from "@/components/shared/Toast";
 import { useEffect, useState, useCallback } from "react";
-import { Plus } from "lucide-react";
+import { Plus, X, Clock, HelpCircle, Tag, CheckCircle2 } from "lucide-react";
 
 import QuizFilterBar, { ViewMode } from "./QuizFilterBar";
 import QuizGrid from "./QuizGrid";
@@ -408,7 +408,7 @@ export default function QuizzesPageContent() {
                 onClick={() => setPreviewQuizId(null)}
                 className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800"
               >
-                ✕
+                <X className="h-4 w-4" />
               </button>
             </div>
 
@@ -417,9 +417,18 @@ export default function QuizzesPageContent() {
               <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 <p>{activeQuizDetail?.description || "No description provided."}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500">
-                  <span>⏱ Duration: <strong>{activeQuizDetail?.durationMinutes || 30} minutes</strong></span>
-                  <span>❓ Questions: <strong>{activeQuizDetail?.questions?.length || 0} items</strong></span>
-                  <span>🏷 Status: <strong className="capitalize">{activeQuizDetail?.status || "DRAFT"}</strong></span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    Duration: <strong>{activeQuizDetail?.durationMinutes || 30} minutes</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <HelpCircle className="h-3.5 w-3.5" />
+                    Questions: <strong>{activeQuizDetail?.questions?.length || 0} items</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5" />
+                    Status: <strong className="capitalize">{activeQuizDetail?.status || "DRAFT"}</strong>
+                  </span>
                 </div>
               </div>
 
@@ -470,8 +479,9 @@ export default function QuizzesPageContent() {
                                 </span>
                                 <span>{opt}</span>
                                 {isCorrect && (
-                                  <span className="ml-auto text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                                    ✓ Correct Answer
+                                  <span className="ml-auto flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    Correct Answer
                                   </span>
                                 )}
                               </div>

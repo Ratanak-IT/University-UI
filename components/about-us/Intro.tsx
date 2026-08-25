@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { GraduationCap } from "lucide-react";
 
 export default function Intro() {
   return (
@@ -18,9 +19,10 @@ export default function Intro() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="inline-flex rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary"
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary"
           >
-            🎓 Welcome to UMS
+            <GraduationCap className="h-4 w-4" />
+            Welcome to UMS
           </motion.span>
 
           <motion.h1

@@ -1,198 +1,202 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { LayoutGrid, List, Loader2 } from "lucide-react";
+import { Loader2, GraduationCap, ClipboardList, UserCheck, Bell, BellRing } from "lucide-react";
 import {
-  fetchMyClassrooms,
-  fetchMyProfile,
-  fetchClassroomStudents,
-  ClassroomResponse,
-  StudentProfile,
-} from "@/lib/api/student";
+  useGetStudentProfileQuery,
+  useGetStudentGpaQuery,
+  useGetStudentAttendanceQuery,
+  useGetMyNotificationsQuery,
+} from "@/lib/redux/apiSlice";
+import { fetchStudentAssignments } from "@/lib/api/student";
+import StatCards from "@/components/teacher/dashboard/StatCards";
+import DeadlinesSection from "@/components/teacher/dashboard/DeadlinesSection";
+import type { StatCard, Deadline } from "@/lib/types/dashboard";
 
-type CourseColor = "indigo" | "amber" | "rose" | "emerald";
-
-interface CourseCard {
-  id: string;
-  name: string;
-  code: string;
-  initials: string;
-  studentCount: number;
-  year: string;
-  meta: string;
-  color: CourseColor;
-}
-
-const COLORS: CourseColor[] = ["indigo", "amber", "rose", "emerald"];
-
-const COLOR_HEADER: Record<CourseColor, string> = {
-  indigo: "bg-indigo-600",
-  amber: "bg-amber-500",
-  rose: "bg-rose-600",
-  emerald: "bg-emerald-600",
-};
-
-function mapClassroom(c: ClassroomResponse, idx: number, studentCount: number): CourseCard {
-  const color = COLORS[idx % COLORS.length];
-  const initials = c.className
-    ? c.className.split(" ").map((w) => w[0]).join("").substring(0, 2).toUpperCase()
-    : "CS";
-  const year =
-    c.yearLevel && c.semester
-      ? `Year ${c.yearLevel} · Sem ${c.semester}`
-      : c.academicYear ?? "";
-  const room = c.room ?? "";
-  const code = c.inviteCode ?? c.classCode;
-
-  return {
-    id: c.classroomId,
-    name: c.className,
-    code: `${c.classCode} · ${c.subjectName ?? ""}`,
-    initials,
-    studentCount,
-    year,
-    meta: `${room ? "Room " + room : ""} ${code ? "· Code " + code : ""}`.trim(),
-    color,
-  };
-}
-
-function CourseCardComponent({ c }: { c: CourseCard }) {
-  return (
-    <Link
-      href={`/dashboard/student/my-classes/${c.id}`}
-      className={`block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 dark:border-slate-800 dark:bg-slate-900`}
-    >
-      <div className={`relative ${COLOR_HEADER[c.color]} px-4 pb-8 pt-4 text-white`}>
-        <p className="text-sm font-semibold">{c.name}</p>
-        <p className="mt-0.5 text-xs text-white/80">{c.code}</p>
-        <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
-          {c.initials}
-        </div>
-      </div>
-      <div className="px-4 pb-4 pt-3">
-        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-          {c.studentCount} students <span className="text-slate-500 dark:text-slate-400">· {c.year}</span>
-        </p>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{c.meta}</p>
-        <div className="mt-3 flex items-center justify-end">
-          <span className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
-            Open
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
+/**
+ * The student landing page — an actual overview (stats, what's due, what's
+ * new), not a second copy of the classroom grid. `/dashboard/student/my-classes`
+ * already owns the full classroom-card experience; repeating it here just to
+ * fill space duplicated the same nine classroom cards it renders more slowly
+ * from an entirely separate fetch.
+ */
 export default function StudentDashboard() {
-  const [view, setView] = useState("card");
-  const [courses, setCourses] = useState<CourseCard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const { data: profile, isLoading: loadingProfile } = useGetStudentProfileQuery();
+  const studentId = profile?.studentId ?? "";
+
+  const { data: gpaData, isLoading: loadingGpa } = useGetStudentGpaQuery(studentId, {
+    skip: !studentId,
+  });
+  const { data: attendanceByCourse = [], isLoading: loadingAttendance } = useGetStudentAttendanceQuery(
+    { studentId },
+    { skip: !studentId }
+  );
+  const { data: notifications = [], isLoading: loadingNotifications } = useGetMyNotificationsQuery();
+
+  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
+  const [pendingAssignmentsCount, setPendingAssignmentsCount] = useState(0);
+  const [loadingAssignments, setLoadingAssignments] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
+    if (!studentId) return;
+    let cancelled = false;
 
-      const [profileData, classrooms] = await Promise.all([
-        fetchMyProfile(),
-        fetchMyClassrooms(),
-      ]);
+    async function loadDeadlines() {
+      setLoadingAssignments(true);
+      const page = await fetchStudentAssignments(studentId, 0, 100);
+      if (cancelled) return;
 
-      if (profileData) setProfile(profileData);
+      const pending = (page?.content ?? []).filter((a) => a.dueDate && !a.submissionStatus);
+      setPendingAssignmentsCount(pending.length);
 
-      if (classrooms && classrooms.length > 0) {
-        // Fetch student counts in parallel for each classroom
-        const counts = await Promise.all(
-          classrooms.map(async (c) => {
-            const students = await fetchClassroomStudents(c.classroomId);
-            return students ? students.length : 0;
-          })
-        );
+      const upcoming = pending
+        .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
+        .slice(0, 5)
+        .map((a): Deadline => {
+          const diffDays = Math.ceil(
+            (new Date(a.dueDate!).getTime() - Date.now()) / (1000 * 3600 * 24)
+          );
+          let due = new Date(a.dueDate!).toLocaleDateString();
+          let badgeClass = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+          if (diffDays < 0) {
+            due = "Overdue";
+            badgeClass = "bg-rose-200 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300";
+          } else if (diffDays === 0) {
+            due = "Due today";
+            badgeClass = "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300";
+          } else if (diffDays <= 2) {
+            due = `${diffDays} days left`;
+            badgeClass = "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300";
+          }
+          return { title: a.title, classCode: a.className || a.subjectName, due, badgeClass };
+        });
 
-        setCourses(
-          classrooms.map((c, i) => mapClassroom(c, i, counts[i]))
-        );
-      } else {
-        setCourses([]);
-      }
-      setLoading(false);
+      setDeadlines(upcoming);
+      setLoadingAssignments(false);
     }
-    load();
-  }, []);
+    loadDeadlines();
+    return () => {
+      cancelled = true;
+    };
+  }, [studentId]);
 
-  const selectClass = "border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200";
+  const overallAttendanceRate = useMemo(() => {
+    const attended = attendanceByCourse.reduce((s, c) => s + c.present + c.late + c.excused, 0);
+    const total = attendanceByCourse.reduce((s, c) => s + c.sessionsHeld, 0);
+    return total > 0 ? Math.round((attended / total) * 100) : null;
+  }, [attendanceByCourse]);
+
+  const loading = loadingProfile || loadingGpa || loadingAttendance;
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const statsList: StatCard[] = [
+    {
+      label: "Enrolled Classes",
+      value: gpaData ? String(new Set(gpaData.subjects.map((s) => s.classroomId)).size) : "—",
+      icon: GraduationCap,
+      iconBg: "bg-indigo-100 dark:bg-indigo-950/40",
+      iconColor: "text-indigo-700 dark:text-indigo-400",
+      badge: null,
+    },
+    {
+      label: "Overall Attendance",
+      value: overallAttendanceRate != null ? `${overallAttendanceRate}%` : "—",
+      icon: UserCheck,
+      iconBg: "bg-emerald-100 dark:bg-emerald-950/40",
+      iconColor: "text-emerald-700 dark:text-emerald-400",
+      badge: null,
+    },
+    {
+      label: "Pending Assignments",
+      value: loadingAssignments ? "—" : String(pendingAssignmentsCount),
+      icon: ClipboardList,
+      iconBg: "bg-rose-100 dark:bg-rose-950/40",
+      iconColor: "text-rose-700 dark:text-rose-400",
+      badge: null,
+    },
+    {
+      label: "Unread Notifications",
+      value: loadingNotifications ? "—" : String(unreadCount),
+      icon: BellRing,
+      iconBg: "bg-sky-100 dark:bg-sky-950/40",
+      iconColor: "text-sky-700 dark:text-sky-400",
+      badge: null,
+    },
+  ];
+
+  const recentNotifications = notifications.slice(0, 5);
+
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" strokeWidth={2} />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors">
-      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          {/* Welcome header */}
-          {profile && (
-            <div className="mb-6">
-              <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                Welcome back, {profile.firstName} 👋
-              </h1>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {profile.studentCode} · {profile.academicYear} · Year {profile.yearLevel} Sem {profile.semester}
-              </p>
-            </div>
-          )}
+    <div className="px-8 py-8">
+      {profile && (
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-foreground">
+            Welcome back, {profile.firstName}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {profile.studentCode} · {profile.academicYear} · Year {profile.yearLevel} Sem {profile.semester}
+          </p>
+        </div>
+      )}
 
-          <h2 className="text-lg font-semibold sm:text-xl text-slate-900 dark:text-slate-100">Course Overview</h2>
+      <StatCards stats={statsList} />
 
-          {/* Filter bar */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {courses.length} classroom{courses.length !== 1 ? "s" : ""} enrolled
-            </p>
-
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <div className={`flex overflow-hidden rounded-md border ${selectClass}`}>
-                <button
-                  onClick={() => setView("card")}
-                  aria-label="Card view"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-sm ${
-                    view === "card" ? "bg-slate-100 dark:bg-slate-800 dark:text-slate-100" : ""
-                  }`}
-                >
-                  <LayoutGrid className="h-4 w-4" /> Card
-                </button>
-                <button
-                  onClick={() => setView("list")}
-                  aria-label="List view"
-                  className={`flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-800 px-3 py-1.5 text-sm ${
-                    view === "list" ? "bg-slate-100 dark:bg-slate-800 dark:text-slate-100" : ""
-                  }`}
-                >
-                  <List className="h-4 w-4" /> List
-                </button>
-              </div>
-            </div>
+      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {loadingAssignments ? (
+          <div className="flex items-center justify-center rounded-2xl border border-border bg-card p-10">
+            <Loader2 className="h-5 w-5 animate-spin text-indigo-600 dark:text-indigo-400" />
           </div>
+        ) : (
+          <DeadlinesSection deadlines={deadlines} />
+        )}
 
-          {/* Content */}
-          {loading ? (
-            <div className="mt-16 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-              <span className="text-sm text-slate-500 dark:text-slate-400">Loading your classrooms...</span>
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-card-foreground">Recent activity</h2>
+            <Link
+              href="/dashboard/student/notifications"
+              className="text-xs font-semibold tracking-wide text-primary hover:underline"
+            >
+              VIEW ALL
+            </Link>
+          </div>
+          {loadingNotifications ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-indigo-600 dark:text-indigo-400" />
             </div>
-          ) : courses.length === 0 ? (
-            <div className="mt-16 flex flex-col items-center gap-2 text-center">
-              <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">No classrooms found</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                You are not enrolled in any classroom yet.
-              </p>
+          ) : recentNotifications.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <Bell className="h-6 w-6 text-slate-300 dark:text-slate-700" />
+              <p className="text-sm text-muted-foreground">Nothing new yet.</p>
             </div>
           ) : (
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {courses.map((c) => (
-                <CourseCardComponent key={c.id} c={c} />
+            <ul className="space-y-3">
+              {recentNotifications.map((n) => (
+                <li key={n.id} className="rounded-xl border border-border p-4">
+                  <p className="text-sm font-semibold text-card-foreground">
+                    {n.title || n.message}
+                  </p>
+                  {n.title && n.message && (
+                    <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{n.message}</p>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground/70">
+                    {new Date(n.createdAt).toLocaleDateString()}
+                  </p>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );

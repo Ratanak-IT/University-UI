@@ -136,19 +136,12 @@ export interface StudentAssignmentResponse {
   submissionFiles: FileResponse[];
 }
 
-/**
- * One graded component of a course — e.g. "Midterm" or "Final Exam" if the
- * teacher types it in by hand, or "Assignments"/"Quizzes"/"Attendance" if the
- * classroom's scheme derives it automatically. A classroom's component list
- * is configurable per classroom, not a fixed set, so this is read as a list
- * to render, never looked up by a hard-coded name.
- */
+
 export interface GradeComponentBreakdown {
   componentId: string;
   name: string;
   source: "MANUAL" | "ASSIGNMENT" | "QUIZ" | "ATTENDANCE";
   weightPercent: number;
-  /** Null when nothing in this component has been marked yet. */
   percent: number | null;
   earnedPoints: number;
   possiblePoints: number;
@@ -156,12 +149,7 @@ export interface GradeComponentBreakdown {
   totalItems: number;
 }
 
-/**
- * Mirrors the backend `CourseGradeResponse` record exactly — one course on a
- * transcript. This previously declared fields the API has never sent
- * (`gradedAssignments`, `totalAssignments`, a flat `scores` array), which
- * made every field on this type read as `undefined` at runtime.
- */
+
 export interface GradeResponse {
   courseGradeId: string;
   studentId: string;
@@ -191,12 +179,12 @@ export interface GradeResponse {
 export interface GpaResponse {
   studentId: string;
   studentCode: string;
-  /** Official GPA — posted grades only. */
-  cumulativeGpa: number;
-  /** Includes courses still being marked. */
-  currentGpa: number;
-  creditsEarned: number;
-  creditsAttempted: number;
+  /** Official GPA — posted grades only. Null until a course is posted. */
+  cumulativeGpa: number | null;
+  /** Includes courses still being marked. Null until a course is posted. */
+  currentGpa: number | null;
+  creditsEarned: number | null;
+  creditsAttempted: number | null;
   subjects: GradeResponse[];
 }
 
@@ -473,20 +461,86 @@ export async function submitQuizAttempt(
   }
 }
 
-export interface AttendanceResponse {
-  attendanceId: string;
+export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
+
+/** One mark, as returned inside a `StudentAttendanceResponse.records` list. */
+export interface AttendanceRecordResponse {
+  recordId: string;
+  sessionId: string;
   classroomId: string;
   className: string;
   subjectName: string;
+  studentId: string;
+  studentCode: string;
+  studentName: string;
   attendanceDate: string;
-  status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
+  startTime: string | null;
+  endTime: string | null;
+  sessionType: "LECTURE" | "LAB" | "TUTORIAL" | "SEMINAR" | "EXAM" | "OTHER";
+  topic: string | null;
+  status: AttendanceStatus;
+  minutesLate: number | null;
   remark: string | null;
+  excuseReference: string | null;
+}
+
+/**
+ * A student's attendance for one classroom — `GET /students/{id}/attendance`
+ * returns one of these per enrolled classroom, not a flat list of marks.
+ * The percentage and exam eligibility are computed server-side against that
+ * classroom's own policy, so the frontend must not re-derive or hard-code a
+ * minimum — different classrooms can require different thresholds.
+ */
+export interface StudentAttendanceResponse {
+  classroomId: string;
+  className: string;
+  subjectCode: string;
+  subjectName: string;
+  academicYear: string;
+  semester: number;
+  sessionsHeld: number;
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+  unmarked: number;
+  attendancePercent: number | null;
+  eligibleForExam: boolean;
+  minPercentToSitExam: number | null;
+  records: AttendanceRecordResponse[];
 }
 
 /** GET /api/v1/students/{id}/attendance */
 export function fetchStudentAttendance(studentId: string, classroomId?: string) {
   const url = `/api/v1/students/${studentId}/attendance` + (classroomId ? `?classroomId=${classroomId}` : "");
-  return apiFetch<AttendanceResponse[]>(url);
+  return apiFetch<StudentAttendanceResponse[]>(url);
+}
+
+export type Weekday = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+
+/**
+ * One weekly class slot, across every classroom the student is enrolled in.
+ * The weekly pattern a teacher sets up in the admin app — not a snapshot of
+ * one week, so there is no date here, only day-of-week and time.
+ */
+export interface TimetableSlotResponse {
+  scheduleId: string;
+  classroomId: string;
+  className: string;
+  classCode: string;
+  subjectCode: string | null;
+  subjectName: string | null;
+  teacherName: string | null;
+  dayOfWeek: Weekday;
+  startTime: string;
+  endTime: string | null;
+  type: "LECTURE" | "LAB" | "TUTORIAL" | "SEMINAR" | "EXAM" | "OTHER";
+  room: string | null;
+}
+
+/** GET /api/v1/students/{id}/timetable */
+export function fetchStudentTimetable(studentId: string) {
+  return apiFetch<TimetableSlotResponse[]>(`/api/v1/students/${studentId}/timetable`);
 }
 
 export interface CertificateRequestResponse {
@@ -504,6 +558,101 @@ export interface CertificateDownloadResponse {
   requestId: string;
   fileName: string;
   downloadUrl: string;
+}
+
+
+/* ---------------- Issued certificates ---------------- */
+
+export type IssuedCertificateType =
+  | "ENROLLMENT_CONFIRMATION" | "TRANSCRIPT" | "DEGREE" | "COMPLETION";
+
+/**
+ * A certificate the registrar has actually awarded.
+ *
+ * <p>Nothing appears here until it is issued — an approval that has not
+ * happened yet has no record, so there is nothing for the student to see or
+ * download before then.
+ */
+export interface IssuedCertificateResponse {
+  issuedId: string;
+  studentId: string;
+  studentCode: string | null;
+  fullName: string | null;
+  certificateType: IssuedCertificateType;
+  certificateNumber: string;
+  verificationCode: string;
+  programId: string | null;
+  programName: string | null;
+  yearLevel: number | null;
+  academicYear: string | null;
+  status: "ISSUED" | "REVOKED";
+  issuedAt: string;
+  issuedBy: string | null;
+  revokedAt: string | null;
+  revokeReason: string | null;
+  /** True when a file is attached — a scanned original, or a generated PDF. */
+  hasFile: boolean;
+  /**
+   * True when there is a rendered document to display in the browser.
+   *
+   * <p>A certificate produced from an uploaded design is a PDF, so there is
+   * nothing to show inline and the download is the only way to open it.
+   */
+  hasDocument: boolean;
+}
+
+/** GET /api/v1/students/{id}/certificates/{issuedId}/document — returns HTML. */
+export async function fetchIssuedCertificateDocument(
+  studentId: string,
+  issuedId: string
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/students/${studentId}/certificates/${issuedId}/document`,
+      { headers: { ...getAuthHeader() } }
+    );
+    if (!res.ok) return null;
+    return await res.text();
+  } catch (err) {
+    console.error("fetchIssuedCertificateDocument:", err);
+    return null;
+  }
+}
+
+/** GET /api/v1/students/{id}/certificates/{issuedId}/download */
+export async function downloadIssuedCertificate(
+  studentId: string,
+  issuedId: string
+): Promise<CertificateDownloadResponse | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/students/${studentId}/certificates/${issuedId}/download`,
+      { headers: { ...getAuthHeader() } }
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error("downloadIssuedCertificate:", err);
+    return null;
+  }
+}
+
+/** GET /api/v1/students/{id}/certificates/{issuedId}/preview — same file as download, opened inline. */
+export async function previewIssuedCertificate(
+  studentId: string,
+  issuedId: string
+): Promise<CertificateDownloadResponse | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/students/${studentId}/certificates/${issuedId}/preview`,
+      { headers: { ...getAuthHeader() } }
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error("previewIssuedCertificate:", err);
+    return null;
+  }
 }
 
 /** GET /api/v1/students/{id}/certificate-requests */

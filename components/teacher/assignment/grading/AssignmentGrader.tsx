@@ -8,6 +8,8 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Eye,
   FileText,
   Inbox,
@@ -620,8 +622,11 @@ export default function AssignmentGrader({
                   >
                     Save only
                   </button>
-                  <span className="text-xs text-slate-400">
-                    Ctrl + Enter to save and move on · ↑ ↓ to switch student
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                    Ctrl + Enter to save and move on ·
+                    <ChevronUp className="h-3 w-3" />
+                    <ChevronDown className="h-3 w-3" />
+                    to switch student
                   </span>
                 </div>
               </>

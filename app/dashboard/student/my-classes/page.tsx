@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, MapPin, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   fetchMyClassrooms,
   fetchClassroomStudents,
   ClassroomResponse,
 } from "@/lib/api/student";
 
-const HEADER_COLORS = [
-  "bg-indigo-700",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-emerald-600",
-  "bg-sky-600",
-  "bg-violet-600",
+// Same four header/text/badge triples the teacher classroom card cycles
+// through, so a student's card is the same design, not a lookalike.
+const COLORS = [
+  { header: "bg-indigo-700", text: "text-indigo-700", badge: "bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300" },
+  { header: "bg-amber-500", text: "text-amber-600", badge: "bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300" },
+  { header: "bg-rose-500", text: "text-rose-600", badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" },
+  { header: "bg-emerald-600", text: "text-emerald-700", badge: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300" },
 ];
 
 interface ClassCard {
@@ -26,14 +26,24 @@ interface ClassCard {
   initials: string;
   teacher: string;
   students: number;
+  year: string;
   room: string;
-  header: string;
+  headerClass: string;
+  initialsTextClass: string;
+  badgeClass: string;
 }
 
 function mapClassroom(c: ClassroomResponse, idx: number, studentCount: number): ClassCard {
+  const color = COLORS[idx % COLORS.length];
+
   const initials = c.className
     ? c.className.split(" ").map((w) => w[0]).join("").substring(0, 2).toUpperCase()
     : "CS";
+
+  const year = c.yearLevel && c.semester
+    ? `Year ${c.yearLevel} · Sem ${c.semester}`
+    : c.academicYear ?? "—";
+
   return {
     id: c.classroomId,
     title: c.className,
@@ -42,8 +52,11 @@ function mapClassroom(c: ClassroomResponse, idx: number, studentCount: number): 
     initials,
     teacher: c.teacherName ?? "—",
     students: studentCount,
+    year,
     room: c.room ? `Room ${c.room}` : "—",
-    header: HEADER_COLORS[idx % HEADER_COLORS.length],
+    headerClass: color.header,
+    initialsTextClass: color.text,
+    badgeClass: color.badge,
   };
 }
 
@@ -97,32 +110,38 @@ export default function MyClassesPage() {
             <Link
               key={c.id}
               href={`/dashboard/student/my-classes/${c.id}`}
-              className="block overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:shadow-md hover:-translate-y-0.5 dark:border-slate-800 dark:bg-slate-900"
+              className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
             >
               {/* Colored header */}
-              <div className={`relative px-5 py-4 text-white ${c.header}`}>
-                <p className="pr-12 text-base font-bold leading-tight">{c.title}</p>
-                <p className="mt-0.5 text-xs text-white/80">
+              <div className={`relative px-5 py-5 ${c.headerClass}`}>
+                <h3 className="text-lg font-bold text-white">{c.title}</h3>
+                <p className="mt-0.5 text-sm text-white/80">
                   {c.code} · {c.track}
                 </p>
-                <span className="absolute bottom-3 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
+                <span
+                  className={`absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sm font-bold ${c.initialsTextClass}`}
+                >
                   {c.initials}
                 </span>
               </div>
 
               {/* Body */}
-              <div className="space-y-2 px-5 py-4">
-                <p className="text-sm font-medium text-indigo-950 dark:text-slate-100">{c.teacher}</p>
-                <p className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" strokeWidth={2} />
+              <div className="px-5 py-4">
+                <p className="text-sm text-card-foreground">
+                  {c.teacher} · {c.year}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {c.room} · Code {c.code}
+                </p>
+
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${c.badgeClass}`}>
                     {c.students} students
                   </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" strokeWidth={2} />
-                    {c.room}
+                  <span className="text-sm font-semibold text-primary group-hover:underline">
+                    Open
                   </span>
-                </p>
+                </div>
               </div>
             </Link>
           ))}

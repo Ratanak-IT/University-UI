@@ -1,8 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import {
   StudentProfile,
-  AttendanceResponse,
+  StudentAttendanceResponse,
+  TimetableSlotResponse,
   CertificateRequestResponse,
+  IssuedCertificateResponse,
   GradeResponse,
   GpaResponse,
   ClassroomResponse,
@@ -32,11 +34,14 @@ import type {
   AttendanceStatus,
   AttendanceSummary,
   ClassSession,
+  GenerateSessionsResult,
   OpenSessionResult,
+  ScheduleSlot,
   SessionRegister,
   SessionStatus,
   SessionStudentMark,
   SessionType,
+  Weekday,
 } from "@/lib/types/attendance";
 
 function getAuthHeaderToken(): string | null {
@@ -175,6 +180,17 @@ function mapSummary(row: Dict): AttendanceSummary {
   };
 }
 
+function mapSlot(row: Dict): ScheduleSlot {
+  return {
+    scheduleId: pick(row, ["scheduleId"], ""),
+    dayOfWeek: pick(row, ["dayOfWeek"], "MONDAY") as Weekday,
+    startTime: pick(row, ["startTime"], ""),
+    endTime: str(row, "endTime"),
+    type: pick(row, ["type"], "LECTURE") as SessionType,
+    room: str(row, "room"),
+  };
+}
+
 function mapPolicy(raw: unknown): AttendancePolicy {
   const d = toObject(raw);
   return {
@@ -202,6 +218,7 @@ export const apiSlice = createApi({
   tagTypes: [
     "StudentProfile",
     "StudentAttendance",
+    "StudentTimetable",
     "StudentCertificates",
     "StudentGrades",
     "TeacherProfile",
@@ -224,6 +241,7 @@ export const apiSlice = createApi({
     "AttendanceRegister",
     "AttendanceSummary",
     "AttendancePolicy",
+    "ClassSchedule",
   ],
   endpoints: (builder) => ({
     getClassroomById: builder.query<ClassroomResponse, string>({
@@ -252,7 +270,7 @@ export const apiSlice = createApi({
     }),
 
     getStudentAttendance: builder.query<
-      AttendanceResponse[],
+      StudentAttendanceResponse[],
       { studentId: string; classroomId?: string }
     >({
       query: ({ studentId, classroomId }) =>
@@ -261,8 +279,25 @@ export const apiSlice = createApi({
       providesTags: ["StudentAttendance"],
     }),
 
+    getStudentTimetable: builder.query<TimetableSlotResponse[], string>({
+      query: (studentId) => `/students/${studentId}/timetable`,
+      providesTags: ["StudentTimetable"],
+    }),
+
     getStudentCertificates: builder.query<CertificateRequestResponse[], string>({
       query: (studentId) => `/students/${studentId}/certificate-requests`,
+      providesTags: ["StudentCertificates"],
+    }),
+
+    /**
+     * Certificates the registrar has actually awarded.
+     *
+     * <p>Separate from the requests above: a request is the student asking, this
+     * is what they have been granted. The list is empty until an award exists,
+     * which is what stops an unapproved certificate being viewed or downloaded.
+     */
+    getIssuedCertificates: builder.query<IssuedCertificateResponse[], string>({
+      query: (studentId) => `/students/${studentId}/certificates`,
       providesTags: ["StudentCertificates"],
     }),
 
@@ -817,6 +852,64 @@ export const apiSlice = createApi({
       transformResponse: mapPolicy,
       invalidatesTags: ["AttendancePolicy", "AttendanceSummary"],
     }),
+
+    /** GET /classrooms/{id}/schedule — the weekly timetable. */
+    getSchedule: builder.query<ScheduleSlot[], string>({
+      query: (classroomId) => `/classrooms/${classroomId}/schedule`,
+      transformResponse: (raw: unknown) => toArray(raw).map(mapSlot),
+      providesTags: ["ClassSchedule"],
+    }),
+
+    /** PUT /classrooms/{id}/schedule — replaces the whole weekly timetable. */
+    saveSchedule: builder.mutation<
+      ScheduleSlot[],
+      {
+        classroomId: string;
+        slots: {
+          dayOfWeek: Weekday;
+          startTime: string;
+          endTime?: string | null;
+          type?: SessionType;
+          room?: string | null;
+        }[];
+      }
+    >({
+      query: ({ classroomId, slots }) => ({
+        url: `/classrooms/${classroomId}/schedule`,
+        method: "PUT",
+        body: { slots },
+      }),
+      transformResponse: (raw: unknown) => toArray(raw).map(mapSlot),
+      invalidatesTags: ["ClassSchedule"],
+    }),
+
+    /**
+     * POST /classrooms/{id}/schedule/generate-sessions
+     *
+     * Safe to run more than once: sessions that already exist are left
+     * alone, so extending the range later never disturbs marks already taken.
+     */
+    generateSessions: builder.mutation<
+      GenerateSessionsResult,
+      { classroomId: string; from?: string; to?: string; skipDates?: string[] }
+    >({
+      query: ({ classroomId, ...body }) => ({
+        url: `/classrooms/${classroomId}/schedule/generate-sessions`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (raw: unknown) => {
+        const d = toObject(raw);
+        return {
+          created: pickNum(d, ["created"], 0),
+          skippedExisting: pickNum(d, ["skippedExisting"], 0),
+          skippedHolidays: pickNum(d, ["skippedHolidays"], 0),
+          from: pick(d, ["from"], ""),
+          to: pick(d, ["to"], ""),
+        };
+      },
+      invalidatesTags: ["AttendanceSessions"],
+    }),
   }),
 });
 
@@ -827,7 +920,9 @@ export const {
   useGetMyClassroomsQuery,
   useGetStudentProfileQuery,
   useGetStudentAttendanceQuery,
+  useGetStudentTimetableQuery,
   useGetStudentCertificatesQuery,
+  useGetIssuedCertificatesQuery,
   useCreateCertificateRequestMutation,
   useGetStudentGradesQuery,
   useGetStudentGpaQuery,
@@ -878,4 +973,7 @@ export const {
   useGetAttendanceSummaryQuery,
   useGetAttendancePolicyQuery,
   useSaveAttendancePolicyMutation,
+  useGetScheduleQuery,
+  useSaveScheduleMutation,
+  useGenerateSessionsMutation,
 } = apiSlice;
