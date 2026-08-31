@@ -153,6 +153,8 @@ import {
   useGetTeacherClassroomsQuery,
 } from "@/lib/redux/apiSlice";
 import ModernSelect from "@/components/shared/ModernSelect";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import QuizResultsModal from "./QuizResultsModal";
 
 type StatusFilter = QuizStatus | "all";
 type ClassroomFilter = string | "all";
@@ -172,6 +174,8 @@ export default function QuizzesPageContent() {
   const [previewQuizId, setPreviewQuizId] = useState<string | null>(null);
   const [assigningQuiz, setAssigningQuiz] = useState<Quiz | null>(null);
   const [targetClassroomId, setTargetClassroomId] = useState<string>("");
+  const [pendingDeleteQuiz, setPendingDeleteQuiz] = useState<Quiz | null>(null);
+  const [resultsQuiz, setResultsQuiz] = useState<Quiz | null>(null);
 
   const [deleteQuizMutation] = useDeleteTeacherQuizMutation();
   const [assignQuizMutation, { isLoading: isAssigning }] = useAssignQuizToClassroomMutation();
@@ -222,6 +226,10 @@ export default function QuizzesPageContent() {
     setPreviewQuizId(quiz.id);
   };
 
+  const handleViewResults = (quiz: Quiz) => {
+    setResultsQuiz(quiz);
+  };
+
   const handleEdit = (quiz: Quiz) => {
     router.push(`/dashboard/teacher/quiz/create-quiz?editId=${quiz.id}`);
   };
@@ -260,8 +268,14 @@ export default function QuizzesPageContent() {
     }
   };
 
-  const handleDelete = async (quiz: Quiz) => {
-    if (!confirm(`Are you sure you want to delete quiz "${quiz.title}"?`)) return;
+  const handleDelete = (quiz: Quiz) => {
+    setPendingDeleteQuiz(quiz);
+  };
+
+  const confirmDeleteQuiz = async () => {
+    if (!pendingDeleteQuiz) return;
+    const quiz = pendingDeleteQuiz;
+    setPendingDeleteQuiz(null);
     try {
       await deleteQuizMutation(quiz.id).unwrap();
       triggerToast("Quiz deleted successfully!");
@@ -330,7 +344,16 @@ export default function QuizzesPageContent() {
           onAssign={handleAssign}
           onDuplicate={handleDuplicate}
           onDelete={handleDelete}
+          onViewResults={handleViewResults}
           onCreate={handleCreate}
+        />
+      )}
+
+      {resultsQuiz && (
+        <QuizResultsModal
+          quizId={resultsQuiz.id}
+          quizTitle={resultsQuiz.title}
+          onClose={() => setResultsQuiz(null)}
         />
       )}
 
@@ -512,6 +535,17 @@ export default function QuizzesPageContent() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingDeleteQuiz !== null}
+        message={
+          pendingDeleteQuiz
+            ? `Are you sure you want to delete quiz "${pendingDeleteQuiz.title}"? This action cannot be undone.`
+            : ""
+        }
+        onConfirm={confirmDeleteQuiz}
+        onCancel={() => setPendingDeleteQuiz(null)}
+      />
     </div>
   );
 }

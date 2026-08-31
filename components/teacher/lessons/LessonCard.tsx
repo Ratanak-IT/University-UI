@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CalendarDays, Eye, Pencil, Trash2 } from "lucide-react";
 import { LessonThumbnail, StatusBadge } from "./StatusBadge";
 import { Lesson } from "@/lib/types/Lesson";
+import { htmlToPreviewText } from "@/components/shared/SafeHtml";
 
 export default function LessonCard({
   lesson,
@@ -28,10 +29,9 @@ export default function LessonCard({
           <h3 className="line-clamp-2 font-bold text-slate-900 dark:text-slate-100 text-base">
             {lesson.title}
           </h3>
-          <div
-            className="mt-1.5 line-clamp-2 text-sm text-muted-foreground"
-            dangerouslySetInnerHTML={{ __html: lesson.description || "" }}
-          />
+          <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
+            {htmlToPreviewText(lesson.description)}
+          </p>
 
           <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">

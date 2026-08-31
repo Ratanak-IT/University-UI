@@ -104,6 +104,18 @@ export interface QuizManageResponse {
   }[];
 }
 
+export interface QuizAttemptSummary {
+  attemptId: string;
+  studentId: string;
+  studentCode: string | null;
+  studentName: string | null;
+  status: "IN_PROGRESS" | "SUBMITTED" | "EXPIRED";
+  startedAt: string;
+  submittedAt: string | null;
+  earnedScore: number | null;
+  totalScore: number | null;
+}
+
 import { API_BASE } from "../api/config";
 
 /* ------------------------------------------------------------------ */
@@ -451,6 +463,11 @@ export const apiSlice = createApi({
         method: "DELETE",
       }),
       invalidatesTags: ["TeacherQuizzes"],
+    }),
+
+    getQuizAttempts: builder.query<QuizAttemptSummary[], string>({
+      query: (quizId) => `/quizzes/${quizId}/attempts`,
+      providesTags: ["QuizAttempts"],
     }),
 
     getMyNotifications: builder.query<
@@ -941,6 +958,7 @@ export const {
   useAssignQuizToClassroomMutation,
   useGetQuizByIdQuery,
   useDeleteTeacherQuizMutation,
+  useGetQuizAttemptsQuery,
   useGetMyNotificationsQuery,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,

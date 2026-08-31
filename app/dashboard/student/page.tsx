@@ -69,7 +69,7 @@ export default function StudentDashboard() {
             due = `${diffDays} days left`;
             badgeClass = "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300";
           }
-          return { title: a.title, classCode: a.className || a.subjectName, due, badgeClass };
+          return { id: a.assignmentId, title: a.title, classCode: a.className || a.subjectName, due, badgeClass };
         });
 
       setDeadlines(upcoming);

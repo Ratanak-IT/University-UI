@@ -9,6 +9,7 @@ import { Lesson, LessonFilter, ClassroomFilter } from "@/lib/types/Lesson";
 import { fetchSavedLessons, assignSavedLesson, deleteLesson, updateLesson } from "@/lib/api/lesson";
 import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import { toast } from "@/components/shared/Toast";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 const PAGE_SIZE = 6;
 
@@ -56,8 +57,16 @@ export default function LessonsPage() {
     }
   }
 
-  async function handleDeleteLesson(lessonId: string) {
-    if (!confirm("Are you sure you want to delete this lesson?")) return;
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  function handleDeleteLesson(lessonId: string) {
+    setPendingDeleteId(lessonId);
+  }
+
+  async function confirmDeleteLesson() {
+    if (!pendingDeleteId) return;
+    const lessonId = pendingDeleteId;
+    setPendingDeleteId(null);
     const ok = await deleteLesson(lessonId);
     if (ok) {
       toast.success("Lesson deleted successfully!");
@@ -352,6 +361,13 @@ export default function LessonsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        message="Are you sure you want to delete this lesson? This action cannot be undone."
+        onConfirm={confirmDeleteLesson}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   );
 }

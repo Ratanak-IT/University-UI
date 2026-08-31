@@ -114,6 +114,10 @@ export interface AssignmentResponse {
   files: FileResponse[];
   createdAt: string;
   createdBy: string;
+  /** How many students have submitted. Only populated by the classroom assignments list. */
+  submittedCount?: number | null;
+  /** Classroom roster size. Only populated by the classroom assignments list. */
+  totalStudents?: number | null;
 }
 
 export interface StudentAssignmentResponse {

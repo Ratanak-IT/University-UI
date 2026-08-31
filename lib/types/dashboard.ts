@@ -27,17 +27,20 @@ export type Classroom = {
   code: string;
   track: string;
   initials: string;
-  students: number;
+  /** Undefined when only list data was fetched — fetching the real count costs a per-classroom round trip. */
+  students?: number;
   year: string;
   room: string;
   classCode: string;
-  toGrade: number;
+  toGrade?: number;
   headerClass: string;
   initialsTextClass: string;
   badgeClass: string;
 };
 
 export type Deadline = {
+  /** The assignment's own id — titles are not unique across classes. */
+  id: string;
   title: string;
   classCode: string;
   due: string;

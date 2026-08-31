@@ -20,13 +20,14 @@ import {
   useGetClassroomAssignmentsQuery,
   useGetClassroomStudentsQuery,
   useGetClassroomTeachersQuery,
-  useRemoveStudentFromClassroomMutation,
   useDeleteAssignmentMutation,
   useUpdateAssignmentMutation,
 } from "@/lib/redux/apiSlice";
 import { deleteLesson, updateLesson } from "@/lib/api/lesson";
 import { toast } from "@/components/shared/Toast";
-import { Loader2, FileText, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X, ChevronRight, GraduationCap, UserX } from "lucide-react";
+import { htmlToPreviewText } from "@/components/shared/SafeHtml";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { Loader2, FileText, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X, ChevronRight, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 import { LessonDetailModal } from "@/components/shared/LessonDetailModal";
@@ -95,24 +96,17 @@ export default function ClassroomDetailView({
   const { data: assignments = [], refetch: refetchAssignments } = useGetClassroomAssignmentsQuery(resolvedId, {
     skip: !resolvedId,
   });
-  const [removeStudentMutation] = useRemoveStudentFromClassroomMutation();
-  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
+  const [pendingDeleteLessonId, setPendingDeleteLessonId] = useState<string | null>(null);
+  const [pendingDeleteAssignmentId, setPendingDeleteAssignmentId] = useState<string | null>(null);
 
-  const handleRemoveStudent = async (studentId: string, studentName: string) => {
-    if (!resolvedId) return;
-    if (!confirm(`Remove ${studentName} from this classroom?`)) return;
-    setRemovingStudentId(studentId);
-    try {
-      await removeStudentMutation({ classroomId: resolvedId, studentId }).unwrap();
-      toast.success("Student removed from classroom.");
-    } catch {
-      toast.error("Failed to remove student. Please try again.");
-    }
-    setRemovingStudentId(null);
+  const handleDeleteLesson = (lessonId: string) => {
+    setPendingDeleteLessonId(lessonId);
   };
 
-  const handleDeleteLesson = async (lessonId: string) => {
-    if (!confirm("Are you sure you want to delete this lesson?")) return;
+  const confirmDeleteLesson = async () => {
+    if (!pendingDeleteLessonId) return;
+    const lessonId = pendingDeleteLessonId;
+    setPendingDeleteLessonId(null);
     setDeletingId(lessonId);
     const success = await deleteLesson(lessonId);
     if (success) {
@@ -142,8 +136,14 @@ export default function ClassroomDetailView({
     }
   };
 
-  const handleDeleteAssignment = async (assignmentId: string) => {
-    if (!confirm("Are you sure you want to delete this assignment?")) return;
+  const handleDeleteAssignment = (assignmentId: string) => {
+    setPendingDeleteAssignmentId(assignmentId);
+  };
+
+  const confirmDeleteAssignment = async () => {
+    if (!pendingDeleteAssignmentId) return;
+    const assignmentId = pendingDeleteAssignmentId;
+    setPendingDeleteAssignmentId(null);
     setDeletingId(assignmentId);
     try {
       await deleteAssignmentMutation(assignmentId).unwrap();
@@ -536,12 +536,24 @@ export default function ClassroomDetailView({
                             )}
                           </div>
                           {a.description && (
-                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{a.description}</p>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{htmlToPreviewText(a.description)}</p>
                           )}
                           <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
                             <span className="font-medium text-indigo-600 dark:text-indigo-400">{a.maxScore} points</span>
                             {a.dueDate && (
                               <span>Due {new Date(a.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                            )}
+                            {!isStudent && a.totalStudents != null && (
+                              <span
+                                className={`inline-flex items-center gap-1 font-medium ${
+                                  a.submittedCount === a.totalStudents && a.totalStudents > 0
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : "text-slate-500 dark:text-slate-400"
+                                }`}
+                              >
+                                <Users className="h-3.5 w-3.5" />
+                                {a.submittedCount ?? 0} / {a.totalStudents} submitted
+                              </span>
                             )}
                           </div>
                           {a.files && a.files.length > 0 && (
@@ -623,21 +635,6 @@ export default function ClassroomDetailView({
                             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{s.fullName}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{s.studentCode} · {s.email}</p>
                           </div>
-                          {!isStudent && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveStudent(s.studentId, s.fullName)}
-                              disabled={removingStudentId === s.studentId}
-                              title="Remove student from classroom"
-                              className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors disabled:opacity-50"
-                            >
-                              {removingStudentId === s.studentId ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-rose-600" />
-                              ) : (
-                                <UserX className="h-4 w-4" />
-                              )}
-                            </button>
-                          )}
                         </li>
                       ))}
                     </ul>
@@ -791,6 +788,19 @@ export default function ClassroomDetailView({
 
       {/* Lesson Detail Popup: video + files + description combined */}
       <LessonDetailModal lesson={detailLesson} onClose={() => setDetailLesson(null)} />
+
+      <ConfirmDialog
+        open={pendingDeleteLessonId !== null}
+        message="Are you sure you want to delete this lesson? This action cannot be undone."
+        onConfirm={confirmDeleteLesson}
+        onCancel={() => setPendingDeleteLessonId(null)}
+      />
+      <ConfirmDialog
+        open={pendingDeleteAssignmentId !== null}
+        message="Are you sure you want to delete this assignment? This action cannot be undone."
+        onConfirm={confirmDeleteAssignment}
+        onCancel={() => setPendingDeleteAssignmentId(null)}
+      />
     </div>
   );
 }

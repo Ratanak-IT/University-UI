@@ -41,6 +41,8 @@ export interface AssignmentGroup {
   title: string;
   classroom: string;
   items: AssignmentItem[];
+  /** Classroom groups start unloaded — items are fetched lazily on first expand. */
+  loaded?: boolean;
 }
 
 export type ClassroomFilter = string | "all";

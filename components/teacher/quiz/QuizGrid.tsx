@@ -12,6 +12,7 @@ interface QuizGridProps {
   onAssign?: (quiz: Quiz) => void;
   onDuplicate?: (quiz: Quiz) => void;
   onDelete?: (quiz: Quiz) => void;
+  onViewResults?: (quiz: Quiz) => void;
   onCreate?: () => void;
 }
 
@@ -22,6 +23,7 @@ export default function QuizGrid({
   onAssign,
   onDuplicate,
   onDelete,
+  onViewResults,
   onCreate,
 }: QuizGridProps) {
   return (
@@ -35,6 +37,7 @@ export default function QuizGrid({
           onAssign={onAssign}
           onDuplicate={onDuplicate}
           onDelete={onDelete}
+          onViewResults={onViewResults}
         />
       ))}
       <CreateQuizCard onClick={onCreate} />

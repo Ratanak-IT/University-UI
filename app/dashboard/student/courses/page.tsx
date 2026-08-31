@@ -18,6 +18,7 @@ import {
   Play,
 } from "lucide-react";
 import ModernSelect from "@/components/shared/ModernSelect";
+import SafeHtml, { htmlToPreviewText } from "@/components/shared/SafeHtml";
 import {
   fetchMyClassrooms,
   fetchMyProfile,
@@ -455,7 +456,12 @@ export default function CoursesPage() {
                   {lessons.map((l) => (
                     <div key={l.lessonId} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800/30 dark:hover:bg-slate-800/50">
                       <h4 className="text-base font-bold text-indigo-950 dark:text-slate-100">{l.title}</h4>
-                      {l.content && <p className="mt-2 text-sm text-slate-600 whitespace-pre-line dark:text-slate-300">{l.content}</p>}
+                      {l.content && (
+                        <SafeHtml
+                          html={l.content}
+                          className="mt-2 text-sm text-slate-600 dark:text-slate-300 [&_p]:my-1.5 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_a]:text-indigo-600 [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2"
+                        />
+                      )}
 
                       <div className="mt-3 flex flex-wrap gap-2">
                         {l.videoLink && (
@@ -542,7 +548,7 @@ export default function CoursesPage() {
                               </span>
                             </div>
                             {a.description && (
-                              <p className="text-sm text-slate-600 line-clamp-2 dark:text-slate-300">{a.description}</p>
+                              <p className="text-sm text-slate-600 line-clamp-2 dark:text-slate-300">{htmlToPreviewText(a.description)}</p>
                             )}
                             <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400 pt-1">
                               <span className="font-bold text-indigo-600 dark:text-indigo-400">{a.maxScore} points</span>

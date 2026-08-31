@@ -50,7 +50,6 @@ export interface TeacherProfile {
   avatarUrl?: string | null;
 }
 
-/** GET /api/v1/teachers/me */
 export async function fetchTeacherProfile(): Promise<TeacherProfile | null> {
   try {
     const res = await fetch(`${API_BASE}/api/v1/teachers/me`, {
@@ -67,7 +66,6 @@ export async function fetchTeacherProfile(): Promise<TeacherProfile | null> {
   }
 }
 
-/** POST /api/v1/teachers/me/avatar */
 export async function uploadTeacherAvatar(file: File): Promise<TeacherProfile | null> {
   try {
     const formData = new FormData();
@@ -90,7 +88,30 @@ export async function uploadTeacherAvatar(file: File): Promise<TeacherProfile | 
   }
 }
 
-/** GET /api/v1/classrooms/my-classrooms */
+export interface TeacherDashboardSummary {
+  activeClasses: number;
+  totalStudents: number;
+  courseMaterials: number;
+  toGrade: number;
+  attendanceToday: number;
+}
+
+export async function fetchTeacherDashboardSummary(): Promise<TeacherDashboardSummary | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/teachers/me/dashboard-summary`, {
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    });
+    if (!res.ok) {
+      console.warn(`fetchTeacherDashboardSummary → ${res.status}`);
+      return null;
+    }
+    return (await res.json()) as TeacherDashboardSummary;
+  } catch (err) {
+    console.error("fetchTeacherDashboardSummary:", err);
+    return null;
+  }
+}
+
 export async function fetchTeacherClassrooms(): Promise<ClassroomResponse[]> {
   try {
     const res = await fetch(`${API_BASE}/api/v1/classrooms/my-classrooms`, {
@@ -107,7 +128,6 @@ export async function fetchTeacherClassrooms(): Promise<ClassroomResponse[]> {
   }
 }
 
-/** GET /api/v1/classrooms/{classroomId}/students */
 export async function fetchClassroomStudents(classroomId: string): Promise<any[]> {
   try {
     const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/students`, {
@@ -121,7 +141,6 @@ export async function fetchClassroomStudents(classroomId: string): Promise<any[]
   }
 }
 
-/** GET /api/v1/classrooms/{classroomId}/assignments */
 export async function fetchClassroomAssignments(classroomId: string): Promise<any[]> {
   try {
     const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/assignments`, {
@@ -135,7 +154,6 @@ export async function fetchClassroomAssignments(classroomId: string): Promise<an
   }
 }
 
-/** GET /api/v1/assignments/{assignmentId}/submissions */
 export async function fetchAssignmentSubmissions(assignmentId: string): Promise<any[]> {
   try {
     const res = await fetch(`${API_BASE}/api/v1/assignments/${assignmentId}/submissions`, {
@@ -172,7 +190,6 @@ export interface SetExamScoresRequest {
   scores: SetExamScoreItem[];
 }
 
-/** GET /api/v1/classrooms/{classroomId}/scores */
 export async function fetchClassroomExamScores(classroomId: string): Promise<ExamScoreResponse[]> {
   try {
     const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/scores`, {
@@ -186,7 +203,6 @@ export async function fetchClassroomExamScores(classroomId: string): Promise<Exa
   }
 }
 
-/** POST /api/v1/classrooms/{classroomId}/scores */
 export async function saveClassroomExamScores(
   classroomId: string,
   payload: SetExamScoresRequest
@@ -222,7 +238,6 @@ export interface TeacherAttendanceRecord {
   remark?: string | null;
 }
 
-/** POST /api/v1/classrooms/{classroomId}/attendance */
 export async function recordTeacherAttendance(
   classroomId: string,
   payload: RecordAttendancePayload
@@ -241,7 +256,6 @@ export async function recordTeacherAttendance(
   }
 }
 
-/** GET /api/v1/classrooms/{classroomId}/attendance */
 export async function fetchTeacherAttendanceByDate(
   classroomId: string,
   date?: string
@@ -292,11 +306,9 @@ export function mapClassroomToTeacherCard(
     code: item.classCode || "CS-101",
     track: item.subjectName || "General",
     initials,
-    students: 30,
     year: yearText,
     room: item.room ? `Room ${item.room}` : "Room 204",
     classCode: item.classCode || "",
-    toGrade: 0,
     headerClass: color.header,
     initialsTextClass: color.text,
     badgeClass: color.badge,
