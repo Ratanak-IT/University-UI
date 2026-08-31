@@ -12,6 +12,7 @@ import {
 } from "@/lib/redux/apiSlice";
 import PersonAvatar from "@/components/shared/PersonAvatar";
 import Image from "next/image";
+import { logout } from "@/lib/auth/logout";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -58,11 +59,6 @@ export default function Navbar() {
     skip: profile?.role !== "TEACHER",
   });
   const avatarUrl = studentProfile?.avatarUrl ?? teacherProfile?.avatarUrl ?? null;
-
-  function logout() {
-    localStorage.clear();
-    window.location.href = "/login";
-  }
 
   return (
     <header className="sticky top-0 z-50 bg-primary text-primary-foreground transition-colors duration-200">
