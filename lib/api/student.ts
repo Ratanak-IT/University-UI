@@ -329,6 +329,52 @@ export function fetchStudentAssignments(
   );
 }
 
+export interface StudentDashboardSummary {
+  pendingAssignments: number;
+  upcomingDeadlines: {
+    assignmentId: string;
+    title: string;
+    classCode: string | null;
+    dueDate: string | null;
+  }[];
+}
+
+/**
+ * GET /api/v1/students/{id}/dashboard-summary — pending count + the soonest
+ * few deadlines only. Deliberately not `fetchStudentAssignments`: that one
+ * pulls full assignment detail (description, signed file URLs) for every
+ * assignment just so the dashboard can throw almost all of it away.
+ */
+export function fetchStudentDashboardSummary(studentId: string) {
+  return apiFetch<StudentDashboardSummary>(
+    `/api/v1/students/${studentId}/dashboard-summary`
+  );
+}
+
+export interface StudentAssignmentListItem {
+  assignmentId: string;
+  classroomId: string;
+  className: string | null;
+  subjectName: string | null;
+  title: string;
+  dueDate: string | null;
+  maxScore: number | null;
+  submissionStatus: string | null;
+  score: number | null;
+}
+
+/**
+ * GET /api/v1/students/{id}/assignments-list — every assignment, status and
+ * score only, no description or files. The assignments list page renders a
+ * title/date/status chip per row; the full `fetchStudentAssignments` payload
+ * signs a MinIO URL for every file on every assignment just for that.
+ */
+export function fetchStudentAssignmentsList(studentId: string) {
+  return apiFetch<StudentAssignmentListItem[]>(
+    `/api/v1/students/${studentId}/assignments-list`
+  );
+}
+
 /** GET /api/v1/students/{id}/assignments/{assignmentId} */
 export function fetchStudentAssignmentDetail(
   studentId: string,

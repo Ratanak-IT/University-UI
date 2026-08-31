@@ -81,10 +81,21 @@ export interface CreateQuizPayload {
   questions?: QuizQuestionPayload[];
 }
 
+export interface QuizClassroomResponse {
+  assignmentId: string;
+  classroomId: string;
+  className: string;
+  classCode: string;
+  subjectName: string | null;
+  availableFrom?: string | null;
+  availableTo?: string | null;
+}
+
 export interface QuizManageResponse {
   quizId: string;
   classroomId?: string;
   className?: string;
+  classrooms?: QuizClassroomResponse[];
   title: string;
   description?: string;
   startAt?: string;

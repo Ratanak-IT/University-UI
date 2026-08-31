@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Clock, Check, Upload, Loader2, AlertCircle } from "lucide-react";
 import {
-  fetchStudentAssignments,
-  StudentAssignmentResponse,
+  fetchStudentAssignmentsList,
+  StudentAssignmentListItem,
 } from "@/lib/api/student";
 import { useGetStudentProfileQuery } from "@/lib/redux/apiSlice";
 
@@ -33,7 +33,7 @@ function mapStatus(s: string | null): Status {
 export default function AssignmentsPage() {
   const [tab, setTab] = useState<Status | "all">("all");
   const [loadingAssignments, setLoadingAssignments] = useState(true);
-  const [assignments, setAssignments] = useState<StudentAssignmentResponse[]>([]);
+  const [assignments, setAssignments] = useState<StudentAssignmentListItem[]>([]);
 
   // Reuses the same cached profile the navbar already fetched, instead of
   // firing a second, redundant request for data that's already in hand.
@@ -45,8 +45,8 @@ export default function AssignmentsPage() {
 
     async function load() {
       setLoadingAssignments(true);
-      const data = await fetchStudentAssignments(profile!.studentId, 0, 100);
-      if (!cancelled && data?.content) setAssignments(data.content);
+      const data = await fetchStudentAssignmentsList(profile!.studentId);
+      if (!cancelled && data) setAssignments(data);
       if (!cancelled) setLoadingAssignments(false);
     }
     load();
