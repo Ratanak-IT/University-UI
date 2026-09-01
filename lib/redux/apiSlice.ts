@@ -129,6 +129,17 @@ export interface QuizAttemptSummary {
   submittedAt: string | null;
   earnedScore: number | null;
   totalScore: number | null;
+
+  /**
+   * How many times this student left the quiz screen — switched tab or window,
+   * or dropped out of fullscreen.
+   *
+   * <p>Reported, never acted on. A browser cannot stop someone alt-tabbing, so
+   * the honest thing is to say it happened and let the teacher judge: one blip
+   * may be a notification, twenty is a different conversation.
+   */
+  focusLossCount: number;
+  lastFocusLossAt: string | null;
 }
 
 import { API_BASE } from "../api/config";

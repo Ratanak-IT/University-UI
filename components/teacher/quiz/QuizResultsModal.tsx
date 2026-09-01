@@ -200,6 +200,26 @@ export default function QuizResultsModal({ quizId, quizTitle, onClose }: QuizRes
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
+                    {/*
+                      Flagged, not judged. The system cannot tell a notification
+                      from cheating, so it reports the count and leaves the
+                      decision with the person who knows the student.
+                    */}
+                    {a.focusLossCount > 0 && (
+                      <span
+                        className="rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                        title={
+                          `Left the quiz screen ${a.focusLossCount} time` +
+                          `${a.focusLossCount === 1 ? "" : "s"}` +
+                          (a.lastFocusLossAt
+                            ? `, last at ${new Date(a.lastFocusLossAt).toLocaleTimeString()}`
+                            : "") +
+                          ". Switching tab or leaving fullscreen is recorded; it is not proof of anything on its own."
+                        }
+                      >
+                        ⚠ {a.focusLossCount}
+                      </span>
+                    )}
                     {a.status === "SUBMITTED" && a.earnedScore != null && a.totalScore != null && (
                       <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
                         {a.earnedScore} / {a.totalScore}

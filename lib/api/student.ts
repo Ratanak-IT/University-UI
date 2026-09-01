@@ -480,6 +480,34 @@ export async function startQuizAttempt(
   }
 }
 
+/**
+ * POST /api/v1/students/{id}/quizzes/{quizId}/attempts/{attemptId}/focus-loss
+ *
+ * <p>Tells the server the student left the quiz screen. Best effort on purpose:
+ * a failure here must never interrupt the quiz, because the student did nothing
+ * wrong by having a flaky connection.
+ *
+ * @returns the running count, or null if it could not be recorded
+ */
+export async function reportQuizFocusLoss(
+  studentId: string,
+  quizId: string,
+  attemptId: string
+): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/students/${studentId}/quizzes/${quizId}/attempts/${attemptId}/focus-loss`,
+      { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeader() } }
+    );
+    if (!res.ok) return null;
+    const body = await res.json();
+    return typeof body?.focusLossCount === "number" ? body.focusLossCount : null;
+  } catch (err) {
+    console.error("reportQuizFocusLoss:", err);
+    return null;
+  }
+}
+
 /** PUT /api/v1/students/{id}/quizzes/{quizId}/attempts/{attemptId} */
 export async function submitQuizAttempt(
   studentId: string,

@@ -107,7 +107,7 @@ export default function QuizzesPage() {
                   </p>
                 ) : s === "open" ? (
                   <Link
-                    href={`/dashboard/student/courses?classroomId=${q.classroomId}&tab=Quizzes`}
+                    href={`/dashboard/student/quiz/${q.quizId}`}
                     className="mt-4 flex w-full items-center justify-center rounded-lg bg-indigo-700 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-800"
                   >
                     Start quiz

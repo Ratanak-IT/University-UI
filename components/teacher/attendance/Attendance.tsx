@@ -26,7 +26,10 @@ import {
   useOpenSessionMutation,
 } from "@/lib/redux/apiSlice";
 import type { ClassroomResponse } from "@/lib/api/student";
-import type { ClassSession } from "@/lib/types/attendance";
+import type {
+  ClassSession,
+  SessionRegister as SessionRegisterData,
+} from "@/lib/types/attendance";
 import { formatSessionDate, localToday } from "./attendanceDisplay";
 import SessionRegister, { type MarkDrafts } from "./SessionRegister";
 import SessionHistory from "./SessionHistory";
@@ -87,6 +90,11 @@ export default function Attendance() {
   const [drafts, setDrafts] = useState<MarkDrafts>({});
   /** Which `classroom|date` pair we have already opened, so we open it once. */
   const [openedFor, setOpenedFor] = useState<string | null>(null);
+  /**
+   * The register the open call handed back, so the screen can paint it at once
+   * instead of waiting on a second request for what was just returned.
+   */
+  const [openedRegister, setOpenedRegister] = useState<SessionRegisterData | null>(null);
 
   // Derived rather than synced through an effect: falling back to the first
   // classroom needs no state of its own, and state that mirrors a query is
@@ -115,13 +123,44 @@ export default function Attendance() {
   const [cancelSession] = useCancelSessionMutation();
   const [createSession, { isLoading: isCreating }] = useCreateSessionMutation();
 
+  const openKey = `${classroomId}|${date}`;
+
   const registerQuery = useGetRegisterQuery(
     { classroomId, sessionId },
     { skip: !classroomId || !sessionId }
   );
-  const register = registerQuery.data;
+  /**
+   * The register for the selected date, or nothing.
+   *
+   * <p>The date the server stamped on the register is the final word. Without
+   * this check the previous day's roster stays on screen while a new date
+   * loads — and marks entered against it are recorded on the wrong day, which
+   * is far worse than a slow screen.
+   */
+  const register = (() => {
+    if (openedFor !== openKey) return undefined;
+    const candidate = registerQuery.data ?? openedRegister ?? undefined;
+    return candidate?.session.sessionDate === date ? candidate : undefined;
+  })();
 
-  const openKey = `${classroomId}|${date}`;
+  const isLoadingRegister =
+    openedFor !== openKey || isOpening || registerQuery.isLoading;
+
+  /**
+   * The last register it was safe to show, kept so changing date does not blank
+   * the panel and shunt the rest of the page around.
+   *
+   * <p>It stays on screen while the new day loads, but dimmed and unclickable:
+   * it is by definition another day's marks. Keeping the layout still is worth
+   * having; letting someone tick a box on it is not.
+   */
+  const [lastGoodRegister, setLastGoodRegister] = useState<SessionRegisterData | null>(null);
+  if (register && lastGoodRegister !== register) {
+    setLastGoodRegister(register);
+  }
+
+  const shownRegister = register ?? (isLoadingRegister ? lastGoodRegister : null);
+
 
   // Every dependency here is a primitive or an RTK-stable function, so this
   // effect runs on a real change of classroom/date/tab and not on every render.
@@ -135,18 +174,22 @@ export default function Attendance() {
       .unwrap()
       .then((result) => {
         if (cancelled) return;
-        setOpenedFor(openKey);
         setDrafts({});
         setOpenError(null);
         // "Nothing here" is a normal answer for a day the class doesn't meet.
         setSessionId(result.register?.session.sessionId ?? "");
+        setOpenedRegister(result.register ?? null);
         setNoSessionReason(result.opened ? null : result.reason);
+        // Set last: it is what allows the register to render, so everything
+        // above must already be in place.
+        setOpenedFor(openKey);
       })
       .catch((err) => {
         if (cancelled) return;
         // Mark the key as attempted so a failure doesn't retry forever.
-        setOpenedFor(openKey);
+        setOpenedRegister(null);
         setSessionId("");
+        setOpenedFor(openKey);
         // Surfaced on the page, not only in a toast: the server's reason is
         // the whole diagnosis, and a toast that disappears takes it with it.
         const message = apiErrorMessage(err, "Could not open the register.");
@@ -448,9 +491,10 @@ export default function Attendance() {
                 </div>
               )}
 
+              {/* Only on the very first load, when there is no panel yet to keep. */}
               {!termNotStarted &&
-                (isOpening || registerQuery.isLoading) &&
-                !register &&
+                isLoadingRegister &&
+                !shownRegister &&
                 !noSessionReason &&
                 !openError && (
                   <p className="py-12 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -508,15 +552,30 @@ export default function Attendance() {
                 </div>
               )}
 
-              {register && (
-                <SessionRegister
-                  register={register}
-                  drafts={drafts}
-                  onDraftChange={handleDraftChange}
-                  onSave={handleSave}
-                  onCancelSession={handleCancelSession}
-                  isSaving={isSaving}
-                />
+              {shownRegister && (
+                <div
+                  /*
+                    While a new date loads the previous day's marks stay on
+                    screen so the page keeps its shape — but dimmed and with
+                    pointer events off, because they belong to another day and
+                    a tick entered on them would be recorded against it.
+                  */
+                  className={
+                    register
+                      ? undefined
+                      : "pointer-events-none select-none opacity-40 transition-opacity"
+                  }
+                  aria-busy={!register}
+                >
+                  <SessionRegister
+                    register={shownRegister}
+                    drafts={drafts}
+                    onDraftChange={handleDraftChange}
+                    onSave={handleSave}
+                    onCancelSession={handleCancelSession}
+                    isSaving={isSaving}
+                  />
+                </div>
               )}
             </>
           )}
