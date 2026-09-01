@@ -1,7 +1,8 @@
 "use client";
 
-import { Loader2, X, ClipboardList } from "lucide-react";
-import { useGetQuizAttemptsQuery } from "@/lib/redux/apiSlice";
+import { useMemo, useState } from "react";
+import { Loader2, X, ClipboardList, Search } from "lucide-react";
+import { useGetQuizAttemptsQuery, QuizAttemptSummary } from "@/lib/redux/apiSlice";
 
 interface QuizResultsModalProps {
   quizId: string | null;
@@ -9,10 +10,20 @@ interface QuizResultsModalProps {
   onClose: () => void;
 }
 
+type FilterId = "all" | "SUBMITTED" | "IN_PROGRESS" | "NOT_STARTED" | "EXPIRED";
+
 const STATUS_STYLES: Record<string, string> = {
   SUBMITTED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400",
   IN_PROGRESS: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400",
   EXPIRED: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+  NOT_STARTED: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  SUBMITTED: "Submitted",
+  IN_PROGRESS: "In progress",
+  EXPIRED: "Expired",
+  NOT_STARTED: "Not started",
 };
 
 export default function QuizResultsModal({ quizId, quizTitle, onClose }: QuizResultsModalProps) {
@@ -20,15 +31,56 @@ export default function QuizResultsModal({ quizId, quizTitle, onClose }: QuizRes
     skip: !quizId,
   });
 
+  const [filter, setFilter] = useState<FilterId>("all");
+  const [classroomFilter, setClassroomFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+
+  // A quiz released to more than one section needs a way to narrow to just
+  // one — built from whatever classrooms actually show up in the roster,
+  // so it never lists a section this quiz wasn't released to.
+  const classrooms = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const a of attempts) {
+      if (!seen.has(a.classroomId)) seen.set(a.classroomId, a.className || "Classroom");
+    }
+    return Array.from(seen, ([id, name]) => ({ id, name }));
+  }, [attempts]);
+
+  const counts = useMemo(() => {
+    const c = { all: attempts.length, SUBMITTED: 0, IN_PROGRESS: 0, NOT_STARTED: 0, EXPIRED: 0 };
+    for (const a of attempts) c[a.status] += 1;
+    return c;
+  }, [attempts]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return attempts.filter((a: QuizAttemptSummary) => {
+      if (filter !== "all" && a.status !== filter) return false;
+      if (classroomFilter !== "all" && a.classroomId !== classroomFilter) return false;
+      if (!q) return true;
+      return (
+        (a.studentName || "").toLowerCase().includes(q) ||
+        (a.studentCode || "").toLowerCase().includes(q)
+      );
+    });
+  }, [attempts, filter, classroomFilter, search]);
+
   if (!quizId) return null;
 
-  const submittedCount = attempts.filter((a) => a.status === "SUBMITTED").length;
   const avgScore =
-    submittedCount > 0
+    counts.SUBMITTED > 0
       ? attempts
           .filter((a) => a.status === "SUBMITTED" && a.earnedScore != null && a.totalScore)
           .reduce((sum, a, _i, arr) => sum + (a.earnedScore! / a.totalScore!) * 100 / arr.length, 0)
       : null;
+
+  const FILTERS: { id: FilterId; label: string; count: number }[] = [
+    { id: "all", label: "All", count: counts.all },
+    { id: "SUBMITTED", label: "Submitted", count: counts.SUBMITTED },
+    { id: "IN_PROGRESS", label: "In progress", count: counts.IN_PROGRESS },
+    { id: "NOT_STARTED", label: "Not started", count: counts.NOT_STARTED },
+    { id: "EXPIRED", label: "Expired", count: counts.EXPIRED },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -51,16 +103,65 @@ export default function QuizResultsModal({ quizId, quizTitle, onClose }: QuizRes
         </div>
 
         {!isLoading && !isError && attempts.length > 0 && (
-          <div className="flex items-center gap-6 border-b border-slate-200 bg-slate-50/50 px-6 py-3 text-sm dark:border-slate-800 dark:bg-slate-800/50">
-            <span className="text-slate-600 dark:text-slate-300">
-              <span className="font-bold text-slate-900 dark:text-slate-100">{submittedCount}</span> / {attempts.length} submitted
-            </span>
-            {avgScore != null && (
+          <>
+            <div className="flex items-center gap-6 border-b border-slate-200 bg-slate-50/50 px-6 py-3 text-sm dark:border-slate-800 dark:bg-slate-800/50">
               <span className="text-slate-600 dark:text-slate-300">
-                Avg score: <span className="font-bold text-slate-900 dark:text-slate-100">{avgScore.toFixed(1)}%</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">{counts.SUBMITTED}</span> / {counts.all} submitted
               </span>
-            )}
-          </div>
+              {avgScore != null && (
+                <span className="text-slate-600 dark:text-slate-300">
+                  Avg score: <span className="font-bold text-slate-900 dark:text-slate-100">{avgScore.toFixed(1)}%</span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-6 py-3 dark:border-slate-800">
+              <div className="flex flex-wrap gap-1">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFilter(f.id)}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                      filter === f.id
+                        ? "bg-indigo-600 text-white"
+                        : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {f.label}
+                    <span className={`ml-1 ${filter === f.id ? "text-indigo-100" : "text-slate-400 dark:text-slate-500"}`}>
+                      {f.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {classrooms.length > 1 && (
+                <select
+                  value={classroomFilter}
+                  onChange={(e) => setClassroomFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  <option value="all">All classrooms</option>
+                  {classrooms.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <div className="ml-auto flex min-w-40 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-slate-700 dark:bg-slate-800 sm:max-w-xs">
+                <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Find a student…"
+                  className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-slate-100"
+                />
+              </div>
+            </div>
+          </>
         )}
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -75,19 +176,28 @@ export default function QuizResultsModal({ quizId, quizTitle, onClose }: QuizRes
             </div>
           ) : attempts.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-10 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
-              No student has attempted this quiz yet.
+              This quiz hasn&apos;t been released to any classroom yet.
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-10 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-800/30 dark:text-slate-400">
+              {search.trim() ? "No student matches your search." : "No students in this category."}
             </div>
           ) : (
             <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-              {attempts.map((a) => (
-                <li key={a.attemptId} className="flex items-center justify-between gap-3 py-3">
+              {filtered.map((a) => (
+                <li key={`${a.classroomId}-${a.studentId}`} className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {a.studentName || "Unknown student"}
                     </p>
-                    {a.studentCode && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{a.studentCode}</p>
-                    )}
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {a.studentCode}
+                      {classrooms.length > 1 && a.className && (
+                        <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                          {a.className}
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     {a.status === "SUBMITTED" && a.earnedScore != null && a.totalScore != null && (
@@ -100,7 +210,7 @@ export default function QuizResultsModal({ quizId, quizTitle, onClose }: QuizRes
                         STATUS_STYLES[a.status] || "bg-slate-100 text-slate-600"
                       }`}
                     >
-                      {a.status === "SUBMITTED" ? "Submitted" : a.status === "IN_PROGRESS" ? "In progress" : "Expired"}
+                      {STATUS_LABEL[a.status] || a.status}
                     </span>
                   </div>
                 </li>

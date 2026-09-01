@@ -116,12 +116,16 @@ export interface QuizManageResponse {
 }
 
 export interface QuizAttemptSummary {
-  attemptId: string;
+  /** Null when the student has never started the quiz. */
+  attemptId: string | null;
   studentId: string;
   studentCode: string | null;
   studentName: string | null;
-  status: "IN_PROGRESS" | "SUBMITTED" | "EXPIRED";
-  startedAt: string;
+  /** Which of the quiz's (possibly several) released classrooms this row belongs to. */
+  classroomId: string;
+  className: string | null;
+  status: "NOT_STARTED" | "IN_PROGRESS" | "SUBMITTED" | "EXPIRED";
+  startedAt: string | null;
   submittedAt: string | null;
   earnedScore: number | null;
   totalScore: number | null;
