@@ -31,6 +31,7 @@ import Link from "next/link";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 import { LessonDetailModal } from "@/components/shared/LessonDetailModal";
 import { LessonCard } from "@/components/teacher/my-classroom/LessonCard";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -98,30 +99,19 @@ export default function ClassroomDetailView({
   const [removeStudentMutation] = useRemoveStudentFromClassroomMutation();
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
 
-  const handleRemoveStudent = async (studentId: string, studentName: string) => {
-    if (!resolvedId) return;
-    if (!confirm(`Remove ${studentName} from this classroom?`)) return;
-    setRemovingStudentId(studentId);
-    try {
-      await removeStudentMutation({ classroomId: resolvedId, studentId }).unwrap();
-      toast.success("Student removed from classroom.");
-    } catch {
-      toast.error("Failed to remove student. Please try again.");
-    }
-    setRemovingStudentId(null);
+  type ConfirmAction =
+    | { type: "removeStudent"; studentId: string; studentName: string }
+    | { type: "deleteLesson"; lessonId: string }
+    | { type: "deleteAssignment"; assignmentId: string };
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const handleRemoveStudent = (studentId: string, studentName: string) => {
+    setConfirmAction({ type: "removeStudent", studentId, studentName });
   };
 
-  const handleDeleteLesson = async (lessonId: string) => {
-    if (!confirm("Are you sure you want to delete this lesson?")) return;
-    setDeletingId(lessonId);
-    const success = await deleteLesson(lessonId);
-    if (success) {
-      toast.success("Lesson deleted successfully!");
-      refetchLessons();
-    } else {
-      toast.error("Failed to delete lesson. Please try again.");
-    }
-    setDeletingId(null);
+  const handleDeleteLesson = (lessonId: string) => {
+    setConfirmAction({ type: "deleteLesson", lessonId });
   };
 
   const handleSaveLessonEdit = async () => {
@@ -142,17 +132,67 @@ export default function ClassroomDetailView({
     }
   };
 
-  const handleDeleteAssignment = async (assignmentId: string) => {
-    if (!confirm("Are you sure you want to delete this assignment?")) return;
-    setDeletingId(assignmentId);
-    try {
-      await deleteAssignmentMutation(assignmentId).unwrap();
-      toast.success("Assignment deleted successfully!");
-      refetchAssignments();
-    } catch {
-      toast.error("Failed to delete assignment. Please try again.");
+  const handleDeleteAssignment = (assignmentId: string) => {
+    setConfirmAction({ type: "deleteAssignment", assignmentId });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+    setConfirmLoading(true);
+
+    if (confirmAction.type === "removeStudent") {
+      if (resolvedId) {
+        setRemovingStudentId(confirmAction.studentId);
+        try {
+          await removeStudentMutation({ classroomId: resolvedId, studentId: confirmAction.studentId }).unwrap();
+          toast.success("Student removed from classroom.");
+        } catch {
+          toast.error("Failed to remove student. Please try again.");
+        }
+        setRemovingStudentId(null);
+      }
+    } else if (confirmAction.type === "deleteLesson") {
+      setDeletingId(confirmAction.lessonId);
+      const success = await deleteLesson(confirmAction.lessonId);
+      if (success) {
+        toast.success("Lesson deleted successfully!");
+        refetchLessons();
+      } else {
+        toast.error("Failed to delete lesson. Please try again.");
+      }
+      setDeletingId(null);
+    } else if (confirmAction.type === "deleteAssignment") {
+      setDeletingId(confirmAction.assignmentId);
+      try {
+        await deleteAssignmentMutation(confirmAction.assignmentId).unwrap();
+        toast.success("Assignment deleted successfully!");
+        refetchAssignments();
+      } catch {
+        toast.error("Failed to delete assignment. Please try again.");
+      }
+      setDeletingId(null);
     }
-    setDeletingId(null);
+
+    setConfirmLoading(false);
+    setConfirmAction(null);
+  };
+
+  const confirmDialogCopy: Record<ConfirmAction["type"], { title: string; description: string }> = {
+    removeStudent: {
+      title: "Remove student?",
+      description:
+        confirmAction?.type === "removeStudent"
+          ? `${confirmAction.studentName} will lose access to this classroom.`
+          : "",
+    },
+    deleteLesson: {
+      title: "Delete lesson?",
+      description: "This action cannot be undone. This lesson will be permanently removed.",
+    },
+    deleteAssignment: {
+      title: "Delete assignment?",
+      description: "This action cannot be undone. This assignment will be permanently removed.",
+    },
   };
 
   const handleSaveAssignmentEdit = async () => {
@@ -791,6 +831,18 @@ export default function ClassroomDetailView({
 
       {/* Lesson Detail Popup: video + files + description combined */}
       <LessonDetailModal lesson={detailLesson} onClose={() => setDetailLesson(null)} />
+
+      <ConfirmDialog
+        isOpen={!!confirmAction}
+        title={confirmAction ? confirmDialogCopy[confirmAction.type].title : ""}
+        description={confirmAction ? confirmDialogCopy[confirmAction.type].description : ""}
+        confirmLabel={confirmAction?.type === "removeStudent" ? "Remove" : "Delete"}
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={confirmLoading}
+        onConfirm={handleConfirmAction}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }

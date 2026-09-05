@@ -77,6 +77,17 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Buttons don't get a pointer cursor by default in the browser UA stylesheet */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 /* Protection Rules for Files & Videos */
 @media print {
   html, body {

@@ -9,6 +9,7 @@ import { Lesson, LessonFilter, ClassroomFilter } from "@/lib/types/Lesson";
 import { fetchSavedLessons, assignSavedLesson, deleteLesson, updateLesson } from "@/lib/api/lesson";
 import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import { toast } from "@/components/shared/Toast";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 const PAGE_SIZE = 6;
 
@@ -33,6 +34,10 @@ export default function LessonsPage() {
   const [editContent, setEditContent] = useState("");
   const [updating, setUpdating] = useState(false);
 
+  // Delete Lesson Confirm State
+  const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   function handleOpenEditLesson(lesson: Lesson) {
     setEditingLesson(lesson);
     setEditTitle(lesson.title || "");
@@ -56,9 +61,16 @@ export default function LessonsPage() {
     }
   }
 
-  async function handleDeleteLesson(lessonId: string) {
-    if (!confirm("Are you sure you want to delete this lesson?")) return;
-    const ok = await deleteLesson(lessonId);
+  function handleDeleteLesson(lessonId: string) {
+    setDeletingLessonId(lessonId);
+  }
+
+  async function handleConfirmDeleteLesson() {
+    if (!deletingLessonId) return;
+    setDeleting(true);
+    const ok = await deleteLesson(deletingLessonId);
+    setDeleting(false);
+    setDeletingLessonId(null);
     if (ok) {
       toast.success("Lesson deleted successfully!");
       loadData();
@@ -352,6 +364,18 @@ export default function LessonsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deletingLessonId}
+        title="Delete lesson?"
+        description="This action cannot be undone. This lesson will be permanently removed."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleConfirmDeleteLesson}
+        onCancel={() => setDeletingLessonId(null)}
+      />
     </div>
   );
 }

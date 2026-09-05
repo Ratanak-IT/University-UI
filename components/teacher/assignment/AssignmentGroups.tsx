@@ -25,6 +25,7 @@ import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import { fetchClassroomAssignments } from "@/lib/api/student";
 import { useDeleteAssignmentMutation, useUpdateAssignmentMutation } from "@/lib/redux/apiSlice";
 import { toast } from "@/components/shared/Toast";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 export default function AssignmentGroups() {
   const [classroomFilter, setClassroomFilter] = useState<ClassroomFilter>("all");
@@ -46,6 +47,10 @@ export default function AssignmentGroups() {
 
   const [deleteAssignmentMutation] = useDeleteAssignmentMutation();
   const [updateAssignmentMutation] = useUpdateAssignmentMutation();
+
+  // Delete Assignment Confirm State
+  const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
+  const [deletingAssignment, setDeletingAssignment] = useState(false);
 
   const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([]);
 
@@ -156,15 +161,22 @@ export default function AssignmentGroups() {
     }
   }
 
-  async function handleDeleteAssignment(id: string) {
-    if (!confirm("Are you sure you want to delete this assignment?")) return;
+  function handleDeleteAssignment(id: string) {
+    setDeletingAssignmentId(id);
+  }
+
+  async function handleConfirmDeleteAssignment() {
+    if (!deletingAssignmentId) return;
+    setDeletingAssignment(true);
     try {
-      await deleteAssignmentMutation(id).unwrap();
+      await deleteAssignmentMutation(deletingAssignmentId).unwrap();
       toast.success("Assignment deleted successfully!");
       loadData();
     } catch {
       toast.error("Failed to delete assignment. Please try again.");
     }
+    setDeletingAssignment(false);
+    setDeletingAssignmentId(null);
   }
 
   function handleOpenEdit(item: AssignmentItem) {
@@ -376,6 +388,18 @@ export default function AssignmentGroups() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deletingAssignmentId}
+        title="Delete assignment?"
+        description="This action cannot be undone. This assignment will be permanently removed."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={deletingAssignment}
+        onConfirm={handleConfirmDeleteAssignment}
+        onCancel={() => setDeletingAssignmentId(null)}
+      />
     </div>
   );
 }
