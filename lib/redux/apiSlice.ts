@@ -12,14 +12,28 @@ import {
   ClassroomMemberResponse,
   LessonResponse,
   AssignmentResponse,
+  StudentDashboardSummary,
+  StudentAssignmentListItem,
+  StudentAssignmentResponse,
+  QuizResponse,
 } from "@/lib/api/student";
 import {
   TeacherProfile,
   ExamScoreResponse,
   SetExamScoresRequest,
   RecordAttendancePayload,
+  TeacherDashboardSummary,
+  StudentMetrics,
 } from "@/lib/api/teacher";
 import type { SubmissionResponse } from "@/lib/api/assignment";
+import type {
+  Comment,
+  CommentScope,
+  CreateCommentPayload,
+  UpdateCommentPayload,
+  MentionUser,
+} from "@/lib/api/comments";
+import type { PrivateComment } from "@/lib/api/privateComments";
 import {
   toArray,
   toObject,
@@ -280,6 +294,12 @@ export const apiSlice = createApi({
     "AttendanceSummary",
     "AttendancePolicy",
     "ClassSchedule",
+    "Comments",
+    "PrivateComments",
+    "TeacherDashboardSummary",
+    "TeacherStudentMetrics",
+    "StudentDashboardSummary",
+    "StudentAssignmentsList",
   ],
   endpoints: (builder) => ({
     getClassroomById: builder.query<ClassroomResponse, string>({
@@ -466,14 +486,23 @@ export const apiSlice = createApi({
       invalidatesTags: ["TeacherQuizzes"],
     }),
 
+    /**
+     * PUT /assign-classroom REPLACES the quiz's whole release list — that's
+     * the backend's documented contract (`AssignQuizToClassroomRequest`), not
+     * an "add one more" call. Sending only the single new classroomId (the
+     * old shape) silently drops every other classroom the quiz was already
+     * released to, and throws a 409 the moment one of those sections already
+     * has student attempts. Callers must pass the FULL desired list —
+     * existing releases plus whatever is being added/removed.
+     */
     assignQuizToClassroom: builder.mutation<
       QuizManageResponse,
-      { quizId: string; classroomId: string }
+      { quizId: string; classrooms: { classroomId: string; availableFrom?: string | null; availableTo?: string | null }[] }
     >({
-      query: ({ quizId, classroomId }) => ({
+      query: ({ quizId, classrooms }) => ({
         url: `/quizzes/${quizId}/assign-classroom`,
         method: "PUT",
-        body: { classroomId },
+        body: { classrooms },
       }),
       invalidatesTags: ["TeacherQuizzes"],
     }),
@@ -567,13 +596,25 @@ export const apiSlice = createApi({
       providesTags: ["SavedLessons"],
     }),
 
-    createSavedLesson: builder.mutation<any, { title: string; contentType: string; contentUrl?: string; description?: string }>({
-      query: (payload) => ({
+    // FormData, not JSON: the backend takes the lesson fields as a "lesson"
+    // JSON blob part alongside "file" parts for attachments, so the caller
+    // builds and passes the whole multipart body directly.
+    createSavedLesson: builder.mutation<any, FormData>({
+      query: (formData) => ({
         url: "/lessons/saved",
         method: "POST",
-        body: payload,
+        body: formData,
       }),
       invalidatesTags: ["SavedLessons"],
+    }),
+
+    createLessonForClassroom: builder.mutation<any, { classroomId: string; formData: FormData }>({
+      query: ({ classroomId, formData }) => ({
+        url: `/classrooms/${classroomId}/lessons`,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["ClassroomLessons"],
     }),
 
     assignLessonToClassroom: builder.mutation<any, { lessonId: string; classroomId: string }>({
@@ -590,13 +631,24 @@ export const apiSlice = createApi({
       providesTags: ["SavedAssignments"],
     }),
 
-    createSavedAssignment: builder.mutation<any, { title: string; description?: string; maxScore?: number; fileUrl?: string }>({
-      query: (payload) => ({
+    // FormData, not JSON — same "JSON blob part + file parts" multipart shape
+    // as createSavedLesson.
+    createSavedAssignment: builder.mutation<any, FormData>({
+      query: (formData) => ({
         url: "/assignments/saved",
         method: "POST",
-        body: payload,
+        body: formData,
       }),
       invalidatesTags: ["SavedAssignments"],
+    }),
+
+    createAssignmentForClassroom: builder.mutation<any, { classroomId: string; formData: FormData }>({
+      query: ({ classroomId, formData }) => ({
+        url: `/classrooms/${classroomId}/assignments`,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["ClassroomAssignments"],
     }),
 
     updateAssignment: builder.mutation<any, { assignmentId: string; title: string; description?: string; maxScore?: number; dueDate?: string }>({
@@ -953,6 +1005,187 @@ export const apiSlice = createApi({
       },
       invalidatesTags: ["AttendanceSessions"],
     }),
+
+    // --- Comments (classroom/assignment discussion threads) ---
+    getComments: builder.query<Comment[], CommentScope>({
+      query: (scope) => ({
+        url: scope.kind === "classroom" ? `/classrooms/${scope.id}/comments` : `/assignments/${scope.id}/comments`,
+      }),
+      providesTags: (_r, _e, scope) => [{ type: "Comments", id: `${scope.kind}:${scope.id}` }],
+    }),
+
+    createComment: builder.mutation<Comment, { scope: CommentScope; payload: CreateCommentPayload }>({
+      query: ({ scope, payload }) => ({
+        url: scope.kind === "classroom" ? `/classrooms/${scope.id}/comments` : `/assignments/${scope.id}/comments`,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: (_r, _e, { scope }) => [{ type: "Comments", id: `${scope.kind}:${scope.id}` }],
+    }),
+
+    updateComment: builder.mutation<Comment, { commentId: string; scope: CommentScope; payload: UpdateCommentPayload }>({
+      query: ({ commentId, payload }) => ({
+        url: `/comments/${commentId}`,
+        method: "PATCH",
+        body: payload,
+      }),
+      invalidatesTags: (_r, _e, { scope }) => [{ type: "Comments", id: `${scope.kind}:${scope.id}` }],
+    }),
+
+    deleteComment: builder.mutation<void, { commentId: string; scope: CommentScope }>({
+      query: ({ commentId }) => ({
+        url: `/comments/${commentId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_r, _e, { scope }) => [{ type: "Comments", id: `${scope.kind}:${scope.id}` }],
+    }),
+
+    getMentionableMembers: builder.query<MentionUser[], { scope: CommentScope; query?: string }>({
+      query: ({ scope, query }) => ({
+        url: scope.kind === "classroom" ? `/classrooms/${scope.id}/mentionable-members` : `/assignments/${scope.id}/mentionable-members`,
+        params: query ? { query } : undefined,
+      }),
+    }),
+
+    // --- Private comments (student <-> teacher, per assignment) ---
+    getMyPrivateComments: builder.query<PrivateComment[], string>({
+      query: (assignmentId) => `/assignments/${assignmentId}/private-comments`,
+      providesTags: (_r, _e, assignmentId) => [{ type: "PrivateComments", id: assignmentId }],
+    }),
+
+    postMyPrivateComment: builder.mutation<PrivateComment, { assignmentId: string; body: string }>({
+      query: ({ assignmentId, body }) => ({
+        url: `/assignments/${assignmentId}/private-comments`,
+        method: "POST",
+        body: { body },
+      }),
+      invalidatesTags: (_r, _e, { assignmentId }) => [{ type: "PrivateComments", id: assignmentId }],
+    }),
+
+    getStudentPrivateComments: builder.query<PrivateComment[], { assignmentId: string; studentId: string }>({
+      query: ({ assignmentId, studentId }) => `/assignments/${assignmentId}/students/${studentId}/private-comments`,
+      providesTags: (_r, _e, { assignmentId, studentId }) => [{ type: "PrivateComments", id: `${assignmentId}:${studentId}` }],
+    }),
+
+    postStudentPrivateComment: builder.mutation<PrivateComment, { assignmentId: string; studentId: string; body: string }>({
+      query: ({ assignmentId, studentId, body }) => ({
+        url: `/assignments/${assignmentId}/students/${studentId}/private-comments`,
+        method: "POST",
+        body: { body },
+      }),
+      invalidatesTags: (_r, _e, { assignmentId, studentId }) => [{ type: "PrivateComments", id: `${assignmentId}:${studentId}` }],
+    }),
+
+    // --- Dashboard summaries ---
+    getTeacherDashboardSummary: builder.query<TeacherDashboardSummary, void>({
+      query: () => "/teachers/me/dashboard-summary",
+      providesTags: ["TeacherDashboardSummary"],
+    }),
+
+    getTeacherStudentMetrics: builder.query<StudentMetrics[], void>({
+      query: () => "/teachers/me/student-metrics",
+      providesTags: ["TeacherStudentMetrics"],
+    }),
+
+    getStudentDashboardSummary: builder.query<StudentDashboardSummary, string>({
+      query: (studentId) => `/students/${studentId}/dashboard-summary`,
+      providesTags: ["StudentDashboardSummary"],
+    }),
+
+    // --- Student assignments list/detail ---
+    getStudentAssignmentsList: builder.query<StudentAssignmentListItem[], string>({
+      query: (studentId) => `/students/${studentId}/assignments-list`,
+      providesTags: ["StudentAssignmentsList"],
+    }),
+
+    /**
+     * The roster page needs every student across every one of the teacher's
+     * classrooms, deduped and tagged with which classroom they came from.
+     * `query()` can only hit one URL, so this fans out to each classroom's
+     * `/students` endpoint and merges — still one cache entry, keyed on the
+     * classroom list, instead of the page re-running N fetches on every visit.
+     */
+    getStudentsForClassrooms: builder.query<
+      { student: ClassroomStudentResponse; classroomId: string; className: string }[],
+      { classroomId: string; className: string }[]
+    >({
+      async queryFn(classrooms, _api, _extra, baseQuery) {
+        const results = await Promise.all(
+          classrooms.map(async (c) => {
+            const res = await baseQuery(`/classrooms/${c.classroomId}/students`);
+            const list = (res.data as ClassroomStudentResponse[]) ?? [];
+            return {
+              error: res.error,
+              data: list.map((s) => ({ student: s, classroomId: c.classroomId, className: c.className })),
+            };
+          })
+        );
+        const failed = results.find((r) => r.error);
+        if (failed?.error) return { error: failed.error };
+        const merged = results.flatMap((r) => r.data);
+        return { data: merged };
+      },
+      providesTags: ["ClassroomStudents"],
+    }),
+
+    /** Every lesson across a set of classrooms, tagged with which one it came from — same fan-out pattern as getStudentsForClassrooms. */
+    getLessonsForClassrooms: builder.query<
+      (LessonResponse & { classCode: string; className: string })[],
+      { classroomId: string; classCode: string; className: string }[]
+    >({
+      async queryFn(classrooms, _api, _extra, baseQuery) {
+        const results = await Promise.all(
+          classrooms.map(async (c) => {
+            const res = await baseQuery(`/classrooms/${c.classroomId}/lessons`);
+            const list = (res.data as LessonResponse[]) ?? [];
+            return {
+              error: res.error,
+              data: list.map((l) => ({ ...l, classCode: c.classCode, className: c.className })),
+            };
+          })
+        );
+        const failed = results.find((r) => r.error);
+        if (failed?.error) return { error: failed.error };
+        return { data: results.flatMap((r) => r.data) };
+      },
+      providesTags: ["ClassroomLessons"],
+    }),
+
+    getStudentQuizzes: builder.query<QuizResponse[], string>({
+      query: (studentId) => `/students/${studentId}/quizzes`,
+      providesTags: ["StudentAssignmentsList"],
+    }),
+
+    getStudentAssignments: builder.query<
+      { content: StudentAssignmentResponse[]; totalElements: number; totalPages: number; size: number; number: number },
+      { studentId: string; page?: number; size?: number }
+    >({
+      query: ({ studentId, page = 0, size = 25 }) => ({
+        url: `/students/${studentId}/assignments`,
+        params: { page, size },
+      }),
+      providesTags: ["StudentAssignmentsList"],
+    }),
+
+    getStudentAssignmentDetail: builder.query<StudentAssignmentResponse, { studentId: string; assignmentId: string }>({
+      query: ({ studentId, assignmentId }) => `/students/${studentId}/assignments/${assignmentId}`,
+      providesTags: (_r, _e, { assignmentId }) => [{ type: "ClassroomAssignments", id: assignmentId }],
+    }),
+
+    // --- Saved lesson mutations (delete/update — create/assign already existed) ---
+    deleteSavedLesson: builder.mutation<void, string>({
+      query: (lessonId) => ({ url: `/lessons/${lessonId}`, method: "DELETE" }),
+      invalidatesTags: ["SavedLessons", "ClassroomLessons"],
+    }),
+
+    updateSavedLesson: builder.mutation<any, { lessonId: string; title?: string; content?: string; videoLink?: string; allowDownload?: boolean }>({
+      query: ({ lessonId, ...body }) => ({
+        url: `/lessons/${lessonId}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["SavedLessons", "ClassroomLessons"],
+    }),
   }),
 });
 
@@ -992,9 +1225,11 @@ export const {
   useGetUserProfileQuery,
   useGetSavedLessonsQuery,
   useCreateSavedLessonMutation,
+  useCreateLessonForClassroomMutation,
   useAssignLessonToClassroomMutation,
   useGetSavedAssignmentsQuery,
   useCreateSavedAssignmentMutation,
+  useCreateAssignmentForClassroomMutation,
   useUpdateAssignmentMutation,
   useDeleteAssignmentMutation,
   useAssignAssignmentToClassroomMutation,
@@ -1006,7 +1241,6 @@ export const {
   useUploadTeacherAvatarMutation,
   useStartQuizAttemptMutation,
   useSubmitQuizAttemptMutation,
-  // Session-based attendance
   useGetSessionsQuery,
   useCreateSessionMutation,
   useOpenSessionMutation,
@@ -1017,6 +1251,26 @@ export const {
   useGetAttendanceSummaryQuery,
   useGetAttendancePolicyQuery,
   useSaveAttendancePolicyMutation,
+  useGetCommentsQuery,
+  useCreateCommentMutation,
+  useUpdateCommentMutation,
+  useDeleteCommentMutation,
+  useGetMentionableMembersQuery,
+  useGetMyPrivateCommentsQuery,
+  usePostMyPrivateCommentMutation,
+  useGetStudentPrivateCommentsQuery,
+  usePostStudentPrivateCommentMutation,
+  useGetTeacherDashboardSummaryQuery,
+  useGetTeacherStudentMetricsQuery,
+  useGetStudentDashboardSummaryQuery,
+  useGetStudentAssignmentsListQuery,
+  useGetStudentAssignmentDetailQuery,
+  useGetStudentAssignmentsQuery,
+  useGetStudentQuizzesQuery,
+  useGetStudentsForClassroomsQuery,
+  useGetLessonsForClassroomsQuery,
+  useDeleteSavedLessonMutation,
+  useUpdateSavedLessonMutation,
   useGetScheduleQuery,
   useSaveScheduleMutation,
   useGenerateSessionsMutation,

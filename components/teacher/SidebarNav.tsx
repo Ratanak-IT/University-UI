@@ -105,7 +105,7 @@ export function SidebarBrand() {
         />
       </div>
       <div className="min-w-0">
-        <p className="text-xl font-black tracking-tight text-primary">UMS</p>
+        <p className="text-xl font-black tracking-tight text-primary dark:text-gray-200">UMS</p>
         <p className="text-xs font-medium text-muted-foreground">
           Teacher Portal
         </p>
@@ -147,14 +147,14 @@ export function SidebarNavList({
                     aria-current={isActive ? "page" : undefined}
                     className={`group flex items-center gap-3 rounded-xl py-2.5 px-3.5 text-sm font-medium transition-all ${
                       isActive
-                        ? "bg-primary/10 text-primary"
+                        ? "bg-primary/10 text-primary dark:bg-slate-700 dark:text-white"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                   >
                     <Icon
                       className={`h-4.5 w-4.5 shrink-0 transition-colors ${
                         isActive
-                          ? "text-primary"
+                          ? "text-primary dark:text-white"
                           : "text-muted-foreground group-hover:text-foreground"
                       }`}
                       strokeWidth={isActive ? 2 : 1.75}

@@ -1,21 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PlayCircle, FileText } from "lucide-react";
-import {
-  fetchMyClassrooms,
-  fetchClassroomLessons,
-  LessonResponse,
-  ClassroomResponse,
-} from "@/lib/api/student";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 import ModernSelect from "@/components/shared/ModernSelect";
-
-interface LessonItem extends LessonResponse {
-  classCode: string;
-  className: string;
-}
+import { useGetMyClassroomsQuery, useGetLessonsForClassroomsQuery } from "@/lib/redux/apiSlice";
 
 export default function LessonsPage() {
   // A notification or the courses page can link here with ?classroomId= so
@@ -25,45 +15,25 @@ export default function LessonsPage() {
   const [filterClassroom, setFilterClassroom] = useState<string>(
     () => searchParams.get("classroomId") || "ALL"
   );
-
-  const [loading, setLoading] = useState(true);
-  const [classrooms, setClassrooms] = useState<ClassroomResponse[]>([]);
-  const [lessons, setLessons] = useState<LessonItem[]>([]);
   const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const myClassrooms = await fetchMyClassrooms();
-      if (myClassrooms && myClassrooms.length > 0) {
-        setClassrooms(myClassrooms);
+  const { data: classrooms = [], isLoading: loadingClassrooms } = useGetMyClassroomsQuery();
 
-        // Fetch all lessons from all classrooms in parallel
-        const allLessons: LessonItem[] = [];
-        await Promise.all(
-          myClassrooms.map(async (c: ClassroomResponse) => {
-            const cls = await fetchClassroomLessons(c.classroomId);
-            if (cls) {
-              cls.forEach((l: LessonResponse) => {
-                allLessons.push({
-                  ...l,
-                  classCode: c.classCode,
-                  className: c.className,
-                });
-              });
-            }
-          })
-        );
-        // Sort by createdAt descending (newest first)
-        allLessons.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        setLessons(allLessons);
-      }
-      setLoading(false);
-    }
-    load();
-  }, []);
+  const classroomArgs = useMemo(
+    () => classrooms.map((c) => ({ classroomId: c.classroomId, classCode: c.classCode, className: c.className })),
+    [classrooms]
+  );
+  const { data: allLessons = [], isFetching: loadingLessons } = useGetLessonsForClassroomsQuery(
+    classroomArgs,
+    { skip: classroomArgs.length === 0 }
+  );
+
+  const loading = loadingClassrooms || (classroomArgs.length > 0 && loadingLessons);
+
+  const lessons = useMemo(
+    () => [...allLessons].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [allLessons]
+  );
 
   const filteredLessons = useMemo(
     () =>

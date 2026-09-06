@@ -2,11 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, X } from "lucide-react";
-import {
-  CommentScope,
-  fetchMentionableMembers,
-  MentionUser,
-} from "@/lib/api/comments";
+import { CommentScope, MentionUser } from "@/lib/api/comments";
+import { useGetMentionableMembersQuery } from "@/lib/redux/apiSlice";
 import { toast } from "@/components/shared/Toast";
 
 interface CommentComposerProps {
@@ -39,11 +36,10 @@ export default function CommentComposer({
   const [error, setError] = useState<string | null>(null);
 
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [candidates, setCandidates] = useState<MentionUser[]>([]);
-  const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const [tokenStart, setTokenStart] = useState(-1);
   const [tokenQuery, setTokenQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -72,28 +68,19 @@ export default function CommentComposer({
     setHighlighted(0);
   }
 
+  // Debounce the typed query before it becomes a query arg — RTK Query fires
+  // a fetch the instant its arg changes, so debouncing has to happen here
+  // rather than inside the hook.
   useEffect(() => {
-    if (!pickerOpen) return;
+    const timer = setTimeout(() => setDebouncedQuery(tokenQuery), 180);
+    return () => clearTimeout(timer);
+  }, [tokenQuery]);
 
-    let cancelled = false;
-    setLoadingCandidates(true);
-
-    const timer = setTimeout(async () => {
-      try {
-        const members = await fetchMentionableMembers(scope, tokenQuery);
-        if (!cancelled) setCandidates(members.slice(0, 8));
-      } catch {
-        if (!cancelled) setCandidates([]);
-      } finally {
-        if (!cancelled) setLoadingCandidates(false);
-      }
-    }, 180);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [pickerOpen, tokenQuery, scope]);
+  const { data: mentionCandidates = [], isFetching: loadingCandidates } = useGetMentionableMembersQuery(
+    { scope, query: debouncedQuery },
+    { skip: !pickerOpen }
+  );
+  const candidates = mentionCandidates.slice(0, 8);
 
   function choose(user: MentionUser) {
     if (tokenStart < 0) return;

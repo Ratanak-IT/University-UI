@@ -89,14 +89,30 @@ function FilterSelect({
 export default function RosterTable({
   students,
   classroomNames,
+  yearOptions: yearOptionsProp,
+  statusOptions: statusOptionsProp,
+  classroomFilter,
+  yearFilter,
+  statusFilter,
+  onClassroomFilterChange,
+  onYearFilterChange,
+  onStatusFilterChange,
+  onClearFilters,
 }: {
+  /** Already filtered by the caller — this component only paginates and displays it. */
   students: StudentRosterItem[];
   classroomNames: string[];
+  yearOptions: FilterOption[];
+  statusOptions: FilterOption[];
+  classroomFilter: string;
+  yearFilter: string;
+  statusFilter: string;
+  onClassroomFilterChange: (value: string) => void;
+  onYearFilterChange: (value: string) => void;
+  onStatusFilterChange: (value: string) => void;
+  onClearFilters: () => void;
 }) {
   const [page, setPage] = useState(1);
-  const [classroomFilter, setClassroomFilter] = useState("all");
-  const [yearFilter, setYearFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
 
   const classroomOptions = useMemo<FilterOption[]>(() => {
     return [
@@ -105,30 +121,10 @@ export default function RosterTable({
     ];
   }, [classroomNames]);
 
-  const yearOptions = useMemo<FilterOption[]>(() => {
-    const unique = Array.from(new Set(students.map((s) => s.year))).sort();
-    return [
-      { label: "Year Level", value: "all" },
-      ...unique.map((y) => ({ label: String(y), value: String(y) })),
-    ];
-  }, [students]);
+  const yearOptions = yearOptionsProp;
+  const statusOptions = statusOptionsProp;
 
-  const statusOptions = useMemo<FilterOption[]>(() => {
-    const unique = Array.from(new Set(students.map((s) => s.gradStatus)));
-    return [
-      { label: "Status", value: "all" },
-      ...unique.map((s) => ({ label: s, value: s })),
-    ];
-  }, [students]);
-
-  const filteredStudents = useMemo(() => {
-    return students.filter((s) => {
-      if (classroomFilter !== "all" && s.className !== classroomFilter) return false;
-      if (yearFilter !== "all" && String(s.year) !== yearFilter) return false;
-      if (statusFilter !== "all" && s.gradStatus !== statusFilter) return false;
-      return true;
-    });
-  }, [students, classroomFilter, yearFilter, statusFilter]);
+  const filteredStudents = students;
 
   const totalStudents = filteredStudents.length;
   const totalPages = Math.max(1, Math.ceil(totalStudents / PAGE_SIZE));
@@ -139,22 +135,28 @@ export default function RosterTable({
     return filteredStudents.slice(start, start + PAGE_SIZE);
   }, [filteredStudents, safePage]);
 
+  // Reset to page 1 whenever a filter changes, without an effect: React's
+  // recommended pattern for adjusting state during render off a changed
+  // prop, instead of a post-commit setState that would cause an extra render.
+  const filterKey = `${classroomFilter}|${yearFilter}|${statusFilter}`;
+  const [lastFilterKey, setLastFilterKey] = useState(filterKey);
+  if (filterKey !== lastFilterKey) {
+    setLastFilterKey(filterKey);
+    setPage(1);
+  }
+
   const rangeStart = totalStudents === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const rangeEnd = Math.min(safePage * PAGE_SIZE, totalStudents);
 
   const hasActiveFilters =
     classroomFilter !== "all" || yearFilter !== "all" || statusFilter !== "all";
 
-  function handleFilterChange(setter: (v: string) => void, value: string) {
-    setter(value);
-    setPage(1);
+  function handleFilterChange(onChange: (v: string) => void, value: string) {
+    onChange(value);
   }
 
   function clearFilters() {
-    setClassroomFilter("all");
-    setYearFilter("all");
-    setStatusFilter("all");
-    setPage(1);
+    onClearFilters();
   }
 
   return (
@@ -167,19 +169,19 @@ export default function RosterTable({
             label="All Classrooms"
             options={classroomOptions}
             value={classroomFilter}
-            onChange={(v) => handleFilterChange(setClassroomFilter, v)}
+            onChange={(v) => handleFilterChange(onClassroomFilterChange, v)}
           />
           <FilterSelect
             label="Year Level"
             options={yearOptions}
             value={yearFilter}
-            onChange={(v) => handleFilterChange(setYearFilter, v)}
+            onChange={(v) => handleFilterChange(onYearFilterChange, v)}
           />
           <FilterSelect
             label="Status"
             options={statusOptions}
             value={statusFilter}
-            onChange={(v) => handleFilterChange(setStatusFilter, v)}
+            onChange={(v) => handleFilterChange(onStatusFilterChange, v)}
           />
           {hasActiveFilters && (
             <button

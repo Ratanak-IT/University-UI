@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { GraduationCap, ClipboardList, UserCheck, Bell, BellRing } from "lucide-react";
 import {
@@ -8,8 +8,8 @@ import {
   useGetStudentGpaQuery,
   useGetStudentAttendanceQuery,
   useGetMyNotificationsQuery,
+  useGetStudentDashboardSummaryQuery,
 } from "@/lib/redux/apiSlice";
-import { fetchStudentDashboardSummary } from "@/lib/api/student";
 import StatCards from "@/components/teacher/dashboard/StatCards";
 import DeadlinesSection from "@/components/teacher/dashboard/DeadlinesSection";
 import type { StatCard, Deadline } from "@/lib/types/dashboard";
@@ -35,50 +35,34 @@ export default function StudentDashboard() {
   );
   const { data: notifications = [], isLoading: loadingNotifications } = useGetMyNotificationsQuery();
 
-  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
-  const [pendingAssignmentsCount, setPendingAssignmentsCount] = useState(0);
-  const [loadingAssignments, setLoadingAssignments] = useState(true);
+  const { data: summary, isFetching: loadingAssignments } = useGetStudentDashboardSummaryQuery(
+    studentId,
+    { skip: !studentId }
+  );
+  const pendingAssignmentsCount = summary?.pendingAssignments ?? 0;
 
-  useEffect(() => {
-    if (!studentId) return;
-    let cancelled = false;
-
-    async function loadDeadlines() {
-      setLoadingAssignments(true);
-      const summary = await fetchStudentDashboardSummary(studentId);
-      if (cancelled) return;
-
-      setPendingAssignmentsCount(summary?.pendingAssignments ?? 0);
-
-      const upcoming = (summary?.upcomingDeadlines ?? [])
-        .filter((a) => a.dueDate)
-        .map((a): Deadline => {
-          const diffDays = Math.ceil(
-            (new Date(a.dueDate!).getTime() - Date.now()) / (1000 * 3600 * 24)
-          );
-          let due = new Date(a.dueDate!).toLocaleDateString();
-          let badgeClass = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
-          if (diffDays < 0) {
-            due = "Overdue";
-            badgeClass = "bg-rose-200 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300";
-          } else if (diffDays === 0) {
-            due = "Due today";
-            badgeClass = "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300";
-          } else if (diffDays <= 2) {
-            due = `${diffDays} days left`;
-            badgeClass = "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300";
-          }
-          return { id: a.assignmentId, title: a.title, classCode: a.classCode || "", due, badgeClass };
-        });
-
-      setDeadlines(upcoming);
-      setLoadingAssignments(false);
-    }
-    loadDeadlines();
-    return () => {
-      cancelled = true;
-    };
-  }, [studentId]);
+  const deadlines = useMemo<Deadline[]>(() => {
+    return (summary?.upcomingDeadlines ?? [])
+      .filter((a) => a.dueDate)
+      .map((a): Deadline => {
+        const diffDays = Math.ceil(
+          (new Date(a.dueDate!).getTime() - Date.now()) / (1000 * 3600 * 24)
+        );
+        let due = new Date(a.dueDate!).toLocaleDateString();
+        let badgeClass = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+        if (diffDays < 0) {
+          due = "Overdue";
+          badgeClass = "bg-rose-200 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300";
+        } else if (diffDays === 0) {
+          due = "Due today";
+          badgeClass = "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300";
+        } else if (diffDays <= 2) {
+          due = `${diffDays} days left`;
+          badgeClass = "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300";
+        }
+        return { id: a.assignmentId, title: a.title, classCode: a.classCode || "", due, badgeClass };
+      });
+  }, [summary]);
 
   const overallAttendanceRate = useMemo(() => {
     const attended = attendanceByCourse.reduce((s, c) => s + c.present + c.late + c.excused, 0);

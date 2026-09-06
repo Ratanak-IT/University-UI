@@ -59,7 +59,7 @@ export default function SidebarStudent() {
 
         {!isCollapsed && (
           <div className="min-w-0 animate-in fade-in zoom-in-95 duration-300">
-            <p className="text-xl font-black tracking-tight text-indigo-950 dark:text-indigo-200">
+            <p className="text-xl font-black tracking-tight text-indigo-950 dark:text-gray-200">
               UMS
             </p>
             <p className="text-xs font-semibold text-muted-foreground">Student Portal</p>

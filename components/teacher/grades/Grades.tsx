@@ -465,20 +465,21 @@ export default function Attendan2Grades() {
     return filteredRows.slice(start, start + PAGE_SIZE);
   }, [filteredRows, page]);
 
-  // Summary stats
+  // Summary stats — driven by filteredRows, not allRows, so the cards move
+  // with year/semester/status/search the same way the table does.
   const stats = useMemo(() => {
-    if (allRows.length === 0) return { total: 0, passRate: "0%", avgScore: "0", atRisk: "0 Students" };
-    const passed = allRows.filter((r) => r.status === "Passed").length;
-    const atRisk = allRows.filter((r) => r.status === "Failed" || r.total < 60).length;
-    const avg = Math.round(allRows.reduce((acc, r) => acc + r.total, 0) / allRows.length * 10) / 10;
+    if (filteredRows.length === 0) return { total: 0, passRate: "0%", avgScore: "0", atRisk: "0 Students" };
+    const passed = filteredRows.filter((r) => r.status === "Passed").length;
+    const atRisk = filteredRows.filter((r) => r.status === "Failed" || r.total < 60).length;
+    const avg = Math.round(filteredRows.reduce((acc, r) => acc + r.total, 0) / filteredRows.length * 10) / 10;
 
     return {
-      total: allRows.length,
-      passRate: `${Math.round((passed / allRows.length) * 100)}%`,
+      total: filteredRows.length,
+      passRate: `${Math.round((passed / filteredRows.length) * 100)}%`,
       avgScore: `${calculateGradeLetter(avg)} (${avg})`,
       atRisk: `${atRisk} Students`,
     };
-  }, [allRows]);
+  }, [filteredRows]);
 
   const selectedClassroomObj = classrooms.find((c) => c.classroomId === selectedClassroomId);
 
@@ -787,7 +788,7 @@ export default function Attendan2Grades() {
                         <div className="font-bold text-card-foreground hover:text-indigo-600 transition-colors">
                           {s.name}
                         </div>
-                        <div className="text-[11px] font-medium text-muted-foreground">
+                        <div className="hidden text-[11px] font-medium text-muted-foreground sm:block">
                           {s.studentCode}
                         </div>
                       </div>

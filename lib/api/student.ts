@@ -95,6 +95,7 @@ export interface ClassroomStudentResponse {
   joinedAt: string;
   /** Presigned MinIO URL. Absent when the student has no avatar. */
   avatarUrl?: string;
+  gender?: string;
 }
 
 export interface FileResponse {
@@ -285,22 +286,10 @@ export function fetchMyClassrooms() {
   return apiFetch<ClassroomResponse[]>("/api/v1/classrooms/my-classrooms");
 }
 
-/** GET /api/v1/classrooms/{id} */
-export function fetchClassroomById(id: string) {
-  return apiFetch<ClassroomResponse>(`/api/v1/classrooms/${id}`);
-}
-
 /** GET /api/v1/classrooms/{id}/students */
 export function fetchClassroomStudents(classroomId: string) {
   return apiFetch<ClassroomStudentResponse[]>(
     `/api/v1/classrooms/${classroomId}/students`
-  );
-}
-
-/** GET /api/v1/classrooms/{id}/teachers */
-export function fetchClassroomTeachers(classroomId: string) {
-  return apiFetch<ClassroomMemberResponse[]>(
-    `/api/v1/classrooms/${classroomId}/teachers`
   );
 }
 
@@ -385,11 +374,6 @@ export function fetchStudentAssignmentDetail(
   );
 }
 
-/** GET /api/v1/students/{id}/grades */
-export function fetchStudentGrades(studentId: string) {
-  return apiFetch<GradeResponse[]>(`/api/v1/students/${studentId}/grades`);
-}
-
 /** GET /api/v1/students/{id}/gpa */
 export function fetchStudentGpa(studentId: string) {
   return apiFetch<GpaResponse>(`/api/v1/students/${studentId}/gpa`);
@@ -398,13 +382,6 @@ export function fetchStudentGpa(studentId: string) {
 /** GET /api/v1/students/{id}/quizzes */
 export function fetchStudentQuizzes(studentId: string) {
   return apiFetch<QuizResponse[]>(`/api/v1/students/${studentId}/quizzes`);
-}
-
-/** GET /api/v1/students/{id}/subjects */
-export function fetchStudentSubjects(studentId: string) {
-  return apiFetch<{ subjectId: string; subjectName: string; subjectCode: string }[]>(
-    `/api/v1/students/${studentId}/subjects`
-  );
 }
 
 /** POST /api/v1/assignments/{id}/submissions (multipart) */
@@ -462,7 +439,6 @@ export interface QuizAttemptResponse {
   answers: AnswerResultItem[] | null;
 }
 
-/** POST /api/v1/students/{id}/quizzes/{quizId}/attempts */
 export async function startQuizAttempt(
   studentId: string,
   quizId: string
@@ -480,15 +456,7 @@ export async function startQuizAttempt(
   }
 }
 
-/**
- * POST /api/v1/students/{id}/quizzes/{quizId}/attempts/{attemptId}/focus-loss
- *
- * <p>Tells the server the student left the quiz screen. Best effort on purpose:
- * a failure here must never interrupt the quiz, because the student did nothing
- * wrong by having a flaky connection.
- *
- * @returns the running count, or null if it could not be recorded
- */
+
 export async function reportQuizFocusLoss(
   studentId: string,
   quizId: string,
@@ -513,13 +481,7 @@ export async function submitQuizAttempt(
   studentId: string,
   quizId: string,
   attemptId: string,
-  /**
-   * `selectedOptionIndex` is the source of truth for choice questions —
-   * sending the option's text let a later reword of that option silently
-   * invalidate every stored answer, because grading compared text to text.
-   * `answer` is required for SHORT_ANSWER and optional elsewhere as a
-   * fallback the server can still resolve.
-   */
+
   answers: { questionId: string; selectedOptionIndex?: number; answer?: string }[]
 ): Promise<QuizAttemptResponse | null> {
   try {
@@ -541,7 +503,6 @@ export async function submitQuizAttempt(
 
 export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 
-/** One mark, as returned inside a `StudentAttendanceResponse.records` list. */
 export interface AttendanceRecordResponse {
   recordId: string;
   sessionId: string;
@@ -562,13 +523,7 @@ export interface AttendanceRecordResponse {
   excuseReference: string | null;
 }
 
-/**
- * A student's attendance for one classroom — `GET /students/{id}/attendance`
- * returns one of these per enrolled classroom, not a flat list of marks.
- * The percentage and exam eligibility are computed server-side against that
- * classroom's own policy, so the frontend must not re-derive or hard-code a
- * minimum — different classrooms can require different thresholds.
- */
+
 export interface StudentAttendanceResponse {
   classroomId: string;
   className: string;
@@ -588,19 +543,9 @@ export interface StudentAttendanceResponse {
   records: AttendanceRecordResponse[];
 }
 
-/** GET /api/v1/students/{id}/attendance */
-export function fetchStudentAttendance(studentId: string, classroomId?: string) {
-  const url = `/api/v1/students/${studentId}/attendance` + (classroomId ? `?classroomId=${classroomId}` : "");
-  return apiFetch<StudentAttendanceResponse[]>(url);
-}
-
 export type Weekday = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
 
-/**
- * One weekly class slot, across every classroom the student is enrolled in.
- * The weekly pattern a teacher sets up in the admin app — not a snapshot of
- * one week, so there is no date here, only day-of-week and time.
- */
+
 export interface TimetableSlotResponse {
   scheduleId: string;
   classroomId: string;
@@ -614,11 +559,6 @@ export interface TimetableSlotResponse {
   endTime: string | null;
   type: "LECTURE" | "LAB" | "TUTORIAL" | "SEMINAR" | "EXAM" | "OTHER";
   room: string | null;
-}
-
-/** GET /api/v1/students/{id}/timetable */
-export function fetchStudentTimetable(studentId: string) {
-  return apiFetch<TimetableSlotResponse[]>(`/api/v1/students/${studentId}/timetable`);
 }
 
 export interface CertificateRequestResponse {
@@ -733,35 +673,4 @@ export async function previewIssuedCertificate(
   }
 }
 
-/** GET /api/v1/students/{id}/certificate-requests */
-export function fetchStudentCertificateRequests(studentId: string) {
-  return apiFetch<CertificateRequestResponse[]>(`/api/v1/students/${studentId}/certificate-requests`);
-}
-
-/** POST /api/v1/students/{id}/certificate-requests */
-export async function createStudentCertificateRequest(
-  studentId: string,
-  certificateType: "ENROLLMENT_CONFIRMATION" | "DEGREE" | "TRANSCRIPT" | "COMPLETION",
-  reason: string
-): Promise<CertificateRequestResponse | null> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/students/${studentId}/certificate-requests`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-      body: JSON.stringify({ certificateType, reason }),
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (err) {
-    console.error("createStudentCertificateRequest:", err);
-    return null;
-  }
-}
-
-/** GET /api/v1/students/{id}/certificate-requests/{requestId}/download */
-export function downloadStudentCertificate(studentId: string, requestId: string) {
-  return apiFetch<CertificateDownloadResponse>(
-    `/api/v1/students/${studentId}/certificate-requests/${requestId}/download`
-  );
-}
 

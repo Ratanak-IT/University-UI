@@ -1,13 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  fetchMyProfile,
-  fetchStudentQuizzes,
-  QuizResponse,
-  StudentProfile,
-} from "@/lib/api/student";
+import { QuizResponse } from "@/lib/api/student";
+import { useGetStudentProfileQuery, useGetStudentQuizzesQuery } from "@/lib/redux/apiSlice";
 import { CardGridSkeleton } from "@/components/shared/Skeletons";
 
 type QStatus = "open" | "done" | "missed" | "upcoming";
@@ -26,9 +21,6 @@ const label: Record<QStatus, string> = {
   upcoming: "Not open yet",
 };
 
-// A closed window and an actual completion are not the same thing — a quiz
-// the student never opened before its deadline passed is "missed", not
-// "Completed"; only a settled attempt (checked first) earns that label.
 function quizStatus(q: QuizResponse): QStatus {
   if (q.attemptsUsed > 0 && q.attemptsUsed >= q.maxAttempts) return "done";
   const now = Date.now();
@@ -40,25 +32,14 @@ function quizStatus(q: QuizResponse): QStatus {
 }
 
 export default function QuizzesPage() {
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [quizzes, setQuizzes] = useState<QuizResponse[]>([]);
+  const { data: profile, isLoading: loadingProfile } = useGetStudentProfileQuery();
+  const { data: quizzes = [], isFetching: loadingQuizzes } = useGetStudentQuizzesQuery(
+    profile?.studentId ?? "",
+    { skip: !profile }
+  );
+  const loading = loadingProfile || (!!profile && loadingQuizzes);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const p = await fetchMyProfile();
-      if (p) {
-        setProfile(p);
-        const data = await fetchStudentQuizzes(p.studentId);
-        if (data) setQuizzes(data);
-      }
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  const openCount = quizzes.filter((q) => quizStatus(q) === "open").length;
+  const openCount = quizzes.filter((q: QuizResponse) => quizStatus(q) === "open").length;
 
   return (
     <div className="space-y-6 p-8">
@@ -78,7 +59,7 @@ export default function QuizzesPage() {
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {quizzes.map((q) => {
+          {quizzes.map((q: QuizResponse) => {
             const s = quizStatus(q);
             return (
               <div

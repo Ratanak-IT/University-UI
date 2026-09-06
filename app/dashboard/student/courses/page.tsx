@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   FileText,
@@ -16,19 +16,15 @@ import {
 } from "lucide-react";
 import ModernSelect from "@/components/shared/ModernSelect";
 import SafeHtml, { htmlToPreviewText } from "@/components/shared/SafeHtml";
+import { StudentAssignmentResponse, QuizResponse } from "@/lib/api/student";
 import {
-  fetchMyClassrooms,
-  fetchMyProfile,
-  fetchClassroomLessons,
-  fetchClassroomAssignments,
-  fetchStudentAssignments,
-  fetchStudentQuizzes,
-  ClassroomResponse,
-  StudentProfile,
-  LessonResponse,
-  StudentAssignmentResponse,
-  QuizResponse,
-} from "@/lib/api/student";
+  useGetStudentProfileQuery,
+  useGetMyClassroomsQuery,
+  useGetClassroomLessonsQuery,
+  useGetClassroomAssignmentsQuery,
+  useGetStudentAssignmentsQuery,
+  useGetStudentQuizzesQuery,
+} from "@/lib/redux/apiSlice";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
@@ -62,124 +58,100 @@ export default function CoursesPage() {
   const [activeTab, setActiveTab] = useState(
     linkedTab && TABS.includes(linkedTab) ? linkedTab : "Overview"
   );
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [classrooms, setClassrooms] = useState<ClassroomResponse[]>([]);
   const [selectedClassroom, setSelectedClassroom] = useState<string | null>(null);
   const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
 
-  // Data per classroom
-  const [lessons, setLessons] = useState<LessonResponse[]>([]);
-  const [assignments, setAssignments] = useState<CombinedAssignment[]>([]);
-  const [quizzes, setQuizzes] = useState<QuizResponse[]>([]);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const { data: profile, isLoading: loadingProfile } = useGetStudentProfileQuery();
+  const { data: classrooms = [], isLoading: loadingClassrooms } = useGetMyClassroomsQuery();
 
-  // Quiz Modal State
-  /**
-   * Keyed by questionId. `selectedOptionIndex` is what grading actually uses
-   * for a choice question; `answer` carries the option's text (for the
-   * result screen and as a fallback) or the typed text for a SHORT_ANSWER
-   * question. Storing the index rather than only the text is what lets a
-   * teacher reword an option after publishing without silently breaking
-   * every student's already-recorded answer.
-   */
-
-  // Load profile + classrooms on mount
+  // Pick the linked (or first) classroom once the roster arrives.
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const [p, c] = await Promise.all([fetchMyProfile(), fetchMyClassrooms()]);
-      if (p) setProfile(p);
-      if (c && c.length > 0) {
-        setClassrooms(c);
-        const linked = linkedClassroomId
-          ? c.find((cls) => cls.classroomId === linkedClassroomId)
-          : undefined;
-        setSelectedClassroom(linked ? linked.classroomId : c[0].classroomId);
-      }
-      setLoading(false);
-    }
-    load();
-    // Deliberately mount-only: this loads the profile and roster once. A
-    // later change to the URL's ?classroomId= isn't expected here — the
-    // dependency is only read for the initial selection above.
+    if (selectedClassroom || classrooms.length === 0) return;
+    const linked = linkedClassroomId
+      ? classrooms.find((cls) => cls.classroomId === linkedClassroomId)
+      : undefined;
+    setSelectedClassroom(linked ? linked.classroomId : classrooms[0].classroomId);
+    // Deliberately not depending on linkedClassroomId after the first pick —
+    // this only decides the initial selection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [classrooms]);
 
-  // Load detail when selectedClassroom changes
-  useEffect(() => {
-    if (!selectedClassroom || !profile) return;
-    setLoadingDetail(true);
-    Promise.all([
-      fetchClassroomLessons(selectedClassroom),
-      fetchClassroomAssignments(selectedClassroom),
-      fetchStudentAssignments(profile.studentId),
-      fetchStudentQuizzes(profile.studentId),
-    ]).then(([le, classAsgns, studentAsgns, qu]) => {
-      setLessons(le ?? []);
+  const loading = loadingProfile || loadingClassrooms;
 
-      // Build student assignment map by assignmentId
-      const subMap = new Map<string, StudentAssignmentResponse>();
-      if (studentAsgns?.content) {
-        studentAsgns.content.forEach((sa) => {
-          subMap.set(sa.assignmentId, sa);
-        });
-      }
+  const { data: lessons = [], isFetching: loadingLessons } = useGetClassroomLessonsQuery(
+    selectedClassroom ?? "",
+    { skip: !selectedClassroom }
+  );
+  const { data: classAsgns = [], isFetching: loadingClassAsgns } = useGetClassroomAssignmentsQuery(
+    selectedClassroom ?? "",
+    { skip: !selectedClassroom }
+  );
+  const { data: studentAsgnsPage, isFetching: loadingStudentAsgns } = useGetStudentAssignmentsQuery(
+    { studentId: profile?.studentId ?? "" },
+    { skip: !profile }
+  );
+  const { data: allQuizzes = [], isFetching: loadingQuizzes } = useGetStudentQuizzesQuery(
+    profile?.studentId ?? "",
+    { skip: !profile }
+  );
 
-      // Merge classroom assignments with student submission status
-      const combined: CombinedAssignment[] = (classAsgns ?? []).map((ca) => {
-        const sa = subMap.get(ca.assignmentId);
-        return {
-          assignmentId: ca.assignmentId,
-          classroomId: ca.classroomId,
-          title: ca.title,
-          description: ca.description,
-          dueDate: ca.dueDate,
-          maxScore: ca.maxScore,
-          weight: ca.weight,
-          files: ca.files ?? [],
-          submissionStatus: sa?.submissionStatus ?? (sa?.submittedAt ? "SUBMITTED" : "NOT SUBMITTED"),
-          score: sa?.score ?? null,
-          submittedAt: sa?.submittedAt ?? null,
-        };
-      });
+  const loadingDetail = loadingLessons || loadingClassAsgns || loadingStudentAsgns || loadingQuizzes;
 
-      // If classAsgns is empty but studentAsgns has entries, add them
-      if (combined.length === 0 && studentAsgns?.content) {
-        studentAsgns.content
-          .filter((sa) => !selectedClassroom || sa.classroomId === selectedClassroom || !sa.classroomId)
-          .forEach((sa) => {
-            combined.push({
-              assignmentId: sa.assignmentId,
-              classroomId: sa.classroomId ?? selectedClassroom,
-              title: sa.title,
-              description: sa.description,
-              dueDate: sa.dueDate,
-              maxScore: sa.maxScore,
-              weight: sa.weight,
-              files: sa.assignmentFiles ?? [],
-              submissionStatus: sa.submissionStatus ?? (sa.submittedAt ? "SUBMITTED" : "NOT SUBMITTED"),
-              score: sa.score ?? null,
-              submittedAt: sa.submittedAt ?? null,
-            });
-          });
-      }
+  const assignments = useMemo<CombinedAssignment[]>(() => {
+    const studentAsgns = studentAsgnsPage?.content ?? [];
+    const subMap = new Map<string, StudentAssignmentResponse>();
+    studentAsgns.forEach((sa) => subMap.set(sa.assignmentId, sa));
 
-      setAssignments(combined);
-
-      // Quizzes: filter by classroomId if match, or fallback to all student quizzes
-      const allQuizzes = qu ?? [];
-      const matchedQuizzes = allQuizzes.filter(
-        (q) => !q.classroomId || q.classroomId.toLowerCase() === selectedClassroom.toLowerCase()
-      );
-      setQuizzes(matchedQuizzes.length > 0 ? matchedQuizzes : allQuizzes);
-
-      setLoadingDetail(false);
+    const combined: CombinedAssignment[] = classAsgns.map((ca) => {
+      const sa = subMap.get(ca.assignmentId);
+      return {
+        assignmentId: ca.assignmentId,
+        classroomId: ca.classroomId,
+        title: ca.title,
+        description: ca.description,
+        dueDate: ca.dueDate,
+        maxScore: ca.maxScore,
+        weight: ca.weight,
+        files: ca.files ?? [],
+        submissionStatus: sa?.submissionStatus ?? (sa?.submittedAt ? "SUBMITTED" : "NOT SUBMITTED"),
+        score: sa?.score ?? null,
+        submittedAt: sa?.submittedAt ?? null,
+      };
     });
-  }, [selectedClassroom, profile]);
+
+    // If classAsgns is empty but studentAsgns has entries, add them
+    if (combined.length === 0 && studentAsgns.length > 0) {
+      studentAsgns
+        .filter((sa) => !selectedClassroom || sa.classroomId === selectedClassroom || !sa.classroomId)
+        .forEach((sa) => {
+          combined.push({
+            assignmentId: sa.assignmentId,
+            classroomId: sa.classroomId ?? selectedClassroom ?? "",
+            title: sa.title,
+            description: sa.description,
+            dueDate: sa.dueDate,
+            maxScore: sa.maxScore,
+            weight: sa.weight,
+            files: sa.assignmentFiles ?? [],
+            submissionStatus: sa.submissionStatus ?? (sa.submittedAt ? "SUBMITTED" : "NOT SUBMITTED"),
+            score: sa.score ?? null,
+            submittedAt: sa.submittedAt ?? null,
+          });
+        });
+    }
+
+    return combined;
+  }, [classAsgns, studentAsgnsPage, selectedClassroom]);
+
+  const quizzes = useMemo<QuizResponse[]>(() => {
+    if (!selectedClassroom) return allQuizzes;
+    const matched = allQuizzes.filter(
+      (q) => !q.classroomId || q.classroomId.toLowerCase() === selectedClassroom.toLowerCase()
+    );
+    return matched.length > 0 ? matched : allQuizzes;
+  }, [allQuizzes, selectedClassroom]);
 
   const current = classrooms.find((c) => c.classroomId === selectedClassroom);
-
 
   // Sitting a quiz is its own page, not a dialog over this one: a modal can be
   // dismissed by a stray backdrop click, competes with fullscreen, and leaves

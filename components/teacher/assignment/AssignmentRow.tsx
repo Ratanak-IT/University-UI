@@ -1,7 +1,10 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AssignmentItem } from "@/lib/types/AssignmentGroup";
 import { AssignmentIcon, AssignmentMetaBadge } from "./AssignmentIcon";
-import { Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Send, Trash2 } from "lucide-react";
 
 export default function AssignmentRow({
   item,
@@ -14,6 +17,22 @@ export default function AssignmentRow({
   onEdit?: (item: AssignmentItem) => void;
   onDelete?: (id: string) => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  const hasActions = onAssign || onEdit || onDelete;
+
   return (
     <div className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left transition-colors hover:bg-muted">
       <Link
@@ -31,8 +50,9 @@ export default function AssignmentRow({
         </span>
         <AssignmentMetaBadge meta={item.meta} />
       </Link>
-      
-      <div className="flex items-center gap-1.5 shrink-0">
+
+      {/* Desktop/tablet: actions inline. */}
+      <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
         {onAssign && (
           <button
             type="button"
@@ -63,6 +83,62 @@ export default function AssignmentRow({
           </button>
         )}
       </div>
+
+      {/* Mobile: a single menu button instead of three cramped icons. */}
+      {hasActions && (
+        <div className="relative shrink-0 sm:hidden" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label="Assignment options"
+            aria-expanded={menuOpen}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
+          >
+            <MoreVertical className="h-5 w-5" />
+          </button>
+
+          {menuOpen && (
+            <div className="absolute right-0 z-10 mt-1 w-44 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg">
+              {onAssign && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onAssign(item.id);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/40"
+                >
+                  <Send size={14} /> Assign
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onEdit(item);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted"
+                >
+                  <Pencil size={14} /> Edit
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete(item.id);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

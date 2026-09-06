@@ -1,140 +1,7 @@
-// "use client";
-
-// import { useEffect, useState, useCallback } from "react";
-// import { Plus, X, Clock, HelpCircle, Tag, CheckCircle2 } from "lucide-react";
-
-// import QuizFilterBar, { ViewMode } from "./QuizFilterBar";
-// import QuizGrid from "./QuizGrid";
-// import QuizCardSkeleton from "./QuizCardSkeleton";
-// import QuizEmptyState from "./QuizEmptyState";
-// import { Quiz, QuizStatus, SortOption } from "@/lib/types/quiz";
-// import { deleteQuiz, duplicateQuiz, getQuizzes } from "@/lib/data/quizzes";
-// import { useRouter } from "next/navigation";
-
-// type StatusFilter = QuizStatus | "all";
-
-// export default function QuizzesPageContent() {
-//   const router = useRouter();
-//   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-//   const [isLoading, setIsLoading] = useState(true);
-//   const [error, setError] = useState<string | null>(null);
-
-//   const [status, setStatus] = useState<StatusFilter>("all");
-//   const [sort, setSort] = useState<SortOption>("dateModified");
-//   const [view, setView] = useState<ViewMode>("grid");
-
-//   const loadQuizzes = useCallback(async () => {
-//     setIsLoading(true);
-//     setError(null);
-//     try {
-//       const data = await getQuizzes({ status, sort });
-//       setQuizzes(data);
-//     } catch (err) {
-//       setError("We couldn't load your quizzes. Please try again.");
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   }, [status, sort]);
-
-//   useEffect(() => {
-//     loadQuizzes();
-//   }, [loadQuizzes]);
-
-//   // --- Action handlers: wire these up to your routes / modals ------------
-//   const handlePreview = (quiz: Quiz) => {
-//     // e.g. router.push(`/quizzes/${quiz.id}/preview`)
-//     console.log("Preview quiz:", quiz.id);
-//   };
-
-//   const handleEdit = (quiz: Quiz) => {
-//     // e.g. router.push(`/quizzes/${quiz.id}/edit`)
-//     console.log("Edit quiz:", quiz.id);
-//   };
-
-//   const handleCreate = () => {
-//   router.push("/dashboard/teacher/quiz/create-quiz");
-// };
-
-//   const handleDuplicate = async (quiz: Quiz) => {
-//     const optimisticId = crypto.randomUUID();
-//     try {
-//       const created = await duplicateQuiz(quiz.id);
-//       setQuizzes((prev) => [created, ...prev]);
-//     } catch (err) {
-//       console.error("Failed to duplicate quiz", err);
-//     }
-//   };
-
-//   const handleDelete = async (quiz: Quiz) => {
-//     const previous = quizzes;
-//     setQuizzes((prev) => prev.filter((q) => q.id !== quiz.id));
-//     try {
-//       await deleteQuiz(quiz.id);
-//     } catch (err) {
-//       // Roll back on failure
-//       setQuizzes(previous);
-//       console.error("Failed to delete quiz", err);
-//     }
-//   };
-
-//   return (
-//     <div className="mx-auto max-w-6xl px-6 py-8 md:px-10">
-//       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-//         <div>
-//           <h1 className="text-3xl font-extrabold text-primary dark:text-primary">My Quizzes</h1>
-//           <p className="mt-1 text-slate-500">
-//             Create, manage, and monitor student assessment progress.
-//           </p>
-//         </div>
-
-//         <button
-//           type="button"
-//           onClick={handleCreate}
-//           className="flex items-center gap-2 rounded-lg bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800"
-//         >
-//           <Plus size={18} />
-//           Create New Quiz
-//         </button>
-//       </div>
-
-//       <QuizFilterBar
-//         status={status}
-//         onStatusChange={setStatus}
-//         sort={sort}
-//         onSortChange={setSort}
-//         view={view}
-//         onViewChange={setView}
-//       />
-
-//       {error && (
-//         <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-//           {error}
-//         </div>
-//       )}
-
-//       {isLoading ? (
-//         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-//           {Array.from({ length: 6 }).map((_, i) => (
-//             <QuizCardSkeleton key={i} />
-//           ))}
-//         </div>
-//       ) : quizzes.length === 0 ? (
-//         <QuizEmptyState onCreate={handleCreate} />
-//       ) : (
-//         <QuizGrid
-//           quizzes={quizzes}
-//           onPreview={handlePreview}
-//           onEdit={handleEdit}
-//           onDuplicate={handleDuplicate}
-//           onDelete={handleDelete}
-//           onCreate={handleCreate}
-//         />
-//       )}
-//     </div>
 "use client";
 
 import { toast } from "@/components/shared/Toast";
-import { useEffect, useState, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { Plus, X, Clock, HelpCircle, Tag, CheckCircle2 } from "lucide-react";
 
 import QuizFilterBar, { ViewMode } from "./QuizFilterBar";
@@ -142,7 +9,6 @@ import QuizGrid from "./QuizGrid";
 import QuizCardSkeleton from "./QuizCardSkeleton";
 import QuizEmptyState from "./QuizEmptyState";
 import { Quiz, QuizStatus, SortOption } from "@/lib/types/quiz";
-import { deleteQuiz, duplicateQuiz, getClassrooms, getQuizzes } from "@/lib/data/quizzes";
 import { useRouter } from "next/navigation";
 
 import {
@@ -155,6 +21,7 @@ import {
 import ModernSelect from "@/components/shared/ModernSelect";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import QuizResultsModal from "./QuizResultsModal";
+import { apiErrorMessage } from "@/lib/api/errors";
 
 type StatusFilter = QuizStatus | "all";
 type ClassroomFilter = string | "all";
@@ -165,11 +32,14 @@ export default function QuizzesPageContent() {
   const [sort, setSort] = useState<SortOption>("dateModified");
   const [view, setView] = useState<ViewMode>("grid");
   const [classroom, setClassroom] = useState<ClassroomFilter>("all");
-  const [classroomOptions, setClassroomOptions] = useState<string[]>([]);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const { data: realQuizzes = [], isLoading, error: apiError } = useGetTeacherQuizzesQuery();
   const { data: teacherClassrooms = [] } = useGetTeacherClassroomsQuery();
+  const classroomOptions = useMemo(
+    () => Array.from(new Set(teacherClassrooms.map((c) => c.className))).sort(),
+    [teacherClassrooms]
+  );
 
   const [previewQuizId, setPreviewQuizId] = useState<string | null>(null);
   const [assigningQuiz, setAssigningQuiz] = useState<Quiz | null>(null);
@@ -182,6 +52,13 @@ export default function QuizzesPageContent() {
 
   const { data: activeQuizDetail } = useGetQuizByIdQuery(previewQuizId || "", {
     skip: !previewQuizId,
+  });
+
+  // The assign-classroom call replaces the quiz's whole release list, so the
+  // modal needs to know what's already released before it can add one more
+  // without silently un-assigning every other classroom.
+  const { data: assigningQuizDetail } = useGetQuizByIdQuery(assigningQuiz?.id || "", {
+    skip: !assigningQuiz,
   });
 
   const quizzes: Quiz[] = (() => {
@@ -207,12 +84,6 @@ export default function QuizzesPageContent() {
   })();
 
   const error = apiError ? "Failed to load quizzes from backend." : null;
-
-  useEffect(() => {
-    getClassrooms()
-      .then(setClassroomOptions)
-      .catch((err) => console.error("Failed to load classrooms", err));
-  }, []);
 
   function triggerToast(msg: string) {
     if (msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") || msg.toLowerCase().includes("select")) {
@@ -244,28 +115,31 @@ export default function QuizzesPageContent() {
       triggerToast("Please select a classroom to assign.");
       return;
     }
+    // assign-classroom REPLACES the whole release list, so every classroom
+    // the quiz is already released to has to be resent here too — otherwise
+    // adding one section silently un-assigns (or, once it has attempts,
+    // fails to un-assign) every other section it was already released to.
+    const existingReleases = (assigningQuizDetail?.classrooms ?? [])
+      .filter((c) => c.classroomId !== targetClassroomId)
+      .map((c) => ({
+        classroomId: c.classroomId,
+        availableFrom: c.availableFrom,
+        availableTo: c.availableTo,
+      }));
     try {
       await assignQuizMutation({
         quizId: assigningQuiz.id,
-        classroomId: targetClassroomId,
+        classrooms: [...existingReleases, { classroomId: targetClassroomId }],
       }).unwrap();
       triggerToast(`Quiz "${assigningQuiz.title}" assigned successfully!`);
       setAssigningQuiz(null);
-    } catch (err: any) {
-      triggerToast(err?.data?.message || "Failed to assign quiz to classroom.");
+    } catch (err) {
+      triggerToast(apiErrorMessage(err, "Failed to assign quiz to classroom."));
     }
   };
 
   const handleCreate = () => {
     router.push("/dashboard/teacher/quiz/create-quiz");
-  };
-
-  const handleDuplicate = async (quiz: Quiz) => {
-    try {
-      await duplicateQuiz(quiz.id);
-    } catch (err) {
-      console.error("Failed to duplicate quiz", err);
-    }
   };
 
   const handleDelete = (quiz: Quiz) => {
@@ -342,7 +216,6 @@ export default function QuizzesPageContent() {
           onPreview={handlePreview}
           onEdit={handleEdit}
           onAssign={handleAssign}
-          onDuplicate={handleDuplicate}
           onDelete={handleDelete}
           onViewResults={handleViewResults}
           onCreate={handleCreate}

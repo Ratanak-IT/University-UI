@@ -2,15 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, MessageSquare, Pencil, Reply, Trash2 } from "lucide-react";
+import { Comment, CommentScope, MentionUser } from "@/lib/api/comments";
 import {
-  Comment,
-  CommentScope,
-  createComment,
-  deleteComment,
-  fetchComments,
-  MentionUser,
-  updateComment,
-} from "@/lib/api/comments";
+  useGetCommentsQuery,
+  useCreateCommentMutation,
+  useUpdateCommentMutation,
+  useDeleteCommentMutation,
+} from "@/lib/redux/apiSlice";
+import { apiErrorMessage } from "@/lib/api/errors";
 import { toast } from "@/components/shared/Toast";
 import PersonAvatar from "@/components/shared/PersonAvatar";
 import CommentComposer from "./CommentComposer";
@@ -241,29 +240,18 @@ export default function CommentThread({
   title = "Class discussion",
   emptyHint = "Start the conversation — mention a classmate with @",
 }: CommentThreadProps) {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: comments = [], isLoading: loading, isError, error: queryError } = useGetCommentsQuery(scope);
+  const error = isError ? apiErrorMessage(queryError, "Could not load discussion") : null;
+
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const focusRef = useRef<HTMLDivElement | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      setComments(await fetchComments(scope));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load discussion");
-    } finally {
-      setLoading(false);
-    }
-  }, [scope.kind, scope.id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const [createCommentMutation] = useCreateCommentMutation();
+  const [updateCommentMutation] = useUpdateCommentMutation();
+  const [deleteCommentMutation] = useDeleteCommentMutation();
 
   // Arriving from a notification: bring the referenced comment into view once
   // the thread has actually rendered.
@@ -275,7 +263,7 @@ export default function CommentThread({
   const handleCreate = useCallback(
     async (body: string, mentionedUserIds: string[], parentId?: string) => {
       try {
-        await createComment(scope, { body, parentId, mentionedUserIds });
+        await createCommentMutation({ scope, payload: { body, parentId, mentionedUserIds } }).unwrap();
         setReplyingTo(null);
         if (mentionedUserIds.length > 0) {
           toast.success(
@@ -287,20 +275,17 @@ export default function CommentThread({
         } else {
           toast.success("Comment posted successfully!", "Comment Added");
         }
-        await load();
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Could not post comment";
-        setError(msg);
-        toast.error(msg, "Post Failed");
+        toast.error(apiErrorMessage(err, "Could not post comment"), "Post Failed");
       }
     },
-    [scope, load]
+    [scope, createCommentMutation]
   );
 
   const handleUpdate = useCallback(
     async (commentId: string, body: string, mentionedUserIds: string[]) => {
       try {
-        await updateComment(commentId, { body, mentionedUserIds });
+        await updateCommentMutation({ commentId, scope, payload: { body, mentionedUserIds } }).unwrap();
         setEditing(null);
         if (mentionedUserIds.length > 0) {
           toast.success(
@@ -310,14 +295,11 @@ export default function CommentThread({
         } else {
           toast.success("Comment updated successfully!", "Comment Updated");
         }
-        await load();
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Could not update comment";
-        setError(msg);
-        toast.error(msg, "Update Failed");
+        toast.error(apiErrorMessage(err, "Could not update comment"), "Update Failed");
       }
     },
-    [load]
+    [scope, updateCommentMutation]
   );
 
   // Deletes are permanent and cascade, so the confirmation wording has to
@@ -331,15 +313,12 @@ export default function CommentThread({
     const commentId = pendingDeleteId;
     setPendingDeleteId(null);
     try {
-      await deleteComment(commentId);
+      await deleteCommentMutation({ commentId, scope }).unwrap();
       toast.success("Comment deleted successfully!", "Comment Deleted");
-      await load();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Could not delete comment";
-      setError(msg);
-      toast.error(msg, "Delete Failed");
+      toast.error(apiErrorMessage(err, "Could not delete comment"), "Delete Failed");
     }
-  }, [load, pendingDeleteId]);
+  }, [scope, deleteCommentMutation, pendingDeleteId]);
 
   return (
     <div className="space-y-4">

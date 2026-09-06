@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TableRowsSkeleton } from "@/components/shared/Skeletons";
+import { toast } from "@/components/shared/Toast";
 import {
   useGetMyNotificationsQuery,
   useMarkNotificationReadMutation,
@@ -161,6 +162,7 @@ export default function NotificationsPage() {
       await markAllReadApi().unwrap();
     } catch (err) {
       console.error("Failed to mark all as read", err);
+      toast.error("Failed to mark all as read. Please try again.");
     }
   }
 

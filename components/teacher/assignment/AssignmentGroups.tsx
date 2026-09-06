@@ -15,144 +15,136 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2, Calendar, Clock, CheckCircle, X } from "lucide-react";
 import AssignmentGroupCard from "./AssignmentGroupCard";
 import AssignmentsFilterBar from "./AssignmentsFilterBar";
 import { ClassroomFilter, AssignmentGroup, AssignmentItem } from "@/lib/types/AssignmentGroup";
-import { fetchSavedAssignments, assignSavedAssignment } from "@/lib/api/assignment";
-import { fetchTeacherClassrooms } from "@/lib/api/teacher";
-import { fetchClassroomAssignments } from "@/lib/api/student";
-import { useDeleteAssignmentMutation, useUpdateAssignmentMutation } from "@/lib/redux/apiSlice";
+import {
+  useGetSavedAssignmentsQuery,
+  useGetTeacherClassroomsQuery,
+  useGetClassroomAssignmentsQuery,
+  useAssignAssignmentToClassroomMutation,
+  useDeleteAssignmentMutation,
+  useUpdateAssignmentMutation,
+} from "@/lib/redux/apiSlice";
 import { toast } from "@/components/shared/Toast";
+import { apiErrorMessage } from "@/lib/api/errors";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FilterBarSkeleton } from "@/components/shared/Skeletons";
 
+function mapAssignmentItems(active: { assignmentId: string; title: string; dueDate: string | null; maxScore: number }[]): AssignmentItem[] {
+  return active.map((a) => ({
+    id: a.assignmentId,
+    title: a.title,
+    postedDate: a.dueDate ? `Due on ${new Date(a.dueDate).toLocaleString()}` : "No due date",
+    icon: "assignment",
+    meta: {
+      label: `${a.maxScore || 100} pts`,
+      variant: "none",
+    },
+  }));
+}
+
+/**
+ * Owns the per-classroom RTK query itself, so a classroom's assignments are
+ * only fetched once its group is expanded (`skip` while collapsed) — the
+ * same lazy-load behavior as before, now for free via the cache instead of a
+ * manual `loadGroupItems` fetch-and-setState dance.
+ */
+function ClassroomAssignmentGroup({
+  classroom,
+  expanded,
+  onToggle,
+  onAssign,
+  onEdit,
+  onDelete,
+}: {
+  classroom: { id: string; name: string };
+  expanded: boolean;
+  onToggle: () => void;
+  onAssign: (id: string) => void;
+  onEdit: (item: AssignmentItem) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { data: active = [], isFetching } = useGetClassroomAssignmentsQuery(classroom.id, {
+    skip: !expanded,
+  });
+  const group: AssignmentGroup = {
+    id: classroom.id,
+    title: classroom.name,
+    classroom: classroom.name,
+    items: mapAssignmentItems(active),
+    loaded: expanded,
+  };
+  return (
+    <AssignmentGroupCard
+      group={group}
+      expanded={expanded}
+      loadingItems={isFetching}
+      onToggle={onToggle}
+      onAssign={onAssign}
+      onEdit={onEdit}
+      onDelete={onDelete}
+    />
+  );
+}
+
 export default function AssignmentGroups() {
   const [classroomFilter, setClassroomFilter] = useState<ClassroomFilter>("all");
-  const [loading, setLoading] = useState(true);
-  const [groups, setGroups] = useState<AssignmentGroup[]>([]);
-  
+
+  const { data: savedAssignments = [], isLoading: loadingSaved } = useGetSavedAssignmentsQuery();
+  const { data: classData = [], isLoading: loadingClassrooms } = useGetTeacherClassroomsQuery();
+  const loading = loadingSaved || loadingClassrooms;
+
+  const classrooms = useMemo(
+    () => classData.map((c) => ({ id: c.classroomId, name: c.className || "Classroom" })),
+    [classData]
+  );
+
+  const templatesGroup: AssignmentGroup | null = useMemo(() => {
+    if (savedAssignments.length === 0) return null;
+    return {
+      id: "templates",
+      title: "Saved Templates",
+      classroom: "Templates",
+      loaded: true,
+      items: savedAssignments.map((a: any) => ({
+        id: a.assignmentId,
+        title: a.title,
+        postedDate: `Created on ${new Date(a.createdAt).toLocaleDateString()}`,
+        icon: "assignment",
+        meta: { label: "Template", variant: "none" },
+      })),
+    };
+  }, [savedAssignments]);
+
   // Assign Modal State
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
   const [dueTime, setDueTime] = useState<string>("23:59");
-  const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Edit Assignment Modal State
   const [editingItem, setEditingItem] = useState<AssignmentItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [savingEdit, setSavingEdit] = useState(false);
 
+  const [assignAssignmentToClassroom, { isLoading: actionLoading }] = useAssignAssignmentToClassroomMutation();
   const [deleteAssignmentMutation] = useDeleteAssignmentMutation();
-  const [updateAssignmentMutation] = useUpdateAssignmentMutation();
-
-  const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([]);
+  const [updateAssignmentMutation, { isLoading: savingEdit }] = useUpdateAssignmentMutation();
 
   // A classroom's assignments are only fetched once its group is expanded —
-  // fetching every classroom's assignments up front (the old behavior) meant
-  // one round trip per classroom before the page could render anything.
+  // fetching every classroom's assignments up front meant one round trip per
+  // classroom before the page could render anything.
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [loadingGroupId, setLoadingGroupId] = useState<string | null>(null);
 
-  function mapAssignmentItems(active: { assignmentId: string; title: string; dueDate: string | null; maxScore: number }[]): AssignmentItem[] {
-    return active.map((a) => ({
-      id: a.assignmentId,
-      title: a.title,
-      postedDate: a.dueDate ? `Due on ${new Date(a.dueDate).toLocaleString()}` : "No due date",
-      icon: "assignment",
-      meta: {
-        label: `${a.maxScore || 100} pts`,
-        variant: "none",
-      },
-    }));
-  }
-
-  async function loadGroupItems(classroomId: string) {
-    setLoadingGroupId(classroomId);
-    const active = await fetchClassroomAssignments(classroomId);
-    setGroups((prev) =>
-      prev.map((g) => (g.id === classroomId ? { ...g, items: mapAssignmentItems(active || []), loaded: true } : g))
-    );
-    setLoadingGroupId(null);
-  }
-
-  async function loadData() {
-    setLoading(true);
-    try {
-      const [saved, classes] = await Promise.all([
-        fetchSavedAssignments(),
-        fetchTeacherClassrooms(),
-      ]);
-
-      const allGroups: AssignmentGroup[] = [];
-
-      // Saved Templates is a single cheap call, so it's always loaded up front.
-      if (saved && saved.length > 0) {
-        allGroups.push({
-          id: "templates",
-          title: "Saved Templates",
-          classroom: "Templates",
-          loaded: true,
-          items: saved.map((a) => ({
-            id: a.assignmentId,
-            title: a.title,
-            postedDate: `Created on ${new Date(a.createdAt).toLocaleDateString()}`,
-            icon: "assignment",
-            meta: {
-              label: "Template",
-              variant: "none",
-            },
-          })),
-        });
-      }
-
-      // Classroom groups start empty and collapsed — their assignments are
-      // only fetched when the teacher expands that group.
-      if (classes && classes.length > 0) {
-        setClassrooms(classes.map((c) => ({ id: c.classroomId, name: c.className || "Classroom" })));
-        classes.forEach((c) => {
-          allGroups.push({
-            id: c.classroomId,
-            title: c.className || "Classroom",
-            classroom: c.className || "Classroom",
-            items: [],
-            loaded: false,
-          });
-        });
-      }
-
-      setGroups(allGroups);
-      setLoading(false);
-
-      // Re-fetch any groups the teacher already had open, so an edit/delete
-      // inside one is reflected without re-fetching every other classroom.
-      await Promise.all(Array.from(expandedIds).map((id) => loadGroupItems(id)));
-    } catch (err) {
-      console.error("Error loading assignments:", err);
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function toggleGroup(group: AssignmentGroup) {
-    if (group.id === "templates") return;
+  function toggleGroup(id: string) {
+    if (id === "templates") return;
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(group.id)) {
-        next.delete(group.id);
-      } else {
-        next.add(group.id);
-        if (!group.loaded) {
-          loadGroupItems(group.id);
-        }
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -161,20 +153,23 @@ export default function AssignmentGroups() {
     return classrooms.map((c) => c.name).sort();
   }, [classrooms]);
 
-  const filteredGroups = useMemo(() => {
-    if (classroomFilter === "all") return groups;
-    return groups.filter((g) => g.classroom === classroomFilter);
-  }, [groups, classroomFilter]);
+  const filteredClassrooms = useMemo(() => {
+    if (classroomFilter === "all") return classrooms;
+    return classrooms.filter((c) => c.name === classroomFilter);
+  }, [classrooms, classroomFilter]);
+
+  const filteredGroupCount =
+    filteredClassrooms.length + (templatesGroup && classroomFilter === "all" ? 1 : 0);
+  const totalGroupCount = classrooms.length + (templatesGroup ? 1 : 0);
 
   // Filtering down to one classroom is a clear signal the teacher wants to
-  // see it — expand and load it automatically instead of making them click twice.
+  // see it — expand it automatically instead of making them click twice.
   function handleClassroomFilterChange(next: ClassroomFilter) {
     setClassroomFilter(next);
     if (next === "all") return;
-    const target = groups.find((g) => g.classroom === next);
-    if (!target || target.id === "templates") return;
+    const target = classrooms.find((c) => c.name === next);
+    if (!target) return;
     setExpandedIds((prev) => (prev.has(target.id) ? prev : new Set(prev).add(target.id)));
-    if (!target.loaded) loadGroupItems(target.id);
   }
 
   function handleAssignClick(id: string) {
@@ -187,21 +182,24 @@ export default function AssignmentGroups() {
 
   async function handleConfirmAssign() {
     if (!assigningId || !selectedClassroomId || !dueDate) return;
-    setActionLoading(true);
     setMessage(null);
 
-    const combinedDueDate = `${dueDate}T${dueTime}:00`;
-    const res = await assignSavedAssignment(assigningId, selectedClassroomId, combinedDueDate);
-    setActionLoading(false);
-
-    if (res) {
+    // Sent to the server as UTC ISO (no seconds precision beyond this),
+    // matching the format the backend expects — a naive local-time string
+    // here would land the deadline at the wrong hour for any non-UTC user.
+    const combinedDueDate = new Date(`${dueDate}T${dueTime}:00`).toISOString().slice(0, 19);
+    try {
+      await assignAssignmentToClassroom({
+        assignmentId: assigningId,
+        classroomId: selectedClassroomId,
+        dueDate: combinedDueDate,
+      }).unwrap();
       setMessage({ type: "success", text: "Assignment distributed successfully!" });
-      await loadData();
       setTimeout(() => {
         setAssigningId(null);
       }, 1500);
-    } else {
-      setMessage({ type: "error", text: "Failed to distribute assignment. Please try again." });
+    } catch (err) {
+      setMessage({ type: "error", text: apiErrorMessage(err, "Failed to distribute assignment. Please try again.") });
     }
   }
 
@@ -218,9 +216,8 @@ export default function AssignmentGroups() {
     try {
       await deleteAssignmentMutation(id).unwrap();
       toast.success("Assignment deleted successfully!");
-      loadData();
-    } catch {
-      toast.error("Failed to delete assignment. Please try again.");
+    } catch (err) {
+      toast.error("Failed to delete assignment", apiErrorMessage(err, "Please try again."));
     }
   }
 
@@ -231,7 +228,6 @@ export default function AssignmentGroups() {
 
   async function handleConfirmEdit() {
     if (!editingItem || !editTitle.trim()) return;
-    setSavingEdit(true);
     try {
       await updateAssignmentMutation({
         assignmentId: editingItem.id,
@@ -239,11 +235,9 @@ export default function AssignmentGroups() {
       }).unwrap();
       toast.success("Assignment updated successfully!");
       setEditingItem(null);
-      loadData();
-    } catch {
-      toast.error("Failed to update assignment.");
+    } catch (err) {
+      toast.error("Failed to update assignment", apiErrorMessage(err, "Please try again."));
     }
-    setSavingEdit(false);
   }
 
   if (loading) {
@@ -268,27 +262,39 @@ export default function AssignmentGroups() {
         classroom={classroomFilter}
         onClassroomChange={handleClassroomFilterChange}
         classroomOptions={classroomOptions}
-        shownCount={filteredGroups.length}
-        totalCount={groups.length}
+        shownCount={filteredGroupCount}
+        totalCount={totalGroupCount}
       />
 
-      {filteredGroups.length === 0 ? (
+      {filteredGroupCount === 0 ? (
         <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-slate-500">
           No assignments found.
         </div>
       ) : (
-        filteredGroups.map((group) => (
-          <AssignmentGroupCard
-            key={group.id}
-            group={group}
-            expanded={group.id === "templates" || expandedIds.has(group.id)}
-            loadingItems={loadingGroupId === group.id}
-            onToggle={() => toggleGroup(group)}
-            onAssign={handleAssignClick}
-            onEdit={handleOpenEdit}
-            onDelete={handleDeleteAssignment}
-          />
-        ))
+        <>
+          {templatesGroup && classroomFilter === "all" && (
+            <AssignmentGroupCard
+              group={templatesGroup}
+              expanded
+              loadingItems={false}
+              onToggle={() => {}}
+              onAssign={handleAssignClick}
+              onEdit={handleOpenEdit}
+              onDelete={handleDeleteAssignment}
+            />
+          )}
+          {filteredClassrooms.map((c) => (
+            <ClassroomAssignmentGroup
+              key={c.id}
+              classroom={c}
+              expanded={expandedIds.has(c.id)}
+              onToggle={() => toggleGroup(c.id)}
+              onAssign={handleAssignClick}
+              onEdit={handleOpenEdit}
+              onDelete={handleDeleteAssignment}
+            />
+          ))}
+        </>
       )}
 
       {/* Assign Template Modal */}

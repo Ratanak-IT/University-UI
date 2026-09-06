@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2, Send, CheckCircle, Pencil } from "lucide-react";
 import LessonsFilterBar from "./LessonsFilterBar";
 import LessonCard from "./LessonCard";
 import LessonsPagination from "./LessonsPagination";
 import { Lesson, LessonFilter, ClassroomFilter } from "@/lib/types/Lesson";
-import { fetchSavedLessons, assignSavedLesson, deleteLesson, updateLesson } from "@/lib/api/lesson";
-import { fetchTeacherClassrooms } from "@/lib/api/teacher";
+import {
+  useGetSavedLessonsQuery,
+  useGetTeacherClassroomsQuery,
+  useAssignLessonToClassroomMutation,
+  useDeleteSavedLessonMutation,
+  useUpdateSavedLessonMutation,
+} from "@/lib/redux/apiSlice";
 import { toast } from "@/components/shared/Toast";
+import { apiErrorMessage } from "@/lib/api/errors";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FilterBarSkeleton, CardGridSkeleton } from "@/components/shared/Skeletons";
 
@@ -18,26 +24,45 @@ export default function LessonsPage() {
   const [activeFilter, setActiveFilter] = useState<LessonFilter>("all");
   const [classroom, setClassroom] = useState<ClassroomFilter>("all");
   const [page, setPage] = useState(1);
-  
-  const [lessonsList, setLessonsList] = useState<Lesson[]>([]);
-  const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  
+
+  const { data: savedLessons = [], isLoading: loadingLessons } = useGetSavedLessonsQuery();
+  const { data: classData = [], isLoading: loadingClassrooms } = useGetTeacherClassroomsQuery();
+  const loading = loadingLessons || loadingClassrooms;
+
+  const classrooms = useMemo(
+    () => classData.map((c) => ({ id: c.classroomId, name: c.className || "Classroom" })),
+    [classData]
+  );
+
+  const lessonsList = useMemo<Lesson[]>(
+    () =>
+      savedLessons.map((l: any) => ({
+        id: l.lessonId,
+        title: l.title,
+        description: l.content || "",
+        date: l.createdAt
+          ? new Date(l.createdAt).toLocaleDateString()
+          : new Date().toLocaleDateString(),
+        status: l.classroomId ? "published" : "draft",
+        thumbnail: "database",
+        classroomId: l.classroomId || undefined,
+      })),
+    [savedLessons]
+  );
+
   // Assign Modal State
   const [assigningLessonId, setAssigningLessonId] = useState<string | null>(null);
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>("");
-  const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Edit Lesson Modal State
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
-  const [updating, setUpdating] = useState(false);
 
-  // Delete Lesson Confirm State
-  const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [assignLessonToClassroom, { isLoading: actionLoading }] = useAssignLessonToClassroomMutation();
+  const [updateSavedLesson, { isLoading: updating }] = useUpdateSavedLessonMutation();
+  const [deleteSavedLesson] = useDeleteSavedLessonMutation();
 
   function handleOpenEditLesson(lesson: Lesson) {
     setEditingLesson(lesson);
@@ -47,18 +72,16 @@ export default function LessonsPage() {
 
   async function handleSaveEditLesson() {
     if (!editingLesson || !editTitle.trim()) return;
-    setUpdating(true);
-    const res = await updateLesson(editingLesson.id, {
-      title: editTitle.trim(),
-      content: editContent.trim(),
-    });
-    setUpdating(false);
-    if (res) {
+    try {
+      await updateSavedLesson({
+        lessonId: editingLesson.id,
+        title: editTitle.trim(),
+        content: editContent.trim(),
+      }).unwrap();
       toast.success("Lesson updated successfully!");
       setEditingLesson(null);
-      loadData();
-    } else {
-      toast.error("Failed to update lesson. Please try again.");
+    } catch (err) {
+      toast.error("Failed to update lesson", apiErrorMessage(err, "Please try again."));
     }
   }
 
@@ -72,49 +95,13 @@ export default function LessonsPage() {
     if (!pendingDeleteId) return;
     const lessonId = pendingDeleteId;
     setPendingDeleteId(null);
-    const ok = await deleteLesson(lessonId);
-    if (ok) {
-      toast.success("Lesson deleted successfully!");
-      loadData();
-    } else {
-      toast.error("Failed to delete lesson. Please try again.");
-    }
-  }
-
-  async function loadData() {
-    setLoading(true);
     try {
-      const [saved, classes] = await Promise.all([
-        fetchSavedLessons(),
-        fetchTeacherClassrooms(),
-      ]);
-
-      if (saved) {
-        const mapped: Lesson[] = saved.map((l) => ({
-          id: l.lessonId,
-          title: l.title,
-          description: l.content || "",
-          date: l.createdAt
-            ? new Date(l.createdAt).toLocaleDateString()
-            : new Date().toLocaleDateString(),
-          status: l.classroomId ? "published" : "draft",
-          thumbnail: "database",
-          classroomId: l.classroomId || undefined,
-        }));
-        setLessonsList(mapped);
-      }
-      if (classes) {
-        setClassrooms(classes.map(c => ({ id: c.classroomId, name: c.className || "Classroom" })));
-      }
+      await deleteSavedLesson(lessonId).unwrap();
+      toast.success("Lesson deleted successfully!");
     } catch (err) {
-      console.error("Error loading lessons:", err);
+      toast.error("Failed to delete lesson", apiErrorMessage(err, "Please try again."));
     }
-    setLoading(false);
   }
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   const classroomOptions = useMemo(() => {
     return classrooms.map(c => c.name).sort();
@@ -153,20 +140,19 @@ export default function LessonsPage() {
 
   async function handleConfirmAssign() {
     if (!assigningLessonId || !selectedClassroomId) return;
-    setActionLoading(true);
     setMessage(null);
 
-    const res = await assignSavedLesson(assigningLessonId, selectedClassroomId);
-    setActionLoading(false);
-
-    if (res) {
+    try {
+      await assignLessonToClassroom({
+        lessonId: assigningLessonId,
+        classroomId: selectedClassroomId,
+      }).unwrap();
       setMessage({ type: "success", text: "Lesson assigned successfully!" });
-      await loadData();
       setTimeout(() => {
         setAssigningLessonId(null);
       }, 1500);
-    } else {
-      setMessage({ type: "error", text: "Failed to assign lesson. Please try again." });
+    } catch (err) {
+      setMessage({ type: "error", text: apiErrorMessage(err, "Failed to assign lesson. Please try again.") });
     }
   }
 

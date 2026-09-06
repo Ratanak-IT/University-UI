@@ -97,7 +97,7 @@ export function SidebarBrand() {
         />
       </div>
       <div className="min-w-0">
-        <p className="text-xl font-black tracking-tight text-indigo-950 dark:text-indigo-200">
+        <p className="text-xl font-black tracking-tight text-indigo-950 dark:text-gray-200">
           UMS
         </p>
         <p className="text-xs font-semibold text-muted-foreground">Student Portal</p>
@@ -132,14 +132,14 @@ export function SidebarNavList({ onNavigate }: { onNavigate?: () => void }) {
                     aria-current={isActive ? "page" : undefined}
                     className={`group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
                       isActive
-                        ? "bg-indigo-50 text-indigo-600 shadow-sm dark:bg-indigo-950/70 dark:text-indigo-300"
+                        ? "bg-indigo-50 text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-white"
                         : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                     }`}
                   >
                     <Icon
                       className={`h-4.5 w-4.5 transition-colors ${
                         isActive
-                          ? "text-indigo-600 dark:text-indigo-400"
+                          ? "text-indigo-600 dark:text-white"
                           : "text-muted-foreground/70 group-hover:text-foreground"
                       }`}
                       strokeWidth={isActive ? 2 : 1.75}

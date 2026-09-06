@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { HelpCircle, Clock, MoreVertical, Copy, Trash2, Pencil, Send, ClipboardList } from "lucide-react";
+import { HelpCircle, Clock, MoreVertical, Trash2, Pencil, Send, ClipboardList } from "lucide-react";
 
 import StatusBadge from "./StatusBadge";
 import { Quiz } from "@/lib/types/quiz";
@@ -11,7 +11,6 @@ interface QuizCardProps {
   onPreview?: (quiz: Quiz) => void;
   onEdit?: (quiz: Quiz) => void;
   onAssign?: (quiz: Quiz) => void;
-  onDuplicate?: (quiz: Quiz) => void;
   onDelete?: (quiz: Quiz) => void;
   onViewResults?: (quiz: Quiz) => void;
 }
@@ -21,7 +20,6 @@ export default function QuizCard({
   onPreview,
   onEdit,
   onAssign,
-  onDuplicate,
   onDelete,
   onViewResults,
 }: QuizCardProps) {
@@ -86,16 +84,6 @@ export default function QuizCard({
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted"
               >
                 <ClipboardList size={14} /> View Results
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDuplicate?.(quiz);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-card-foreground hover:bg-muted"
-              >
-                <Copy size={14} /> Duplicate
               </button>
               <button
                 type="button"

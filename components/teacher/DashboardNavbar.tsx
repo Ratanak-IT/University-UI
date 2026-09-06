@@ -24,7 +24,7 @@ export default function DashboardNavbar() {
       <div className="flex min-w-0 items-center gap-2">
         <MobileNav />
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold text-[#004071] sm:text-xl dark:text-sky-400">
+          <h1 className="truncate text-lg font-bold text-[#004071] sm:text-xl dark:text-gray-200">
             Dashboard
           </h1>
           <p className="hidden truncate text-sm font-medium text-gray-500 sm:block dark:text-slate-400">

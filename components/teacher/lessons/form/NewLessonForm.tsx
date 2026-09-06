@@ -5,7 +5,7 @@ import { Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FileDropzone } from "./FileDropzone";
 import { RichTextEditor } from "./RichTextEditor";
-import { createSavedLesson, createLessonForClassroom } from "@/lib/api/lesson";
+import { useCreateSavedLessonMutation, useCreateLessonForClassroomMutation } from "@/lib/redux/apiSlice";
 import { useSearchParams } from "next/navigation";
 import {
   ENTRY_CATEGORIES,
@@ -22,8 +22,11 @@ export function NewLessonForm() {
 
   const [form, setForm] = useState<LessonFormData>(initialLessonFormData);
   const [videoLink, setVideoLink] = useState("");
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const [createSavedLesson, { isLoading: savingTemplate }] = useCreateSavedLessonMutation();
+  const [createLessonForClassroom, { isLoading: savingInClassroom }] = useCreateLessonForClassroomMutation();
+  const saving = savingTemplate || savingInClassroom;
 
   function update<K extends keyof LessonFormData>(key: K, value: LessonFormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -43,7 +46,6 @@ export function NewLessonForm() {
       return;
     }
     setError("");
-    setSaving(true);
 
     const payload = {
       title: form.title,
@@ -52,22 +54,19 @@ export function NewLessonForm() {
       allowDownload: form.allowDownload,
     };
 
-    let res;
-    if (classroomId) {
-      res = await createLessonForClassroom(classroomId, payload, form.attachments);
-    } else {
-      res = await createSavedLesson(payload, form.attachments);
-    }
-    
-    setSaving(false);
+    const formData = new FormData();
+    formData.append("lesson", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+    form.attachments.forEach((file) => formData.append("file", file));
 
-    if (res) {
+    try {
       if (classroomId) {
+        await createLessonForClassroom({ classroomId, formData }).unwrap();
         router.push(`/dashboard/teacher/my-classroom/${classroomId}`);
       } else {
+        await createSavedLesson(formData).unwrap();
         router.push("/dashboard/teacher/lessons");
       }
-    } else {
+    } catch {
       setError("Failed to create lesson. Please try again.");
     }
   }

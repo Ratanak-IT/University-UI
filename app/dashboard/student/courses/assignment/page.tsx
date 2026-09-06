@@ -12,14 +12,12 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import {
-  fetchMyProfile,
-  fetchStudentAssignmentDetail,
   fetchClassroomAssignments,
   fetchMyClassrooms,
   submitAssignment,
   StudentAssignmentResponse,
-  StudentProfile,
 } from "@/lib/api/student";
+import { useGetStudentProfileQuery, useGetStudentAssignmentDetailQuery } from "@/lib/redux/apiSlice";
 import Link from "next/link";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 import CommentThread from "@/components/shared/CommentThread";
@@ -35,100 +33,82 @@ function AssignmentDetailInner() {
   const focusCommentId = params.get("comment");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [assignment, setAssignment] = useState<StudentAssignmentResponse | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
+  const [fallbackAssignment, setFallbackAssignment] = useState<StudentAssignmentResponse | null>(null);
+  const [loadingFallback, setLoadingFallback] = useState(false);
 
+  const { data: profile, isLoading: loadingProfile } = useGetStudentProfileQuery();
+  const {
+    data: primaryAssignment,
+    isLoading: loadingPrimary,
+    isError: primaryFailed,
+    refetch: refetchPrimary,
+  } = useGetStudentAssignmentDetailQuery(
+    { studentId: profile?.studentId ?? "", assignmentId: assignmentId ?? "" },
+    { skip: !assignmentId || !profile?.studentId }
+  );
+
+  // The detail endpoint 404s for an assignment the student hasn't been
+  // graded on yet in some backend states — this rebuilds a minimal view from
+  // the classroom's assignment list instead of showing a dead end.
   useEffect(() => {
-    async function load() {
-      if (!assignmentId) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      const p = await fetchMyProfile();
-      if (p) setProfile(p);
+    if (!assignmentId || primaryAssignment || !primaryFailed) return;
+    let cancelled = false;
 
-      let loadedAssignment: StudentAssignmentResponse | null = null;
+    async function loadFallback() {
+      setLoadingFallback(true);
+      let found: StudentAssignmentResponse | null = null;
 
-      // 1. Try fetchStudentAssignmentDetail
-      if (p) {
-        try {
-          loadedAssignment = await fetchStudentAssignmentDetail(p.studentId, assignmentId);
-        } catch {
-          // ignore error and fallback
-        }
-      }
-
-      // 2. If null and classroomId is provided, fetch from classroom assignments
-      if (!loadedAssignment && classroomId) {
+      if (classroomId) {
         const classAsgns = await fetchClassroomAssignments(classroomId);
         const ca = classAsgns?.find((a) => a.assignmentId === assignmentId);
         if (ca) {
-          loadedAssignment = {
-            assignmentId: ca.assignmentId,
-            classroomId: ca.classroomId,
-            className: "",
-            subjectName: "",
-            title: ca.title,
-            description: ca.description,
-            dueDate: ca.dueDate,
-            maxScore: ca.maxScore,
-            weight: ca.weight,
-            assignmentFiles: ca.files ?? [],
-            submissionId: null,
-            submissionStatus: null,
-            submittedAt: null,
-            score: null,
-            feedback: null,
-            gradedAt: null,
-            submissionFiles: [],
+          found = {
+            assignmentId: ca.assignmentId, classroomId: ca.classroomId,
+            className: "", subjectName: "",
+            title: ca.title, description: ca.description, dueDate: ca.dueDate,
+            maxScore: ca.maxScore, weight: ca.weight, assignmentFiles: ca.files ?? [],
+            submissionId: null, submissionStatus: null, submittedAt: null,
+            score: null, feedback: null, gradedAt: null, submissionFiles: [],
           };
         }
       }
 
-      // 3. Fallback: search across all enrolled classrooms
-      if (!loadedAssignment) {
+      if (!found) {
         const classrooms = await fetchMyClassrooms();
-        if (classrooms) {
-          for (const c of classrooms) {
-            const classAsgns = await fetchClassroomAssignments(c.classroomId);
-            const ca = classAsgns?.find((a) => a.assignmentId === assignmentId);
-            if (ca) {
-              loadedAssignment = {
-                assignmentId: ca.assignmentId,
-                classroomId: ca.classroomId,
-                className: c.className,
-                subjectName: c.subjectName ?? "",
-                title: ca.title,
-                description: ca.description,
-                dueDate: ca.dueDate,
-                maxScore: ca.maxScore,
-                weight: ca.weight,
-                assignmentFiles: ca.files ?? [],
-                submissionId: null,
-                submissionStatus: null,
-                submittedAt: null,
-                score: null,
-                feedback: null,
-                gradedAt: null,
-                submissionFiles: [],
-              };
-              break;
-            }
+        for (const c of classrooms ?? []) {
+          const classAsgns = await fetchClassroomAssignments(c.classroomId);
+          const ca = classAsgns?.find((a) => a.assignmentId === assignmentId);
+          if (ca) {
+            found = {
+              assignmentId: ca.assignmentId, classroomId: ca.classroomId,
+              className: c.className, subjectName: c.subjectName ?? "",
+              title: ca.title, description: ca.description, dueDate: ca.dueDate,
+              maxScore: ca.maxScore, weight: ca.weight, assignmentFiles: ca.files ?? [],
+              submissionId: null, submissionStatus: null, submittedAt: null,
+              score: null, feedback: null, gradedAt: null, submissionFiles: [],
+            };
+            break;
           }
         }
       }
 
-      if (loadedAssignment) setAssignment(loadedAssignment);
-      setLoading(false);
+      if (!cancelled) {
+        setFallbackAssignment(found);
+        setLoadingFallback(false);
+      }
     }
-    load();
-  }, [assignmentId, classroomId]);
+    loadFallback();
+    return () => {
+      cancelled = true;
+    };
+  }, [assignmentId, classroomId, primaryAssignment, primaryFailed]);
+
+  const assignment = primaryAssignment ?? fallbackAssignment;
+  const loading = loadingProfile || (!!assignmentId && (loadingPrimary || (primaryFailed && loadingFallback)));
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -143,21 +123,14 @@ function AssignmentDetailInner() {
     setSubmitting(false);
     if (result) {
       setSubmitSuccess(true);
-      // Reload assignment data to show updated submission status
-      if (profile) {
-        try {
-          const a = await fetchStudentAssignmentDetail(profile.studentId, assignmentId);
-          if (a) setAssignment(a);
-        } catch {
-          // Keep current state with SUBMITTED status
-          if (assignment) {
-            setAssignment({
-              ...assignment,
-              submissionStatus: "SUBMITTED",
-              submittedAt: new Date().toISOString(),
-            });
-          }
-        }
+      if (primaryAssignment) {
+        refetchPrimary();
+      } else if (assignment) {
+        setFallbackAssignment({
+          ...assignment,
+          submissionStatus: "SUBMITTED",
+          submittedAt: new Date().toISOString(),
+        });
       }
     }
   };

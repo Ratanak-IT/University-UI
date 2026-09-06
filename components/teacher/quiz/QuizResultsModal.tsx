@@ -8,6 +8,13 @@ interface QuizResultsModalProps {
   quizId: string | null;
   quizTitle?: string;
   onClose: () => void;
+  /**
+   * Opening results from inside one specific classroom's Quizzes tab already
+   * answers "which section" — the filter dropdown (and per-row classroom
+   * badge) only earns its place when opened from the general quiz list,
+   * where a quiz released to several sections needs a way to narrow down.
+   */
+  classroomId?: string;
 }
 
 type FilterId = "all" | "SUBMITTED" | "IN_PROGRESS" | "NOT_STARTED" | "EXPIRED";
@@ -26,25 +33,31 @@ const STATUS_LABEL: Record<string, string> = {
   NOT_STARTED: "Not started",
 };
 
-export default function QuizResultsModal({ quizId, quizTitle, onClose }: QuizResultsModalProps) {
+export default function QuizResultsModal({ quizId, quizTitle, onClose, classroomId }: QuizResultsModalProps) {
   const { data: attempts = [], isLoading, isError } = useGetQuizAttemptsQuery(quizId || "", {
     skip: !quizId,
   });
 
   const [filter, setFilter] = useState<FilterId>("all");
-  const [classroomFilter, setClassroomFilter] = useState<string>("all");
+  const [classroomFilter, setClassroomFilter] = useState<string>(classroomId ?? "all");
   const [search, setSearch] = useState("");
+
+  // Already scoped to one classroom by the caller — nothing to narrow down,
+  // so the picker (and the badge that would otherwise repeat that same
+  // classroom on every row) simply doesn't apply here.
+  const lockedToClassroom = !!classroomId;
 
   // A quiz released to more than one section needs a way to narrow to just
   // one — built from whatever classrooms actually show up in the roster,
   // so it never lists a section this quiz wasn't released to.
   const classrooms = useMemo(() => {
+    if (lockedToClassroom) return [];
     const seen = new Map<string, string>();
     for (const a of attempts) {
       if (!seen.has(a.classroomId)) seen.set(a.classroomId, a.className || "Classroom");
     }
     return Array.from(seen, ([id, name]) => ({ id, name }));
-  }, [attempts]);
+  }, [attempts, lockedToClassroom]);
 
   const counts = useMemo(() => {
     const c = { all: attempts.length, SUBMITTED: 0, IN_PROGRESS: 0, NOT_STARTED: 0, EXPIRED: 0 };

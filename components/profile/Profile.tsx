@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   SquarePen,
   ShieldCheck,
@@ -16,11 +16,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import {
-  fetchTeacherProfile,
-  uploadTeacherAvatar,
-  TeacherProfile,
-} from "@/lib/api/teacher";
+import { useGetTeacherProfileQuery, useUploadTeacherAvatarMutation } from "@/lib/redux/apiSlice";
 import ProfileTeacherSkeleton from "./ProfileTeacherSkeleton";
 
 function Card({
@@ -92,22 +88,10 @@ function Tag({
 }
 
 export default function Profile() {
-  const [profile, setProfile] = useState<TeacherProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const { data: profile, isLoading: loading } = useGetTeacherProfileQuery();
+  const [uploadTeacherAvatar, { isLoading: uploading }] = useUploadTeacherAvatarMutation();
   const [photoError, setPhotoError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    async function load() {
-      const p = await fetchTeacherProfile();
-      if (p) {
-        setProfile(p);
-      }
-      setLoading(false);
-    }
-    load();
-  }, []);
 
   function handlePhotoClick() {
     fileInputRef.current?.click();
@@ -127,15 +111,13 @@ export default function Profile() {
     }
 
     setPhotoError("");
-    setUploading(true);
-
-    const updated = await uploadTeacherAvatar(file);
-    if (updated) {
-      setProfile(updated);
-    } else {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      await uploadTeacherAvatar(formData).unwrap();
+    } catch {
       setPhotoError("Failed to upload avatar. Please try again.");
     }
-    setUploading(false);
     e.target.value = "";
   }
 

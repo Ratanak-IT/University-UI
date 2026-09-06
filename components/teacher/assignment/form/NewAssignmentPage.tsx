@@ -11,7 +11,7 @@ import { AssignmentSettingsPanel } from "./AssignmentSettingsPanel";
 import { SchedulingTipCard } from "./SchedulingTipCard";
 import { defaultAssignmentForm } from "@/lib/data/defaultAssignmentForm";
 
-import { createSavedAssignment, createAssignmentForClassroom } from "@/lib/api/assignment";
+import { useCreateSavedAssignmentMutation, useCreateAssignmentForClassroomMutation } from "@/lib/redux/apiSlice";
 import { useSearchParams } from "next/navigation";
 
 function NewAssignmentFormInner() {
@@ -22,8 +22,11 @@ function NewAssignmentFormInner() {
   const [values, setValues] = useState<AssignmentFormValues>(
     defaultAssignmentForm,
   );
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const [createSavedAssignment, { isLoading: savingTemplate }] = useCreateSavedAssignmentMutation();
+  const [createAssignmentForClassroom, { isLoading: savingInClassroom }] = useCreateAssignmentForClassroomMutation();
+  const saving = savingTemplate || savingInClassroom;
 
   function setField<K extends keyof AssignmentFormValues>(
     key: K,
@@ -46,39 +49,37 @@ function NewAssignmentFormInner() {
       return;
     }
     setError("");
-    setSaving(true);
 
     const attachmentsFiles = values.attachments
       .map((a) => a.file)
       .filter((f): f is File => !!f);
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       title: values.title,
       description: values.instructionsHtml,
       maxScore: typeof values.points === "number" ? values.points : 100,
       weight: 10.0, // Default weight
     };
 
-    let res;
     if (classroomId && !isDraft) {
-      const combinedDueDate = values.dueDate && values.dueTime
+      payload.dueDate = values.dueDate && values.dueTime
         ? `${values.dueDate}T${values.dueTime}:00`
         : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19); // default 7 days from now
-
-      res = await createAssignmentForClassroom(classroomId, { ...payload, dueDate: combinedDueDate }, attachmentsFiles);
-    } else {
-      res = await createSavedAssignment(payload, attachmentsFiles);
     }
 
-    setSaving(false);
+    const formData = new FormData();
+    formData.append("assignment", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+    attachmentsFiles.forEach((file) => formData.append("files", file));
 
-    if (res) {
+    try {
       if (classroomId && !isDraft) {
+        await createAssignmentForClassroom({ classroomId, formData }).unwrap();
         router.push(`/dashboard/teacher/my-classroom/${classroomId}`);
       } else {
+        await createSavedAssignment(formData).unwrap();
         router.push("/dashboard/teacher/assignments");
       }
-    } else {
+    } catch {
       setError("Failed to create assignment. Please try again.");
     }
   }

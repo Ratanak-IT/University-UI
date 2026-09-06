@@ -5,7 +5,7 @@ import CreateButton from "./CreateButton";
 import AssignmentGroups from "./AssignmentGroups";
 export default function AssignmentsOverview() {
   return (
-    <div className="px-6 py-8 md:px-10">
+    <div className="space-y-6 px-6 py-8 md:px-10">
       <OverviewHeader />
       <CreateButton />
       <AssignmentGroups />

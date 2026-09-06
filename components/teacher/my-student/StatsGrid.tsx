@@ -4,10 +4,21 @@ import StatCard from "./StatCard";
 import { StudentRosterItem } from "./StudentsPage";
 import { StatCardData } from "@/lib/data/students";
 
+function average(values: (number | null)[]): number | null {
+  const present = values.filter((v): v is number => v !== null);
+  if (present.length === 0) return null;
+  return present.reduce((sum, v) => sum + v, 0) / present.length;
+}
+
 export default function StatsGrid({ students }: { students: StudentRosterItem[] }) {
   const total = students.length;
   const femaleCount = students.filter((s) => s.gender === "Female").length;
   const femalePercent = total > 0 ? Math.round((femaleCount / total) * 100) : 0;
+
+  const avgAttendance = average(students.map((s) => s.attendancePercent));
+  const avgPerformance = average(students.map((s) => s.performancePercent));
+
+  const formatPercent = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)}%`);
 
   const statCardsList: StatCardData[] = [
     {
@@ -19,7 +30,7 @@ export default function StatsGrid({ students }: { students: StudentRosterItem[] 
       badgeTone: "positive",
       label: "Total Students",
       value: total.toLocaleString(),
-      helperText: "All assigned classrooms combined",
+      helperText: "Matches the classroom/year/status filters",
     },
     {
       id: "gender-ratio",
@@ -35,24 +46,24 @@ export default function StatsGrid({ students }: { students: StudentRosterItem[] 
     {
       id: "avg-attendance",
       icon: CalendarCheck,
-      iconBg: "bg-sky-100",
-      iconColor: "text-sky-600",
-      badge: "92%",
-      badgeTone: "info",
+      iconBg: "bg-sky-100 dark:bg-sky-950/40",
+      iconColor: "text-sky-600 dark:text-sky-400",
+      badge: avgAttendance !== null ? "Live" : "No data",
+      badgeTone: avgAttendance !== null ? "info" : "neutral",
       label: "Avg. Attendance",
-      value: "92.4%",
-      helperText: "Classrooms daily average",
+      value: formatPercent(avgAttendance),
+      helperText: "Across students in the current filter",
     },
     {
-      id: "recent-performance",
+      id: "avg-performance",
       icon: Zap,
-      iconBg: "bg-amber-100",
-      iconColor: "text-amber-500",
-      badge: "Stable",
-      badgeTone: "positive",
+      iconBg: "bg-amber-100 dark:bg-amber-950/40",
+      iconColor: "text-amber-500 dark:text-amber-400",
+      badge: avgPerformance !== null ? "Live" : "No data",
+      badgeTone: avgPerformance !== null ? "positive" : "neutral",
       label: "Average Performance",
-      value: "B+ (84%)",
-      helperText: "Overall classroom average",
+      value: formatPercent(avgPerformance),
+      helperText: "Average graded score in the current filter",
     },
   ];
 

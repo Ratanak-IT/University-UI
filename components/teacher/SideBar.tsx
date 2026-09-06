@@ -53,7 +53,7 @@ export default function Sidebar() {
 
           {!isCollapsed && (
             <div className="min-w-0 animate-in fade-in zoom-in-95 duration-300">
-              <p className="text-xl font-black tracking-tight text-primary">
+              <p className="text-xl font-black tracking-tight text-primary dark:text-gray-200">
                 UMS
               </p>
               <p className="text-xs font-medium text-muted-foreground">

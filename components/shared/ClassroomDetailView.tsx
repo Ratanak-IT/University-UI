@@ -1,21 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import PersonAvatar from "@/components/shared/PersonAvatar";
 import {
-  fetchClassroomById,
-  fetchClassroomStudents,
-  fetchClassroomLessons,
-  fetchClassroomAssignments,
-  fetchMyClassrooms,
-  fetchStudentQuizzes,
-  ClassroomResponse,
-  ClassroomStudentResponse,
   LessonResponse,
-  AssignmentResponse,
   QuizResponse,
 } from "@/lib/api/student";
-import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import {
   useGetClassroomByIdQuery,
   useGetClassroomLessonsQuery,
@@ -24,12 +14,17 @@ import {
   useGetClassroomTeachersQuery,
   useGetStudentProfileQuery,
   useGetTeacherQuizzesQuery,
+  useGetStudentQuizzesQuery,
+  useGetMyClassroomsQuery,
+  useGetTeacherClassroomsQuery,
   useDeleteAssignmentMutation,
   useUpdateAssignmentMutation,
+  useDeleteSavedLessonMutation,
+  useUpdateSavedLessonMutation,
   QuizManageResponse,
 } from "@/lib/redux/apiSlice";
-import { deleteLesson, updateLesson } from "@/lib/api/lesson";
 import { toast } from "@/components/shared/Toast";
+import { apiErrorMessage } from "@/lib/api/errors";
 import { htmlToPreviewText } from "@/components/shared/SafeHtml";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Loader2, FileText, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X, ChevronRight, GraduationCap, HelpCircle, Clock, CheckCircle2, ClipboardList } from "lucide-react";
@@ -73,8 +68,6 @@ export default function ClassroomDetailView({
 }: ClassroomDetailViewProps) {
   const [activeTab, setActiveTab] = useState("Stream");
   const isDirectId = !!classroomId && UUID_REGEX.test(classroomId);
-  const [lookedUpId, setLookedUpId] = useState<string>("");
-  const resolvedId = isDirectId ? (classroomId as string) : lookedUpId;
   const [viewerFile, setViewerFile] = useState<{ name: string; url: string; isVideo?: boolean } | null>(null);
   const [detailLesson, setDetailLesson] = useState<LessonResponse | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -86,26 +79,28 @@ export default function ClassroomDetailView({
 
   const [deleteAssignmentMutation] = useDeleteAssignmentMutation();
   const [updateAssignmentMutation] = useUpdateAssignmentMutation();
+  const [deleteSavedLesson] = useDeleteSavedLessonMutation();
+  const [updateSavedLesson] = useUpdateSavedLessonMutation();
 
   const tabs = ["Stream", "Lessons", "Assignments", "Quizzes", "People"];
 
-  useEffect(() => {
-    if (!classroomId || isDirectId) return;
-    async function resolveCode() {
-      const myClassrooms = isStudent
-        ? await fetchMyClassrooms()
-        : await fetchTeacherClassrooms();
-      if (myClassrooms) {
-        const matched = myClassrooms.find(
-          (c) => c.classCode?.toLowerCase() === classroomId?.toLowerCase()
-        );
-        if (matched) {
-          setLookedUpId(matched.classroomId);
-        }
-      }
-    }
-    resolveCode();
-  }, [classroomId, isDirectId, isStudent]);
+  // A class code in the URL (rather than a UUID) needs resolving against the
+  // roster the user already has cached — skipped entirely once resolved.
+  const { data: myStudentClassrooms } = useGetMyClassroomsQuery(undefined, {
+    skip: !classroomId || isDirectId || !isStudent,
+  });
+  const { data: myTeacherClassrooms } = useGetTeacherClassroomsQuery(undefined, {
+    skip: !classroomId || isDirectId || isStudent,
+  });
+  const lookedUpId = useMemo(() => {
+    if (!classroomId || isDirectId) return "";
+    const myClassrooms = isStudent ? myStudentClassrooms : myTeacherClassrooms;
+    const matched = myClassrooms?.find(
+      (c) => c.classCode?.toLowerCase() === classroomId?.toLowerCase()
+    );
+    return matched?.classroomId ?? "";
+  }, [classroomId, isDirectId, isStudent, myStudentClassrooms, myTeacherClassrooms]);
+  const resolvedId = isDirectId ? (classroomId as string) : lookedUpId;
 
   // Use RTK Query Hooks with resolved UUID
   const { data: classroom, isLoading: loadingClassroom } = useGetClassroomByIdQuery(resolvedId, {
@@ -129,26 +124,12 @@ export default function ClassroomDetailView({
   // than pulling them in eagerly alongside lessons/assignments.
   const { data: studentProfile } = useGetStudentProfileQuery(undefined, { skip: !isStudent });
   const { data: teacherQuizzes = [] } = useGetTeacherQuizzesQuery(undefined, { skip: isStudent });
-  const [studentQuizzes, setStudentQuizzes] = useState<QuizResponse[]>([]);
-  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const { data: studentQuizzes = [], isFetching: loadingQuizzes } = useGetStudentQuizzesQuery(
+    studentProfile?.studentId ?? "",
+    { skip: activeTab !== "Quizzes" || !isStudent || !studentProfile?.studentId || !resolvedId }
+  );
   const [resultsQuizId, setResultsQuizId] = useState<string | null>(null);
   const [resultsQuizTitle, setResultsQuizTitle] = useState<string>("");
-
-  useEffect(() => {
-    if (activeTab !== "Quizzes" || !isStudent || !studentProfile?.studentId || !resolvedId) return;
-    let cancelled = false;
-    async function load() {
-      setLoadingQuizzes(true);
-      const data = await fetchStudentQuizzes(studentProfile!.studentId);
-      if (cancelled) return;
-      setStudentQuizzes(data || []);
-      setLoadingQuizzes(false);
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, isStudent, studentProfile, resolvedId]);
 
   const classroomQuizzes = isStudent
     ? studentQuizzes.filter((q) => q.classroomId === resolvedId)
@@ -166,12 +147,12 @@ export default function ClassroomDetailView({
     const lessonId = pendingDeleteLessonId;
     setPendingDeleteLessonId(null);
     setDeletingId(lessonId);
-    const success = await deleteLesson(lessonId);
-    if (success) {
+    try {
+      await deleteSavedLesson(lessonId).unwrap();
       toast.success("Lesson deleted successfully!");
       refetchLessons();
-    } else {
-      toast.error("Failed to delete lesson. Please try again.");
+    } catch (err) {
+      toast.error("Failed to delete lesson", apiErrorMessage(err, "Please try again."));
     }
     setDeletingId(null);
   };
@@ -179,19 +160,20 @@ export default function ClassroomDetailView({
   const handleSaveLessonEdit = async () => {
     if (!editingLesson || !editingLesson.title.trim()) return;
     setSavingEdit(true);
-    const res = await updateLesson(editingLesson.lessonId, {
-      title: editingLesson.title,
-      content: editingLesson.content,
-      videoLink: editingLesson.videoLink,
-    });
-    setSavingEdit(false);
-    if (res) {
+    try {
+      await updateSavedLesson({
+        lessonId: editingLesson.lessonId,
+        title: editingLesson.title,
+        content: editingLesson.content,
+        videoLink: editingLesson.videoLink,
+      }).unwrap();
       toast.success("Lesson updated successfully!");
       setEditingLesson(null);
       refetchLessons();
-    } else {
-      toast.error("Failed to update lesson.");
+    } catch (err) {
+      toast.error("Failed to update lesson", apiErrorMessage(err, "Please try again."));
     }
+    setSavingEdit(false);
   };
 
   const handleDeleteAssignment = (assignmentId: string) => {
@@ -259,14 +241,14 @@ export default function ClassroomDetailView({
     <div>
       {/* Tab Bar */}
       <div className="bg-white dark:bg-slate-900">
-        <div className="flex items-center gap-8 border-b border-slate-200 px-8 dark:border-slate-800">
+        <div className="flex items-center gap-5 overflow-x-auto border-b border-slate-200 px-4 sm:gap-8 sm:px-8 dark:border-slate-800">
           {tabs.map((tab) => {
             const isActive = tab === activeTab;
             return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative py-4 text-[15px] font-medium transition-colors ${
+                className={`relative shrink-0 whitespace-nowrap py-4 text-[15px] font-medium transition-colors ${
                   isActive
                     ? "text-indigo-700 font-bold dark:text-indigo-400"
                     : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
@@ -282,7 +264,7 @@ export default function ClassroomDetailView({
         </div>
       </div>
 
-      <div className="px-8 py-8">
+      <div className="px-4 py-6 sm:px-8 sm:py-8">
         {/* Hero Banner */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 px-8 py-9">
           <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/10" />
@@ -969,6 +951,7 @@ export default function ClassroomDetailView({
           quizId={resultsQuizId}
           quizTitle={resultsQuizTitle}
           onClose={() => setResultsQuizId(null)}
+          classroomId={resolvedId}
         />
       )}
     </div>

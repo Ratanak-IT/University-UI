@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import {
-  fetchMyClassrooms,
-  fetchClassroomStudents,
-  ClassroomResponse,
-} from "@/lib/api/student";
+import { ClassroomResponse } from "@/lib/api/student";
+import { useGetMyClassroomsQuery, useGetStudentsForClassroomsQuery } from "@/lib/redux/apiSlice";
 import { CardGridSkeleton } from "@/components/shared/Skeletons";
 
 // Same four header/text/badge triples the teacher classroom card cycles
@@ -61,29 +58,26 @@ function mapClassroom(c: ClassroomResponse, idx: number, studentCount: number): 
 }
 
 export default function MyClassesPage() {
-  const [classes, setClasses] = useState<ClassCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: classrooms = [], isLoading: loadingClassrooms } = useGetMyClassroomsQuery();
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const classrooms = await fetchMyClassrooms();
+  const classroomArgs = useMemo(
+    () => classrooms.map((c) => ({ classroomId: c.classroomId, className: c.className })),
+    [classrooms]
+  );
+  const { data: rosterRows = [], isFetching: loadingRoster } = useGetStudentsForClassroomsQuery(
+    classroomArgs,
+    { skip: classroomArgs.length === 0 }
+  );
 
-      if (classrooms && classrooms.length > 0) {
-        const counts = await Promise.all(
-          classrooms.map(async (c) => {
-            const students = await fetchClassroomStudents(c.classroomId);
-            return students ? students.length : 0;
-          })
-        );
-        setClasses(classrooms.map((c, i) => mapClassroom(c, i, counts[i])));
-      } else {
-        setClasses([]);
-      }
-      setLoading(false);
+  const loading = loadingClassrooms || (classroomArgs.length > 0 && loadingRoster);
+
+  const classes = useMemo<ClassCard[]>(() => {
+    const countByClassroomId = new Map<string, number>();
+    for (const row of rosterRows) {
+      countByClassroomId.set(row.classroomId, (countByClassroomId.get(row.classroomId) ?? 0) + 1);
     }
-    load();
-  }, []);
+    return classrooms.map((c, i) => mapClassroom(c, i, countByClassroomId.get(c.classroomId) ?? 0));
+  }, [classrooms, rosterRows]);
 
   return (
     <div className="space-y-6 p-8 transition-colors">

@@ -252,9 +252,27 @@ export function CreateQuizForm() {
 
       if (form.courseId && targetQuizId) {
         try {
-          await assignQuiz({ quizId: targetQuizId, classroomId: form.courseId }).unwrap();
-        } catch (assignErr: any) {
+          // assign-classroom REPLACES the whole release list — when editing a
+          // quiz that's already released to other sections, those have to be
+          // resent here too, or saving this form silently un-assigns them
+          // (and fails outright once any of them has student attempts).
+          const existingReleases = (targetQuiz?.classrooms ?? [])
+            .filter((c) => c.classroomId !== form.courseId)
+            .map((c) => ({
+              classroomId: c.classroomId,
+              availableFrom: c.availableFrom,
+              availableTo: c.availableTo,
+            }));
+          await assignQuiz({
+            quizId: targetQuizId,
+            classrooms: [...existingReleases, { classroomId: form.courseId }],
+          }).unwrap();
+        } catch (assignErr) {
           console.warn("Classroom assign warning:", assignErr);
+          showToastMsg(
+            "Quiz saved, but assigning it to the classroom failed: " +
+              parseErrorMsg(assignErr, "please assign it manually from the quiz list.")
+          );
         }
       }
 

@@ -1,5 +1,5 @@
 import { API_BASE } from "./config";
-import { ClassroomResponse } from "./classroom";
+import { ClassroomResponse } from "./student";
 import { Classroom } from "../types/dashboard";
 
 export {
@@ -50,43 +50,6 @@ export interface TeacherProfile {
   avatarUrl?: string | null;
 }
 
-export async function fetchTeacherProfile(): Promise<TeacherProfile | null> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/teachers/me`, {
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-    });
-    if (!res.ok) {
-      console.warn(`fetchTeacherProfile → ${res.status}`);
-      return null;
-    }
-    return (await res.json()) as TeacherProfile;
-  } catch (err) {
-    console.error("fetchTeacherProfile:", err);
-    return null;
-  }
-}
-
-export async function uploadTeacherAvatar(file: File): Promise<TeacherProfile | null> {
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const headers = getAuthHeader();
-    const res = await fetch(`${API_BASE}/api/v1/teachers/me/avatar`, {
-      method: "POST",
-      headers,
-      body: formData,
-    });
-    if (!res.ok) {
-      console.warn(`uploadTeacherAvatar → ${res.status}`);
-      return null;
-    }
-    return (await res.json()) as TeacherProfile;
-  } catch (err) {
-    console.error("uploadTeacherAvatar:", err);
-    return null;
-  }
-}
 
 export interface TeacherDashboardSummary {
   activeClasses: number;
@@ -94,6 +57,8 @@ export interface TeacherDashboardSummary {
   courseMaterials: number;
   toGrade: number;
   attendanceToday: number;
+  avgAttendancePercent: number | null;
+  avgPerformancePercent: number | null;
 }
 
 export async function fetchTeacherDashboardSummary(): Promise<TeacherDashboardSummary | null> {
@@ -109,6 +74,29 @@ export async function fetchTeacherDashboardSummary(): Promise<TeacherDashboardSu
   } catch (err) {
     console.error("fetchTeacherDashboardSummary:", err);
     return null;
+  }
+}
+
+export interface StudentMetrics {
+  studentId: string;
+  attendancePercent: number | null;
+  performancePercent: number | null;
+}
+
+/** Per-student attendance/performance across this teacher's own classrooms, for the roster's filterable stat cards. */
+export async function fetchTeacherStudentMetrics(): Promise<StudentMetrics[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/teachers/me/student-metrics`, {
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    });
+    if (!res.ok) {
+      console.warn(`fetchTeacherStudentMetrics → ${res.status}`);
+      return [];
+    }
+    return (await res.json()) as StudentMetrics[];
+  } catch (err) {
+    console.error("fetchTeacherStudentMetrics:", err);
+    return [];
   }
 }
 
@@ -141,31 +129,7 @@ export async function fetchClassroomStudents(classroomId: string): Promise<any[]
   }
 }
 
-export async function fetchClassroomAssignments(classroomId: string): Promise<any[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/assignments`, {
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-    });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch (err) {
-    console.error("fetchClassroomAssignments:", err);
-    return [];
-  }
-}
-
-export async function fetchAssignmentSubmissions(assignmentId: string): Promise<any[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/assignments/${assignmentId}/submissions`, {
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-    });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch (err) {
-    console.error("fetchAssignmentSubmissions:", err);
-    return [];
-  }
-}export type ExamType = "MIDTERM" | "FINAL" | "ASSIGNMENT" | "QUIZ" | "ATTENDANCE" | "OTHER";
+export type ExamType = "MIDTERM" | "FINAL" | "ASSIGNMENT" | "QUIZ" | "ATTENDANCE" | "OTHER";
 
 export interface ExamScoreResponse {
   examScoreId: string;
@@ -190,37 +154,6 @@ export interface SetExamScoresRequest {
   scores: SetExamScoreItem[];
 }
 
-export async function fetchClassroomExamScores(classroomId: string): Promise<ExamScoreResponse[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/scores`, {
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-    });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch (err) {
-    console.error("fetchClassroomExamScores:", err);
-    return [];
-  }
-}
-
-export async function saveClassroomExamScores(
-  classroomId: string,
-  payload: SetExamScoresRequest
-): Promise<ExamScoreResponse[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/scores`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch (err) {
-    console.error("saveClassroomExamScores:", err);
-    return [];
-  }
-}
-
 export interface AttendanceItemPayload {
   studentId: string;
   status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
@@ -238,40 +171,6 @@ export interface TeacherAttendanceRecord {
   remark?: string | null;
 }
 
-export async function recordTeacherAttendance(
-  classroomId: string,
-  payload: RecordAttendancePayload
-): Promise<TeacherAttendanceRecord[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/classrooms/${classroomId}/attendance`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch (err) {
-    console.error("recordTeacherAttendance:", err);
-    return [];
-  }
-}
-
-export async function fetchTeacherAttendanceByDate(
-  classroomId: string,
-  date?: string
-): Promise<TeacherAttendanceRecord[]> {
-  try {
-    const url = `${API_BASE}/api/v1/classrooms/${classroomId}/attendance` + (date ? `?date=${date}` : "");
-    const res = await fetch(url, {
-      headers: { "Content-Type": "application/json", ...getAuthHeader() },
-    });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch (err) {
-    console.error("fetchTeacherAttendanceByDate:", err);
-    return [];
-  }
-}
 
 
 /** Helper to map ClassroomResponse to Classroom card structure for Teacher Dashboard */
@@ -303,11 +202,11 @@ export function mapClassroomToTeacherCard(
   return {
     id: item.classroomId,
     title: item.className || "Classroom",
-    code: item.classCode || "CS-101",
+    code: item.classCode || "Not set",
     track: item.subjectName || "General",
     initials,
     year: yearText,
-    room: item.room ? `Room ${item.room}` : "Room 204",
+    room: item.room ? `Room ${item.room}` : "Not set",
     classCode: item.classCode || "",
     headerClass: color.header,
     initialsTextClass: color.text,

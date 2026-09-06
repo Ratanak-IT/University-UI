@@ -10,7 +10,6 @@ interface QuizGridProps {
   onPreview?: (quiz: Quiz) => void;
   onEdit?: (quiz: Quiz) => void;
   onAssign?: (quiz: Quiz) => void;
-  onDuplicate?: (quiz: Quiz) => void;
   onDelete?: (quiz: Quiz) => void;
   onViewResults?: (quiz: Quiz) => void;
   onCreate?: () => void;
@@ -21,7 +20,6 @@ export default function QuizGrid({
   onPreview,
   onEdit,
   onAssign,
-  onDuplicate,
   onDelete,
   onViewResults,
   onCreate,
@@ -35,7 +33,6 @@ export default function QuizGrid({
           onPreview={onPreview}
           onEdit={onEdit}
           onAssign={onAssign}
-          onDuplicate={onDuplicate}
           onDelete={onDelete}
           onViewResults={onViewResults}
         />

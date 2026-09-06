@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Send } from "lucide-react";
 import {
-  PrivateComment,
-  fetchMyPrivateComments,
-  postMyPrivateComment,
-  fetchStudentPrivateComments,
-  postStudentPrivateComment,
-} from "@/lib/api/privateComments";
+  useGetMyPrivateCommentsQuery,
+  usePostMyPrivateCommentMutation,
+  useGetStudentPrivateCommentsQuery,
+  usePostStudentPrivateCommentMutation,
+} from "@/lib/redux/apiSlice";
+import { apiErrorMessage } from "@/lib/api/errors";
 import { toast } from "@/components/shared/Toast";
 import PersonAvatar from "@/components/shared/PersonAvatar";
 
@@ -45,35 +45,35 @@ export default function PrivateCommentThread({
   target,
   otherPartyName,
 }: PrivateCommentThreadProps) {
-  const [comments, setComments] = useState<PrivateComment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      const data =
-        target.role === "student"
-          ? await fetchMyPrivateComments(assignmentId)
-          : await fetchStudentPrivateComments(assignmentId, target.studentId);
-      setComments(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load private comments");
-    } finally {
-      setLoading(false);
-    }
-    // target.role/target.studentId are the real identity of "whose thread" —
-    // re-running when either changes is what keeps the thread in sync with
-    // which student is selected (on the teacher side).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assignmentId, target.role, target.role === "teacher" ? target.studentId : null]);
+  const isStudent = target.role === "student";
+  const {
+    data: myComments = [],
+    isLoading: loadingMine,
+    isError: myError,
+    error: myQueryError,
+  } = useGetMyPrivateCommentsQuery(assignmentId, { skip: !isStudent });
+  const {
+    data: studentComments = [],
+    isLoading: loadingStudent,
+    isError: studentError,
+    error: studentQueryError,
+  } = useGetStudentPrivateCommentsQuery(
+    { assignmentId, studentId: target.role === "teacher" ? target.studentId : "" },
+    { skip: isStudent }
+  );
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const comments = isStudent ? myComments : studentComments;
+  const loading = isStudent ? loadingMine : loadingStudent;
+  const error = isStudent
+    ? myError ? apiErrorMessage(myQueryError, "Could not load private comments") : null
+    : studentError ? apiErrorMessage(studentQueryError, "Could not load private comments") : null;
+
+  const [postMyPrivateComment, { isLoading: sendingMine }] = usePostMyPrivateCommentMutation();
+  const [postStudentPrivateComment, { isLoading: sendingStudent }] = usePostStudentPrivateCommentMutation();
+  const sending = isStudent ? sendingMine : sendingStudent;
 
   useEffect(() => {
     if (!loading) bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -82,19 +82,15 @@ export default function PrivateCommentThread({
   async function handleSend() {
     const body = draft.trim();
     if (!body || sending) return;
-    setSending(true);
     try {
       if (target.role === "student") {
-        await postMyPrivateComment(assignmentId, body);
+        await postMyPrivateComment({ assignmentId, body }).unwrap();
       } else {
-        await postStudentPrivateComment(assignmentId, target.studentId, body);
+        await postStudentPrivateComment({ assignmentId, studentId: target.studentId, body }).unwrap();
       }
       setDraft("");
-      await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not send your comment", "Send Failed");
-    } finally {
-      setSending(false);
+      toast.error(apiErrorMessage(err, "Could not send your comment"), "Send Failed");
     }
   }
 
