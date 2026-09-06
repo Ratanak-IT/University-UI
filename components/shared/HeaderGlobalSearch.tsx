@@ -107,8 +107,35 @@ export default function HeaderGlobalSearch({
     return [...pages, ...courses];
   }, [role, classrooms]);
 
+  const trimmedQuery = query.trim();
+  const isPathQuery = trimmedQuery.startsWith("/");
+
+  // Typing a path (e.g. "/dashboard/student") suggests known routes that
+  // start with it, so the list narrows live as the user keeps typing.
+  const routeSuggestions: SearchItem[] = isPathQuery
+    ? items
+        .filter((item) => item.href.toLowerCase().startsWith(trimmedQuery.toLowerCase()))
+        .map((item) => ({ ...item, id: `route-${item.href}` }))
+    : [];
+
+  const hasExactRouteMatch = routeSuggestions.some(
+    (r) => r.href.toLowerCase() === trimmedQuery.toLowerCase()
+  );
+
+  // Fallback so an arbitrary/unlisted path can still be jumped to directly.
+  const directNavItem: SearchItem | null =
+    isPathQuery && !hasExactRouteMatch
+      ? {
+          id: "direct-nav",
+          title: trimmedQuery,
+          category: "Pages",
+          href: trimmedQuery,
+          icon: ArrowRight,
+        }
+      : null;
+
   const filteredResults =
-    query.trim() === ""
+    trimmedQuery === ""
       ? []
       : items.filter((item) => {
           const q = query.toLowerCase();
@@ -118,6 +145,10 @@ export default function HeaderGlobalSearch({
             (item.subtitle?.toLowerCase().includes(q) ?? false)
           );
         });
+
+  const displayedResults = isPathQuery
+    ? [...routeSuggestions, ...(directNavItem ? [directNavItem] : [])]
+    : filteredResults;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -136,8 +167,8 @@ export default function HeaderGlobalSearch({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && filteredResults.length > 0) {
-      handleSelect(filteredResults[0].href);
+    if (e.key === "Enter" && displayedResults.length > 0) {
+      handleSelect(displayedResults[0].href);
     } else if (e.key === "Escape") {
       setIsOpen(false);
     }
@@ -180,23 +211,26 @@ export default function HeaderGlobalSearch({
       {/* Popover Dropdown Results */}
       {isOpen && query.trim().length > 0 && (
         <div className="absolute left-0 right-0 z-50 mt-2 max-h-96 overflow-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl ring-1 ring-black/5 dark:border-slate-800 dark:bg-slate-900 animate-in fade-in zoom-in-95 duration-150">
-          {filteredResults.length === 0 ? (
+          {displayedResults.length === 0 ? (
             <div className="p-6 text-center text-xs font-medium text-slate-400">
               No results found matching &quot;<span className="font-bold text-slate-700 dark:text-slate-200">{query}</span>&quot;
             </div>
           ) : (
             <div className="space-y-1">
               <div className="px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                Matching Search Results ({filteredResults.length})
+                {isPathQuery ? "Quick Navigation" : `Matching Search Results (${displayedResults.length})`}
               </div>
-              {filteredResults.map((item) => {
+              {displayedResults.map((item) => {
                 const ItemIcon = item.icon;
+                const isDirect = item.id === "direct-nav";
                 return (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => handleSelect(item.href)}
-                    className="flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left text-xs font-semibold transition-all hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-300"
+                    className={`flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left text-xs font-semibold transition-all hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-300 ${
+                      isDirect ? "bg-indigo-50/60 dark:bg-indigo-950/40" : ""
+                    }`}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
@@ -204,7 +238,7 @@ export default function HeaderGlobalSearch({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                          {item.title}
+                          {isDirect ? `Go to ${item.title}` : item.title}
                         </p>
                         <p className="text-[11px] font-medium text-slate-400 truncate">
                           {item.subtitle || item.category}
