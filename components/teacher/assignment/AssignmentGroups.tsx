@@ -48,10 +48,6 @@ export default function AssignmentGroups() {
   const [deleteAssignmentMutation] = useDeleteAssignmentMutation();
   const [updateAssignmentMutation] = useUpdateAssignmentMutation();
 
-  // Delete Assignment Confirm State
-  const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
-  const [deletingAssignment, setDeletingAssignment] = useState(false);
-
   const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([]);
 
   // A classroom's assignments are only fetched once its group is expanded —
@@ -219,14 +215,12 @@ export default function AssignmentGroups() {
     const id = pendingDeleteId;
     setPendingDeleteId(null);
     try {
-      await deleteAssignmentMutation(deletingAssignmentId).unwrap();
+      await deleteAssignmentMutation(id).unwrap();
       toast.success("Assignment deleted successfully!");
       loadData();
     } catch {
       toast.error("Failed to delete assignment. Please try again.");
     }
-    setDeletingAssignment(false);
-    setDeletingAssignmentId(null);
   }
 
   function handleOpenEdit(item: AssignmentItem) {
