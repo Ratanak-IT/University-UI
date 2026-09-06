@@ -17,9 +17,9 @@ import CommentComposer from "./CommentComposer";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 const ROLE_BADGE: Record<string, string> = {
-  TEACHER: "bg-indigo-100 text-indigo-700",
-  ADMIN: "bg-amber-100 text-amber-700",
-  STUDENT: "bg-slate-100 text-slate-600",
+  TEACHER: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300",
+  ADMIN: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
+  STUDENT: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
 };
 
 
@@ -104,8 +104,8 @@ function CommentCard({
   return (
     <div
       ref={isFocused ? focusRef : undefined}
-      className={`rounded-2xl border bg-white p-4 transition ${
-        isFocused ? "border-primary ring-2 ring-primary/25" : "border-slate-200"
+      className={`rounded-2xl border bg-white p-4 transition dark:bg-slate-900 ${
+        isFocused ? "border-primary ring-2 ring-primary/25" : "border-slate-200 dark:border-slate-800"
       } ${isReply ? "shadow-none" : "shadow-sm"}`}
     >
       <div className="flex items-start gap-3">
@@ -113,7 +113,7 @@ function CommentCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-slate-900">
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
               {comment.authorName}
             </span>
             <span
@@ -123,7 +123,7 @@ function CommentCard({
             >
               {comment.authorRole}
             </span>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {timeAgo(comment.createdAt)}
               {comment.edited && " · edited"}
             </span>
@@ -143,7 +143,7 @@ function CommentCard({
               />
             </div>
           ) : (
-            <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">
+            <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700 dark:text-slate-300">
               {renderBody(comment.body, comment.mentions)}
             </p>
           )}
@@ -157,7 +157,7 @@ function CommentCard({
                     replyingTo === comment.commentId ? null : comment.commentId
                   )
                 }
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition hover:text-primary"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition hover:text-primary dark:text-slate-400"
               >
                 <Reply className="h-3.5 w-3.5" />
                 Reply
@@ -166,7 +166,7 @@ function CommentCard({
                 <button
                   type="button"
                   onClick={() => onStartEdit(comment.commentId)}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition hover:text-primary"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition hover:text-primary dark:text-slate-400"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   Edit
@@ -176,7 +176,7 @@ function CommentCard({
                 <button
                   type="button"
                   onClick={() => onDelete(comment.commentId)}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition hover:text-rose-600"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Delete
@@ -188,7 +188,7 @@ function CommentCard({
       </div>
 
       {replyingTo === comment.commentId && (
-        <div className="mt-3 border-l-2 border-slate-100 pl-4">
+        <div className="mt-3 border-l-2 border-slate-100 pl-4 dark:border-slate-800">
           <CommentComposer
             scope={scope}
             compact
@@ -202,7 +202,7 @@ function CommentCard({
       )}
 
       {comment.replies.length > 0 && (
-        <div className="mt-3 space-y-2.5 border-l-2 border-slate-100 pl-4">
+        <div className="mt-3 space-y-2.5 border-l-2 border-slate-100 pl-4 dark:border-slate-800">
           {comment.replies.map((reply) => (
             <CommentCard
               key={reply.commentId}
@@ -343,10 +343,10 @@ export default function CommentThread({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-3 flex items-center gap-2">
           <MessageSquare className="h-4 w-4 text-primary" strokeWidth={1.75} />
-          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
         </div>
         <CommentComposer
           scope={scope}
@@ -355,18 +355,18 @@ export default function CommentThread({
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
+        <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500 dark:text-slate-400">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading discussion…
         </div>
       ) : error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
           {error}
         </div>
       ) : comments.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-10 text-center">
-          <p className="text-sm font-medium text-slate-600">No posts yet</p>
-          <p className="mt-1 text-xs text-slate-400">{emptyHint}</p>
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-10 text-center dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">No posts yet</p>
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{emptyHint}</p>
         </div>
       ) : (
         <div className="space-y-3">

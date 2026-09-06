@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 type Course = { name: string; credits: number };
 
@@ -272,7 +273,13 @@ export default function Curriculum() {
   return (
     <section id="curriculum" className="bg-background py-20 text-foreground">
       <div className="mx-auto max-w-[1240px] px-6 lg:px-8">
-        <div className="text-center mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
           <p className="font-sans text-xs md:text-sm font-extrabold uppercase tracking-widest text-red-600 dark:text-gray-200 mb-1">
             PROGRAM STRUCTURE
           </p>
@@ -304,11 +311,18 @@ export default function Curriculum() {
               })}
             </div>
           )}
-        </div>
+        </motion.div>
 
         <div className="space-y-10">
-          {yearsData.map((y) => (
-            <div key={y.year} className="overflow-hidden rounded-2xl shadow-xs">
+          {yearsData.map((y, index) => (
+            <motion.div
+              key={y.year}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: Math.min(index, 3) * 0.1 }}
+              className="overflow-hidden rounded-2xl shadow-xs"
+            >
               <div className="bg-primary px-8 py-3.5 rounded-t-xl">
                 <h3 className="text-lg font-bold tracking-wider text-primary-foreground uppercase">{y.year}</h3>
               </div>
@@ -318,7 +332,7 @@ export default function Curriculum() {
                   <SemesterColumn label={y.sem2.label} courses={y.sem2.courses} />
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

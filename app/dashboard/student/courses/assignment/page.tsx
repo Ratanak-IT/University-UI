@@ -165,8 +165,8 @@ function AssignmentDetailInner() {
   if (!assignmentId) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-2">
-        <p className="text-lg font-semibold text-slate-700">No assignment selected</p>
-        <p className="text-sm text-slate-500">Please select an assignment from the course page.</p>
+        <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">No assignment selected</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Please select an assignment from the course page.</p>
         <Link
           href="/dashboard/student/courses"
           className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
@@ -178,14 +178,18 @@ function AssignmentDetailInner() {
   }
 
   if (loading) {
-    return <AssignmentDetailSkeleton />;
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+      </div>
+    );
   }
 
   if (!assignment) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-2">
-        <p className="text-lg font-semibold text-slate-700">Assignment not found</p>
-        <p className="text-sm text-slate-500">Unable to load this assignment.</p>
+        <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">Assignment not found</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Unable to load this assignment.</p>
         <Link
           href="/dashboard/student/courses"
           className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
@@ -212,27 +216,27 @@ function AssignmentDetailInner() {
     : "ASSIGNED";
 
   const statusColor = isGraded
-    ? "bg-emerald-50 text-emerald-700"
+    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
     : isSubmitted
-    ? "bg-blue-50 text-blue-700"
-    : "bg-slate-100 text-slate-600";
+    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-slate-50">
+    <div className="flex min-h-screen w-full flex-col bg-slate-50 dark:bg-slate-950">
       {/* Page heading */}
-      <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
+      <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between dark:border-slate-800 dark:bg-slate-900">
         <div>
           <Link
             href="/dashboard/student/courses"
-            className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
+            className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Back to Courses
           </Link>
-          <h1 className="text-lg font-bold text-slate-900 sm:text-xl">
+          <h1 className="text-lg font-bold text-slate-900 sm:text-xl dark:text-slate-100">
             {a.title}
           </h1>
           {a.className && (
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
               {a.className} {a.subjectName ? `• ${a.subjectName}` : ""}
             </p>
           )}
@@ -242,17 +246,17 @@ function AssignmentDetailInner() {
       {/* Main content */}
       <main className="grid w-full flex-1 grid-cols-1 gap-4 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
         {/* Assignment card */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
               <FileText className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-bold text-slate-900">{a.title}</h2>
-              <p className="mt-1 text-sm font-semibold text-indigo-600">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{a.title}</h2>
+              <p className="mt-1 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                 {a.maxScore} points
                 {a.dueDate && (
-                  <span className="font-normal text-slate-500">
+                  <span className="font-normal text-slate-500 dark:text-slate-400">
                     &nbsp;•&nbsp; Due {new Date(a.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 )}
@@ -264,25 +268,25 @@ function AssignmentDetailInner() {
           {a.description && (
             <SafeHtml
               html={a.description}
-              className="mt-5 rounded-xl bg-slate-50/70 p-4 text-sm text-slate-700 border border-slate-100 [&_p]:my-2 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_a]:text-indigo-600 [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2"
+              className="mt-5 rounded-xl bg-slate-50/70 p-4 text-sm text-slate-700 border border-slate-100 [&_p]:my-2 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_a]:text-indigo-600 [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2 dark:bg-slate-800/40 dark:text-slate-300 dark:border-slate-800 dark:[&_a]:text-indigo-400"
             />
           )}
 
           {/* Assignment files attached by teacher */}
           {a.assignmentFiles && a.assignmentFiles.length > 0 && (
             <div className="mt-5 space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">ATTACHED MATERIALS</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">ATTACHED MATERIALS</p>
               {a.assignmentFiles.map((f) => (
                 <button
                   key={f.fileId}
                   onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl })}
-                  className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-left cursor-pointer"
+                  className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-left cursor-pointer dark:border-slate-800 dark:hover:bg-slate-800/50"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400">
                     <FileText className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-900">{f.fileOriginalName}</p>
+                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{f.fileOriginalName}</p>
                   </div>
                 </button>
               ))}
@@ -291,34 +295,34 @@ function AssignmentDetailInner() {
 
           {/* Grading info if graded */}
           {isGraded && (
-            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5">
+            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 dark:border-emerald-900 dark:bg-emerald-950/20">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                <span className="text-sm font-bold text-emerald-900">Graded by Teacher</span>
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-sm font-bold text-emerald-900 dark:text-emerald-200">Graded by Teacher</span>
               </div>
               <div className="mt-3 flex gap-8 text-sm">
                 <div>
-                  <p className="text-xs font-semibold text-emerald-700">SCORE</p>
-                  <p className="text-2xl font-black text-emerald-900">{a.score}/{a.maxScore}</p>
+                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">SCORE</p>
+                  <p className="text-2xl font-black text-emerald-900 dark:text-emerald-200">{a.score}/{a.maxScore}</p>
                 </div>
                 {a.gradedAt && (
                   <div>
-                    <p className="text-xs font-semibold text-emerald-700">GRADED ON</p>
-                    <p className="text-sm font-bold text-emerald-900">{new Date(a.gradedAt).toLocaleDateString()}</p>
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">GRADED ON</p>
+                    <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">{new Date(a.gradedAt).toLocaleDateString()}</p>
                   </div>
                 )}
               </div>
               {a.feedback && (
-                <div className="mt-4 border-t border-emerald-200/60 pt-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Feedback</p>
-                  <p className="mt-1 text-sm text-emerald-900">{a.feedback}</p>
+                <div className="mt-4 border-t border-emerald-200/60 pt-3 dark:border-emerald-900/60">
+                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Feedback</p>
+                  <p className="mt-1 text-sm text-emerald-900 dark:text-emerald-200">{a.feedback}</p>
                 </div>
               )}
             </div>
           )}
 
        
-          <div className="mt-8 border-t border-slate-100 pt-5">
+          <div className="mt-8 border-t border-slate-100 pt-5 dark:border-slate-800">
             {assignmentId && (
               <CommentThread
                 scope={{ kind: "assignment", id: assignmentId }}
@@ -333,9 +337,9 @@ function AssignmentDetailInner() {
         {/* Right side panel: Submission */}
         <div className="space-y-4">
           {/* Your work card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between">
-              <p className="text-base font-bold text-slate-900">Your work</p>
+              <p className="text-base font-bold text-slate-900 dark:text-slate-100">Your work</p>
               <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusColor}`}>
                 {statusLabel}
               </span>
@@ -348,18 +352,18 @@ function AssignmentDetailInner() {
                   <button
                     key={f.fileId}
                     onClick={() => setViewerFile({ name: f.fileOriginalName, url: f.previewUrl })}
-                    className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-left cursor-pointer"
+                    className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-left cursor-pointer dark:border-slate-800 dark:hover:bg-slate-800/50"
                   >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
                       <FileText className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold text-slate-900">{f.fileOriginalName}</p>
+                      <p className="truncate text-xs font-semibold text-slate-900 dark:text-slate-100">{f.fileOriginalName}</p>
                     </div>
                   </button>
                 ))}
                 {a.submittedAt && (
-                  <p className="flex items-center gap-1 text-xs text-slate-500 pt-1">
+                  <p className="flex items-center gap-1 text-xs text-slate-500 pt-1 dark:text-slate-400">
                     <Clock className="h-3.5 w-3.5" /> Submitted {new Date(a.submittedAt).toLocaleString()}
                   </p>
                 )}
@@ -378,17 +382,17 @@ function AssignmentDetailInner() {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
-                  <Plus className="h-4 w-4 text-indigo-600" /> Add files
+                  <Plus className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Add files
                 </button>
 
                 {/* Show selected files */}
                 {selectedFiles.length > 0 && (
                   <div className="space-y-1.5">
                     {selectedFiles.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900">
-                        <Upload className="h-3.5 w-3.5 text-indigo-600" />
+                      <div key={i} className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-200">
+                        <Upload className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
                         <span className="truncate">{f.name}</span>
                       </div>
                     ))}
@@ -396,7 +400,7 @@ function AssignmentDetailInner() {
                 )}
 
                 {submitSuccess ? (
-                  <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 py-3 text-sm font-bold text-emerald-700 border border-emerald-200">
+                  <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 py-3 text-sm font-bold text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900">
                     <CheckCircle2 className="h-4.5 w-4.5" /> Submitted!
                   </div>
                 ) : (

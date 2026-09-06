@@ -64,12 +64,12 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-primary text-primary-foreground transition-colors duration-200">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10">
             <Image src="/logo-rm.png" alt="UMS Logo" width={100} height={100} className="h-6 w-6 object-contain" />
           </div>
           <span className="text-xl font-bold tracking-wide">UMS</span>
-        </div>
+        </Link>
 
         {/* Desktop Navigation */}
         <ul className="hidden items-center gap-10 text-sm font-medium md:flex">

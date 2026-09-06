@@ -16,7 +16,6 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import Image from "next/image";
 import {
   fetchTeacherProfile,
   uploadTeacherAvatar,
@@ -170,11 +169,10 @@ export default function Profile() {
                 {/* Avatar Container with Camera Overlay */}
                 <div className="relative group w-20 h-20 rounded-full overflow-hidden bg-muted ring-2 ring-primary/20 shrink-0">
                   {profile?.avatarUrl ? (
-                    <Image
+                    <img
                       src={profile.avatarUrl}
                       alt={teacherName}
-                      fill
-                      className="object-cover"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-bold text-xl">

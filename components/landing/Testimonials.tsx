@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
 
 type Testimonial = {
@@ -19,13 +20,13 @@ const ITEMS: readonly Testimonial[] = [
     quote: "UMS offers an amazing learning experience for IT students. I recommend their short courses or scholarships for computer science students.",
   },
   {
-    name: "Sok Dara",
+    name: "Thai Ratanak",
     role: "Backend Developer",
     img: "/teams/thairatanak.jpg",
     quote: "The Spring Boot and REST API tracks were exactly what I needed. Mentors gave straight, practical feedback on real projects.",
   },
   {
-    name: "Chan Sophea",
+    name: "Chhom Titsela",
     role: "UX/UI Designer",
     img: "/teams/sila.jpg",
     quote: "From wireframes to shipped screens, the design courses connected theory with the work I now do every day.",
@@ -42,14 +43,26 @@ export default function Testimonials() {
   return (
     <section id="fqa" className="bg-background py-28 text-foreground transition-colors duration-200 dark:bg-background dark:text-foreground">
       <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-        <div className="text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center"
+        >
           <p className="font-hanken text-xs font-bold tracking-[0.1em] text-red-600 dark:text-gray-200">TESTIMONIALS</p>
           <h2 className="font-hanken mt-2 text-[28px] font-bold uppercase text-foreground dark:text-foreground sm:text-[32px]">
             Hear From Our Students
           </h2>
-        </div>
+        </motion.div>
 
-        <div className="mt-14 flex items-center justify-center gap-6 sm:gap-16">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="mt-14 flex items-center justify-center gap-6 sm:gap-16"
+        >
           <button
             type="button"
             onClick={prev}
@@ -59,36 +72,45 @@ export default function Testimonials() {
             <ChevronLeft className="h-5 w-5" />
           </button>
 
-          <div className="flex max-w-3xl flex-col items-center gap-10 sm:flex-row sm:gap-12">
-            <div className="relative shrink-0">
-              {/* Background Accent Blob */}
-              <div
-                aria-hidden
-                className="absolute -inset-4 -rotate-12 rounded-[42%_60%_45%_58%] bg-primary/20 dark:bg-primary/30"
-              />
-              
-              {/* Avatar Container */}
-              <div className="relative h-52 w-52 overflow-hidden rounded-full border-4 border-background bg-muted shadow-xl dark:border-background sm:h-64 sm:w-64">
-                <Image
-                  src={t.img}
-                  alt={t.name}
-                  fill
-                  sizes="(max-width: 640px) 208px, 256px"
-                  className="object-cover transition-all duration-300 dark:brightness-95"
-                  priority
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.35 }}
+              className="flex max-w-3xl flex-col items-center gap-10 sm:flex-row sm:gap-12"
+            >
+              <div className="relative shrink-0">
+                {/* Background Accent Blob */}
+                <div
+                  aria-hidden
+                  className="absolute -inset-4 -rotate-12 rounded-[42%_60%_45%_58%] bg-primary/20 dark:bg-primary/30"
                 />
-              </div>
-            </div>
 
-            <div className="relative text-center sm:text-left">
-              <Quote className="mb-3 h-8 w-8 text-primary/30 dark:text-gray-200" />
-              <h3 className="font-hanken text-2xl text-primary dark:text-gray-200">{t.name}</h3>
-              <p className="font-hanken mt-1 text-lg font-semibold text-red-600 dark:text-gray-200">{t.role}</p>
-              <p className="font-hanken mt-4 max-w-md text-lg italic leading-[1.6] text-muted-foreground dark:text-gray-200">
-                &ldquo;{t.quote}&rdquo;
-              </p>
-            </div>
-          </div>
+                {/* Avatar Container */}
+                <div className="relative h-52 w-52 overflow-hidden rounded-full border-4 border-background bg-muted shadow-xl dark:border-background sm:h-64 sm:w-64">
+                  <Image
+                    src={t.img}
+                    alt={t.name}
+                    fill
+                    sizes="(max-width: 640px) 208px, 256px"
+                    className="object-cover transition-all duration-300 dark:brightness-95"
+                    priority
+                  />
+                </div>
+              </div>
+
+              <div className="relative text-center sm:text-left">
+                <Quote className="mb-3 h-8 w-8 text-primary/30 dark:text-gray-200" />
+                <h3 className="font-hanken text-2xl text-primary dark:text-gray-200">{t.name}</h3>
+                <p className="font-hanken mt-1 text-lg font-semibold text-red-600 dark:text-gray-200">{t.role}</p>
+                <p className="font-hanken mt-4 max-w-md text-lg italic leading-[1.6] text-muted-foreground dark:text-gray-200">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
 
           <button
             type="button"
@@ -98,7 +120,7 @@ export default function Testimonials() {
           >
             <ChevronRight className="h-5 w-5" />
           </button>
-        </div>
+        </motion.div>
 
         {/* Carousel Indicators */}
         <div className="mt-12 flex justify-center gap-2">

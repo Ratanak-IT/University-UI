@@ -77,7 +77,7 @@ export default function LessonsPage() {
     <div className="space-y-6 p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-indigo-950 dark:text-indigo-200">
+          <h2 className="text-2xl font-black tracking-tight text-indigo-950 dark:text-gray-200">
             Lessons
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -141,18 +141,18 @@ export default function LessonsPage() {
                 className="flex items-center gap-4 p-5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 text-sm font-bold text-indigo-950 dark:text-indigo-200">
+                  <p className="flex items-center gap-2 text-sm font-bold text-indigo-950 dark:text-gray-200">
                     {l.title}
                   </p>
                   <p className="mt-1 flex flex-wrap items-center gap-3 text-xs">
-                    <span className="rounded-md bg-indigo-50 px-2 py-0.5 font-bold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                    <span className="rounded-md bg-indigo-50 px-2 py-0.5 font-bold text-indigo-700 dark:bg-indigo-950/60 dark:text-gray-200">
                       {l.classCode}
                     </span>
                     <span className="text-slate-500 dark:text-slate-400">{l.className}</span>
                     {l.videoLink && (
                       <button
                         onClick={() => setViewerFile({ name: `${l.title} (Video)`, url: l.videoLink || "", isVideo: true })}
-                        className="flex items-center gap-1 text-indigo-600 hover:underline cursor-pointer dark:text-indigo-400"
+                        className="flex items-center gap-1 text-indigo-600 hover:underline cursor-pointer dark:text-gray-200"
                       >
                         <PlayCircle className="h-3.5 w-3.5" strokeWidth={2} />
                         Video

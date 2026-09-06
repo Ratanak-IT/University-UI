@@ -400,7 +400,7 @@ export default function CoursesPage() {
                           <button
                             type="button"
                             onClick={() => setViewerFile({ name: `${l.title} (Video)`, url: l.videoLink || "", isVideo: true })}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-100 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-200 cursor-pointer dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-100 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-200 cursor-pointer dark:bg-indigo-950/60 dark:text-gray-200 dark:hover:bg-indigo-950"
                           >
                             <Video className="h-4 w-4" /> Watch Video Lesson
                           </button>

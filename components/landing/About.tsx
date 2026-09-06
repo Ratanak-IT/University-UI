@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { ArrowRight, Check, Users } from "lucide-react";
 
 const POINTS = [
@@ -12,7 +15,13 @@ export default function About() {
   return (
     <section className="bg-background py-16 text-foreground transition-colors duration-200">
       <div className="mx-auto grid max-w-[1320px] items-center gap-12 px-6 lg:grid-cols-2 lg:px-8">
-        <div className="relative">
+        <motion.div
+          initial={{ opacity: 0, x: -50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="relative"
+        >
           <Image
             src="/images/deco-circle.png"
             alt=""
@@ -44,9 +53,14 @@ export default function About() {
             <Users className="h-6 w-6" />
             <p className="mt-2 text-sm font-semibold">Expert Instructors</p>
           </div>
-        </div>
+        </motion.div>
 
-        <div>
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+        >
           <p className="text-sm font-semibold text-primary dark:text-gray-200">About UML</p>
           <h2 className="mt-2 text-[34px] font-bold text-foreground sm:text-[40px]">Learning Possibilities.</h2>
           <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-muted-foreground dark:text-gray-200">
@@ -56,7 +70,14 @@ export default function About() {
           </p>
           <ul className="mt-8 space-y-6">
             {POINTS.map((p, i) => (
-              <li key={p.title} className={i < POINTS.length - 1 ? "border-b border-border pb-6" : ""}>
+              <motion.li
+                key={p.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.15 }}
+                className={i < POINTS.length - 1 ? "border-b border-border pb-6" : ""}
+              >
                 <div className="flex items-center gap-3">
                   <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/15 text-primary">
                     <Check className="h-4 w-4" strokeWidth={3} />
@@ -64,14 +85,14 @@ export default function About() {
                   <span className="text-lg font-medium text-foreground">{p.title}</span>
                 </div>
                 {p.body && <p className="mt-2 pl-9 text-[15px] leading-[1.7] text-muted-foreground dark:text-gray-200">{p.body}</p>}
-              </li>
+              </motion.li>
             ))}
           </ul>
           <Link href="#about" className="mt-8 inline-flex items-center gap-2 rounded-[10px] bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
             Learn More
             <ArrowRight className="h-4 w-4" />
           </Link>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

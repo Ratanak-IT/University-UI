@@ -35,6 +35,10 @@ export default function LessonsPage() {
   const [editContent, setEditContent] = useState("");
   const [updating, setUpdating] = useState(false);
 
+  // Delete Lesson Confirm State
+  const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   function handleOpenEditLesson(lesson: Lesson) {
     setEditingLesson(lesson);
     setEditTitle(lesson.title || "");

@@ -185,18 +185,18 @@ export default function CommentComposer({
           syncMentionToken(body, (e.target as HTMLTextAreaElement).selectionStart)
         }
         onKeyDown={handleKeyDown}
-        className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+        className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
       />
 
       {pickerOpen && (
-        <div className="absolute left-3 top-full z-30 mt-1 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+        <div className="absolute left-3 top-full z-30 mt-1 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
           {loadingCandidates ? (
-            <div className="flex items-center gap-2 px-4 py-3 text-xs text-slate-500">
+            <div className="flex items-center gap-2 px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Searching members…
             </div>
           ) : candidates.length === 0 ? (
-            <div className="px-4 py-3 text-xs text-slate-500">
+            <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
               No matching classmates
             </div>
           ) : (
@@ -210,23 +210,23 @@ export default function CommentComposer({
                 }}
                 onMouseEnter={() => setHighlighted(i)}
                 className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition ${
-                  i === highlighted ? "bg-primary/10" : "hover:bg-slate-50"
+                  i === highlighted ? "bg-primary/10" : "hover:bg-slate-50 dark:hover:bg-slate-700/50"
                 }`}
               >
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
                   {user.fullName.slice(0, 2).toUpperCase()}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-slate-800">
+                  <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                     {user.fullName}
                   </span>
                   {user.nameKhmer && (
-                    <span className="block truncate text-[11px] text-slate-500">
+                    <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">
                       {user.nameKhmer}
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-700 dark:text-slate-300">
                   {user.role}
                 </span>
               </button>
@@ -259,10 +259,10 @@ export default function CommentComposer({
         </div>
       )}
 
-      {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
+      {error && <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
 
       <div className="mt-3 flex items-center justify-between">
-        <p className="text-[11px] text-slate-400">
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">
           Type <span className="font-semibold">@</span> to mention · Ctrl+Enter to send
         </p>
         <div className="flex items-center gap-2">
@@ -270,7 +270,7 @@ export default function CommentComposer({
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
             >
               Cancel
             </button>

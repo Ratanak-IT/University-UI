@@ -35,7 +35,7 @@ html {
   --card: #0f172a;
   --card-foreground: #ededed;
 
-  --primary: #004071;
+  --primary: #077eda;
   --primary-foreground: #ffffff; /* Adjusted contrast */
 
   --secondary: #f2b134;
@@ -75,6 +75,17 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Buttons don't get a pointer cursor by default in the browser UA stylesheet */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
 }
 
 /* Protection Rules for Files & Videos */
