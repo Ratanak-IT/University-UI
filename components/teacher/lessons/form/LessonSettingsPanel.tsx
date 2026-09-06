@@ -102,7 +102,7 @@ export function LessonSettingsPanel({
       </section>
 
       {/* Auto-save notice */}
-      <div className="mt-5 flex items-start gap-2 rounded-md bg-primary/10 px-3 py-3 text-sm text-primary">
+      <div className="mt-5 flex items-start gap-2 rounded-md bg-primary/10 px-3 py-3 text-sm text-primary dark:text-gray-200">
         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
         <span>Auto-save active. Last draft saved just now.</span>
       </div>

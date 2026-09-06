@@ -10,6 +10,7 @@ import { fetchSavedLessons, assignSavedLesson, deleteLesson, updateLesson } from
 import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import { toast } from "@/components/shared/Toast";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { FilterBarSkeleton, CardGridSkeleton } from "@/components/shared/Skeletons";
 
 const PAGE_SIZE = 6;
 
@@ -167,8 +168,9 @@ export default function LessonsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" strokeWidth={2} />
+      <div className="space-y-4">
+        <FilterBarSkeleton />
+        <CardGridSkeleton count={6} />
       </div>
     );
   }

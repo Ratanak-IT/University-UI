@@ -18,10 +18,10 @@ export default function WelcomeHeader({
   return (
     <div className="mb-8 flex items-start justify-between">
       <div>
-        <h1 className="text-2xl font-bold text-primary dark:text-primary">
+        <h1 className="text-2xl font-bold text-primary dark:text-gray-200">
           Welcome back, {teacherName}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-slate-500 dark:text-gray-300">
           Academic Year {academicYear} · {semester} · {activeClassrooms} active classrooms
         </p>
       </div>

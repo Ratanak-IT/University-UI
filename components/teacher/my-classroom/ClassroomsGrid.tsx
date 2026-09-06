@@ -5,7 +5,7 @@ import { Classroom } from "@/lib/types/dashboard";
 export default function ClassroomsGrid({ classrooms }: { classrooms: Classroom[] }) {
   return (
     <>
-      <h2 className="mb-4 mt-8 text-lg font-bold text-primary dark:text-primary">
+      <h2 className="mb-4 mt-8 text-lg font-bold text-primary dark:text-gray-200">
         Your classrooms
       </h2>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

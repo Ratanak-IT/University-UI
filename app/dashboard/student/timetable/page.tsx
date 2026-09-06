@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Calendar, Clock, Loader2, MapPin } from "lucide-react";
+import { Calendar, Clock, MapPin } from "lucide-react";
 import { useGetStudentProfileQuery, useGetStudentTimetableQuery } from "@/lib/redux/apiSlice";
 import type { TimetableSlotResponse, Weekday } from "@/lib/api/student";
 
@@ -110,8 +110,24 @@ export default function TimetablePage() {
       </div>
 
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, d) => (
+            <div key={d} className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-3 h-3 w-16 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+              <div className="space-y-2">
+                {Array.from({ length: 2 }).map((_, s) => (
+                  <div key={s} className="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/30">
+                    <div className="h-1 w-full bg-slate-200/80 dark:bg-slate-800/80" />
+                    <div className="space-y-1.5 p-2.5">
+                      <div className="h-3 w-16 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                      <div className="h-4 w-24 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                      <div className="h-3 w-20 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ) : slots.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-white py-20 text-center dark:border-slate-800 dark:bg-slate-900">

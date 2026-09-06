@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
 import {
   fetchMyProfile,
   fetchStudentQuizzes,
   QuizResponse,
   StudentProfile,
 } from "@/lib/api/student";
+import { CardGridSkeleton } from "@/components/shared/Skeletons";
 
 type QStatus = "open" | "done" | "missed" | "upcoming";
 
@@ -70,9 +70,7 @@ export default function QuizzesPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
-        </div>
+        <CardGridSkeleton count={6} />
       ) : quizzes.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
           <p className="text-lg font-semibold text-slate-700">No quizzes found</p>

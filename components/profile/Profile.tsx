@@ -22,6 +22,7 @@ import {
   uploadTeacherAvatar,
   TeacherProfile,
 } from "@/lib/api/teacher";
+import ProfileTeacherSkeleton from "./ProfileTeacherSkeleton";
 
 function Card({
   children,
@@ -140,11 +141,7 @@ export default function Profile() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <ProfileTeacherSkeleton />;
   }
 
   const teacherName = profile
@@ -163,7 +160,7 @@ export default function Profile() {
         className="hidden"
       />
 
-      <div className="mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         {/* LEFT COLUMN */}
         <div className="flex flex-col gap-6">
           {/* Header card with Avatar Upload */}
@@ -210,11 +207,11 @@ export default function Profile() {
                     {teacherName}
                   </h1>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full bg-primary/10 text-primary px-2.5 py-1 font-medium">
+                    <span className="rounded-full bg-primary/10 text-primary px-2.5 py-1 font-medium dark:text-gray-200">
                       ID: {teacherCode}
                     </span>
                     <span className="text-muted-foreground">•</span>
-                    <span className="text-muted-foreground">
+                    <span className="text-muted-foreground dark:text-gray-200">
                       {profile?.position ?? "Faculty Member"}
                     </span>
                   </div>
@@ -286,7 +283,7 @@ export default function Profile() {
               </div>
             </div>
             <div>
-              <label className="block text-xs text-muted-foreground mb-2.5">
+              {/* <label className="block text-xs text-muted-foreground mb-2.5">
                 Assigned Departments
               </label>
               <div className="flex flex-wrap items-center gap-2">
@@ -301,7 +298,7 @@ export default function Profile() {
                 ) : (
                   <Tag icon={Monitor} label="Department of Computer Science" />
                 )}
-              </div>
+              </div> */}
             </div>
           </Card>
         </div>

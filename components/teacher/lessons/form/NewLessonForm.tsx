@@ -73,7 +73,7 @@ export function NewLessonForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="w-full">
       {/* Main form card */}
       <div className="w-full rounded-2xl border border-border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-6 py-5">

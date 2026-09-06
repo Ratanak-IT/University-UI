@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "@/components/shared/Toast";
+import { CardGridSkeleton } from "@/components/shared/Skeletons";
 import {
   downloadIssuedCertificate,
   previewIssuedCertificate,
@@ -110,12 +111,7 @@ export default function MyCertificates() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-slate-500 dark:text-slate-400">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading your certificates…
-      </div>
-    );
+    return <CardGridSkeleton count={6} />;
   }
 
   if (isError) {

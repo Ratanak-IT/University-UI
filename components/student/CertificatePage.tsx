@@ -63,8 +63,26 @@ export default function CertificatePage() {
 
   if (loading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+      <div className="space-y-5">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="h-4 w-64 max-w-full animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+          <div className="h-10 w-48 shrink-0 animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80" />
+        </div>
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="h-6 w-56 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 py-4">
+                <div className="h-11 w-11 shrink-0 animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-4 w-48 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                  <div className="h-3 w-32 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                </div>
+                <div className="h-6 w-28 shrink-0 animate-pulse rounded-full bg-slate-200/80 dark:bg-slate-800/80" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

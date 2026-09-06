@@ -86,14 +86,14 @@ export default function Sidebar() {
                         isCollapsed ? "justify-center" : ""
                       } ${
                         isActive
-                          ? "bg-primary/10 text-primary"
+                          ? "bg-primary/10 text-primary dark:bg-slate-700 dark:text-white"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       }`}
                     >
                       <Icon
                         className={`h-4.5 w-4.5 shrink-0 transition-colors ${
                           isActive
-                            ? "text-primary"
+                            ? "text-primary dark:text-white"
                             : "text-muted-foreground group-hover:text-foreground"
                         }`}
                         strokeWidth={isActive ? 2 : 1.75}

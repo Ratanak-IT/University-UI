@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import RosterTable from "./RosterTable";
 import StatsGrid from "./StatsGrid";
 import StudentsHeader from "./StudentsHeader";
+import StudentsPageSkeleton from "./StudentsPageSkeleton";
 import {
   fetchTeacherClassrooms,
   fetchClassroomStudents,
@@ -79,11 +79,7 @@ export default function StudentsPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" strokeWidth={2} />
-      </div>
-    );
+    return <StudentsPageSkeleton />;
   }
 
   return (

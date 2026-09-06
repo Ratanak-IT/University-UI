@@ -38,6 +38,7 @@ import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal
 import { LessonDetailModal } from "@/components/shared/LessonDetailModal";
 import { LessonCard } from "@/components/teacher/my-classroom/LessonCard";
 import QuizResultsModal from "@/components/teacher/quiz/QuizResultsModal";
+import ClassroomDetailSkeleton from "@/components/shared/ClassroomDetailSkeleton";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -235,11 +236,7 @@ export default function ClassroomDetailView({
   const loading = loadingClassroom || !resolvedId;
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
+    return <ClassroomDetailSkeleton />;
   }
 
   if (!classroom) {

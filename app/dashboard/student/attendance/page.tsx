@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Loader2,
   CheckCircle2,
   UserCheck,
   Calendar,
@@ -17,6 +16,7 @@ import {
 import { useGetStudentProfileQuery, useGetStudentAttendanceQuery } from "@/lib/redux/apiSlice";
 import type { AttendanceRecordResponse } from "@/lib/api/student";
 import ModernSelect from "@/components/shared/ModernSelect";
+import { StatCardSkeleton, TableRowsSkeleton } from "@/components/shared/Skeletons";
 
 const rateColor = (r: number) =>
   r >= 90
@@ -82,8 +82,13 @@ export default function StudentAttendancePage() {
       </div>
 
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <StatCardSkeleton key={i} />
+            ))}
+          </div>
+          <TableRowsSkeleton rows={6} cols={4} />
         </div>
       ) : courses.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white py-16 text-center dark:border-slate-800 dark:bg-slate-900">

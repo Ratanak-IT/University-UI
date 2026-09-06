@@ -7,7 +7,6 @@ import {
   Download,
   ChevronDown,
   FileSpreadsheet,
-  Loader2,
   AlertCircle,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
@@ -19,6 +18,7 @@ import {
 } from "@/lib/redux/apiSlice";
 import type { GradeResponse } from "@/lib/api/student";
 import PersonAvatar from "@/components/shared/PersonAvatar";
+import GradesPageSkeleton from "./GradesPageSkeleton";
 
 const STATUS_LABEL: Record<GradeResponse["status"], string> = {
   POSTED: "Official",
@@ -150,11 +150,7 @@ export default function GradesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
+    return <GradesPageSkeleton />;
   }
 
   if (isError) {

@@ -723,11 +723,46 @@ export default function Attendan2Grades() {
             </thead>
             <tbody>
               {loadingStudents || loadingScores ? (
-                <tr>
-                  <td colSpan={14} className="py-8 text-center text-sm text-muted-foreground">
-                    Loading student gradebook...
-                  </td>
-                </tr>
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="border-b border-border last:border-0">
+                    <td className="flex items-center gap-3.5 px-5 py-3.5">
+                      <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-slate-200/80 dark:bg-slate-800/80" />
+                      <div className="space-y-1.5">
+                        <div className="h-4 w-28 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                        <div className="h-3 w-16 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                      </div>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <div className="h-4 w-20 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <div className="h-4 w-10 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                    </td>
+                    {Array.from({ length: 5 }).map((_, c) => (
+                      <td key={c} className="px-2 py-2 text-center bg-indigo-50/20 dark:bg-indigo-950/10">
+                        <div className="mx-auto h-7 w-16 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                      </td>
+                    ))}
+                    <td className="px-3 py-3.5 text-center">
+                      <div className="mx-auto h-4 w-10 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                    </td>
+                    <td className="px-3 py-3.5 text-center">
+                      <div className="mx-auto h-5 w-8 animate-pulse rounded-full bg-slate-200/80 dark:bg-slate-800/80" />
+                    </td>
+                    <td className="px-3 py-3.5 text-center">
+                      <div className="mx-auto h-4 w-10 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <div className="h-5 w-16 animate-pulse rounded-full bg-slate-200/80 dark:bg-slate-800/80" />
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <div className="h-4 w-20 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                    </td>
+                    <td className="px-3 py-3.5 text-center">
+                      <div className="mx-auto h-8 w-8 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                    </td>
+                  </tr>
+                ))
               ) : currentPageRows.length === 0 ? (
                 <tr>
                   <td colSpan={14} className="py-8 text-center text-sm text-muted-foreground">

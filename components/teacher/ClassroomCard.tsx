@@ -70,7 +70,7 @@ export default function ClassroomCard({
           ) : (
             <span />
           )}
-          <span className="text-sm font-semibold text-primary group-hover:underline">
+          <span className="text-sm font-semibold text-primary group-hover:underline dark:text-gray-200">
             Open
           </span>
         </div>

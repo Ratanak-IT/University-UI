@@ -88,7 +88,7 @@ export default function InviteCodeModal({
           </p>
 
           <div className="mt-6 rounded-2xl bg-primary/5 p-8">
-            <p className="font-mono text-3xl font-bold tracking-[0.25em] text-primary">
+            <p className="font-mono text-3xl font-bold tracking-[0.25em] text-primary dark:text-gray-200">
               {code}
             </p>
             <button

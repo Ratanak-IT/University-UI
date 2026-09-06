@@ -25,6 +25,7 @@ import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal
 import CommentThread from "@/components/shared/CommentThread";
 import PrivateCommentThread from "@/components/shared/PrivateCommentThread";
 import SafeHtml from "@/components/shared/SafeHtml";
+import AssignmentDetailSkeleton from "@/components/student/AssignmentDetailSkeleton";
 
 function AssignmentDetailInner() {
   const params = useSearchParams();
@@ -177,11 +178,7 @@ function AssignmentDetailInner() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
+    return <AssignmentDetailSkeleton />;
   }
 
   if (!assignment) {
@@ -243,7 +240,7 @@ function AssignmentDetailInner() {
       </div>
 
       {/* Main content */}
-      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-4 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
+      <main className="grid w-full flex-1 grid-cols-1 gap-4 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_320px] lg:px-8">
         {/* Assignment card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
           <div className="flex items-start gap-3">
@@ -441,13 +438,7 @@ function AssignmentDetailInner() {
 
 export default function AssignmentDetail() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-96 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-        </div>
-      }
-    >
+    <Suspense fallback={<AssignmentDetailSkeleton />}>
       <AssignmentDetailInner />
     </Suspense>
   );

@@ -285,10 +285,10 @@ export default function QuizzesPageContent() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-8 py-8 md:px-10">
+    <div className="px-8 py-8 md:px-10">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-primary dark:text-primary">My Quizzes</h1>
+          <h1 className="text-3xl font-extrabold text-primary dark:text-gray-200">My Quizzes</h1>
           <p className="mt-1 text-slate-500">
             Create, manage, and monitor student assessment progress.
           </p>

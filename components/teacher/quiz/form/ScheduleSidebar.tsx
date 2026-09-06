@@ -45,7 +45,7 @@ export function ScheduleSidebar({
           />
         </div>
 
-        <div className="flex items-start gap-2 rounded-md bg-primary/10 px-3 py-3 text-sm text-primary">
+        <div className="flex items-start gap-2 rounded-md bg-primary/10 px-3 py-3 text-sm text-primary dark:text-gray-200">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <span>Scheduling defaults to your current classroom timezone (ICT).</span>
         </div>

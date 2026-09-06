@@ -41,7 +41,7 @@ export function LessonTabs({
             className="text-card-foreground/90 leading-relaxed [&_p]:my-2 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_a]:text-primary [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2"
           />
 
-          <h3 className="mt-5 mb-3 font-semibold text-primary">
+          <h3 className="mt-5 mb-3 font-semibold text-primary dark:text-gray-200">
             Key Learning Objectives
           </h3>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Clock, Check, Upload, Loader2, AlertCircle } from "lucide-react";
+import { Clock, Check, Upload, AlertCircle } from "lucide-react";
 import {
   fetchStudentAssignmentsList,
   StudentAssignmentListItem,
@@ -101,8 +101,19 @@ export default function AssignmentsPage() {
 
       {/* List */}
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <ul className="divide-y divide-slate-100">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <li key={i} className="flex items-center gap-4 p-5">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-4 w-56 animate-pulse rounded-md bg-slate-200/80" />
+                  <div className="h-3 w-40 animate-pulse rounded-md bg-slate-200/80" />
+                </div>
+                <div className="hidden h-4 w-32 shrink-0 animate-pulse rounded-md bg-slate-200/80 sm:block" />
+                <div className="h-6 w-20 shrink-0 animate-pulse rounded-full bg-slate-200/80" />
+              </li>
+            ))}
+          </ul>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">

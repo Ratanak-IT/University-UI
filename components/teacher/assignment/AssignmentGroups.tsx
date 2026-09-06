@@ -26,6 +26,7 @@ import { fetchClassroomAssignments } from "@/lib/api/student";
 import { useDeleteAssignmentMutation, useUpdateAssignmentMutation } from "@/lib/redux/apiSlice";
 import { toast } from "@/components/shared/Toast";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { FilterBarSkeleton } from "@/components/shared/Skeletons";
 
 export default function AssignmentGroups() {
   const [classroomFilter, setClassroomFilter] = useState<ClassroomFilter>("all");
@@ -247,8 +248,16 @@ export default function AssignmentGroups() {
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-650" strokeWidth={2} />
+      <div className="flex flex-col gap-8">
+        <FilterBarSkeleton />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i}>
+            <div className="mb-3 flex items-center gap-2">
+              <div className="h-5 w-5 animate-pulse rounded bg-slate-200/80 dark:bg-slate-800/80" />
+              <div className="h-7 w-48 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

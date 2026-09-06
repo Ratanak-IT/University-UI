@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
 import {
   fetchMyClassrooms,
   fetchClassroomStudents,
   ClassroomResponse,
 } from "@/lib/api/student";
+import { CardGridSkeleton } from "@/components/shared/Skeletons";
 
 // Same four header/text/badge triples the teacher classroom card cycles
 // through, so a student's card is the same design, not a lookalike.
@@ -95,10 +95,7 @@ export default function MyClassesPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-3 py-20">
-          <Loader2 className="h-7 w-7 animate-spin text-indigo-600 dark:text-indigo-400" />
-          <span className="text-sm text-slate-500 dark:text-slate-400">Loading classrooms...</span>
-        </div>
+        <CardGridSkeleton count={6} />
       ) : classes.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-20 text-center">
           <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">No classrooms found</p>

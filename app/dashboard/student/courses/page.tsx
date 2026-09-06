@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Loader2,
   FileText,
   Video,
   BookOpen,
@@ -33,6 +32,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
+import CoursesPageSkeleton, { CoursesContentSkeleton } from "@/components/shared/CoursesPageSkeleton";
 
 const TABS = ["Overview", "Lessons", "Assignments", "Quizzes"];
 
@@ -190,11 +190,7 @@ export default function CoursesPage() {
 
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-      </div>
-    );
+    return <CoursesPageSkeleton />;
   }
 
   if (classrooms.length === 0) {
@@ -271,8 +267,8 @@ export default function CoursesPage() {
       </div>
 
       {loadingDetail ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+        <div className="space-y-4">
+          <CoursesContentSkeleton />
         </div>
       ) : (
         <>

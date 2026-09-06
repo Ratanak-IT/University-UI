@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, BookMarked, Users, Folder, ClipboardCheck } from "lucide-react";
+import { BookMarked, Users, Folder, ClipboardCheck } from "lucide-react";
 import StatCards from "@/components/teacher/dashboard/StatCards";
+import DashboardSkeleton from "@/components/teacher/dashboard/DashboardSkeleton";
 import {
   engagementData,
   contentLibraryData,
@@ -83,11 +84,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" strokeWidth={2} />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

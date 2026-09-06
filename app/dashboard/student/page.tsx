@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Loader2, GraduationCap, ClipboardList, UserCheck, Bell, BellRing } from "lucide-react";
+import { GraduationCap, ClipboardList, UserCheck, Bell, BellRing } from "lucide-react";
 import {
   useGetStudentProfileQuery,
   useGetStudentGpaQuery,
@@ -13,6 +13,7 @@ import { fetchStudentDashboardSummary } from "@/lib/api/student";
 import StatCards from "@/components/teacher/dashboard/StatCards";
 import DeadlinesSection from "@/components/teacher/dashboard/DeadlinesSection";
 import type { StatCard, Deadline } from "@/lib/types/dashboard";
+import StudentDashboardSkeleton, { DashboardListCardSkeleton } from "@/components/student/DashboardSkeleton";
 
 /**
  * The student landing page — an actual overview (stats, what's due, what's
@@ -127,11 +128,7 @@ export default function StudentDashboard() {
   const recentNotifications = notifications.slice(0, 5);
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" strokeWidth={2} />
-      </div>
-    );
+    return <StudentDashboardSkeleton />;
   }
 
   return (
@@ -151,9 +148,7 @@ export default function StudentDashboard() {
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         {loadingAssignments ? (
-          <div className="flex items-center justify-center rounded-2xl border border-border bg-card p-10">
-            <Loader2 className="h-5 w-5 animate-spin text-indigo-600 dark:text-indigo-400" />
-          </div>
+          <DashboardListCardSkeleton />
         ) : (
           <DeadlinesSection deadlines={deadlines} />
         )}
@@ -169,9 +164,14 @@ export default function StudentDashboard() {
             </Link>
           </div>
           {loadingNotifications ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-600 dark:text-indigo-400" />
-            </div>
+            <ul className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <li key={i} className="rounded-xl border border-border p-4">
+                  <div className="h-4 w-48 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                  <div className="mt-2 h-3 w-32 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                </li>
+              ))}
+            </ul>
           ) : recentNotifications.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <Bell className="h-6 w-6 text-slate-300 dark:text-slate-700" />

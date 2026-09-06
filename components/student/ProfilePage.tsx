@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { ShieldCheck, Calendar, IdCard, X, Check, Camera, Loader2 } from "lucide-react";
+import { ShieldCheck, Calendar, IdCard, Camera, Loader2 } from "lucide-react";
+import ProfilePageSkeleton from "./ProfilePageSkeleton";
 import { fetchMyProfile, fetchStudentGpa, uploadAvatar, GpaResponse, StudentProfile } from "@/lib/api/student";
 
 type FormState = {
@@ -22,13 +23,6 @@ export default function ProfilePage() {
     language: "English (Academic)",
     major: "",
   });
-  const [draft, setDraft] = useState<FormState>({
-    fullName: "",
-    phone: "",
-    language: "English (Academic)",
-    major: "",
-  });
-  const [isEditing, setIsEditing] = useState(false);
 
   const [photoUrl, setPhotoUrl] = useState("/davin.jpg");
   const [photoError, setPhotoError] = useState("");
@@ -55,7 +49,6 @@ export default function ProfilePage() {
           major: majorText,
         };
         setForm(initialData);
-        setDraft(initialData);
 
         if (p.avatarUrl) {
           setPhotoUrl(p.avatarUrl);
@@ -118,27 +111,8 @@ export default function ProfilePage() {
     e.target.value = "";
   }
 
-  function startEdit() {
-    setDraft(form);
-    setIsEditing(true);
-  }
-
-  function saveEdit() {
-    setForm(draft);
-    setIsEditing(false);
-  }
-
-  function cancelEdit() {
-    setDraft(form);
-    setIsEditing(false);
-  }
-
   if (loading) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
+    return <ProfilePageSkeleton />;
   }
 
   if (!profile) {
@@ -160,7 +134,7 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="space-y-6">
           {/* Identity card */}
           <div className="flex flex-wrap gap-4 items-center justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center gap-4">
@@ -221,47 +195,12 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={startEdit}
-              className="rounded-xl bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 shadow-sm"
-            >
-              Edit Profile
-            </button>
           </div>
 
           {/* Personal information */}
           <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Personal Information</h2>
-              {isEditing ? (
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={saveEdit}
-                    className="flex items-center gap-1 text-sm font-semibold text-indigo-700 hover:underline dark:text-indigo-400"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                    Save
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={startEdit}
-                  className="text-sm font-semibold text-indigo-700 hover:underline dark:text-indigo-400"
-                >
-                  Edit Details
-                </button>
-              )}
             </div>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
@@ -271,14 +210,9 @@ export default function ProfilePage() {
                 <input
                   id="fullName"
                   name="fullName"
-                  readOnly={!isEditing}
-                  value={isEditing ? draft.fullName : form.fullName}
-                  onChange={(e) => setDraft((d) => ({ ...d, fullName: e.target.value }))}
-                  className={`w-full rounded-xl border px-3.5 py-2.5 text-sm transition-colors ${
-                    isEditing
-                      ? "border-indigo-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-indigo-500 dark:bg-slate-800 dark:text-slate-100"
-                      : "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
-                  }`}
+                  readOnly
+                  value={form.fullName}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
                 />
               </div>
               <div>
@@ -312,14 +246,9 @@ export default function ProfilePage() {
                 <select
                   id="language"
                   name="language"
-                  disabled={!isEditing}
-                  value={isEditing ? draft.language : form.language}
-                  onChange={(e) => setDraft((d) => ({ ...d, language: e.target.value }))}
-                  className={`w-full rounded-xl border px-3.5 py-2.5 text-sm transition-colors ${
-                    isEditing
-                      ? "border-indigo-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-indigo-500 dark:bg-slate-800 dark:text-slate-100"
-                      : "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
-                  }`}
+                  disabled
+                  value={form.language}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
                 >
                   <option className="dark:bg-slate-800 dark:text-slate-100">English (Academic)</option>
                   <option className="dark:bg-slate-800 dark:text-slate-100">Khmer</option>

@@ -90,14 +90,14 @@ export default function SidebarStudent() {
                         isCollapsed ? "justify-center" : ""
                       } ${
                         isActive
-                          ? "bg-indigo-50 text-indigo-600 shadow-sm dark:bg-indigo-950/70 dark:text-indigo-300"
+                          ? "bg-indigo-50 text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-white"
                           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                       }`}
                     >
                       <Icon
                         className={`h-4.5 w-4.5 shrink-0 transition-colors ${
                           isActive
-                            ? "text-indigo-600 dark:text-indigo-400"
+                            ? "text-indigo-600 dark:text-white"
                             : "text-muted-foreground/70 group-hover:text-foreground"
                         }`}
                         strokeWidth={isActive ? 2 : 1.75}

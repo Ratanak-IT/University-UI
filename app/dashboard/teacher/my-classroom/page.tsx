@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import ClassroomsGrid from "@/components/teacher/my-classroom/ClassroomsGrid";
 import StatCards from "@/components/teacher/my-classroom/StatCards";
+import MyClassroomSkeleton from "@/components/teacher/my-classroom/MyClassroomSkeleton";
 import WelcomeHeader from "@/components/teacher/WelcomeHeader";
 import {
   fetchTeacherProfile,
@@ -74,11 +74,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" strokeWidth={2} />
-      </div>
-    );
+    return <MyClassroomSkeleton />;
   }
 
   const teacherName = profile

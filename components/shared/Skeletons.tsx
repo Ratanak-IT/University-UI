@@ -27,6 +27,20 @@ export function StatsGridSkeleton({ count = 3 }: { count?: number }) {
   );
 }
 
+/** Skeleton for a filter/toolbar row: a segmented control, a dropdown, a trailing count/action. */
+export function FilterBarSkeleton() {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="h-8 w-48 animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80" />
+        <div className="hidden h-6 w-px bg-slate-200 dark:bg-slate-800 sm:block" />
+        <div className="h-8 w-40 animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80" />
+      </div>
+      <div className="h-4 w-32 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+    </div>
+  );
+}
+
 /** Skeleton loader for a single card (Classroom, Quiz, Lesson, Assignment) */
 export function CardSkeleton() {
   return (

@@ -17,7 +17,7 @@ export function TimeLeftCard({ secondsLeft, totalSeconds }: TimeLeftCardProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-5 text-center">
       <p className="text-xs font-semibold tracking-wide text-muted-foreground">TIME LEFT</p>
-      <div className="mt-2 flex items-center justify-center gap-2 text-2xl font-bold text-primary">
+      <div className="mt-2 flex items-center justify-center gap-2 text-2xl font-bold text-primary dark:text-gray-200">
         <Timer className="h-6 w-6" />
         {formatTime(secondsLeft)}
       </div>

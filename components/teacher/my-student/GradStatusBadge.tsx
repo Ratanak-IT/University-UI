@@ -2,7 +2,7 @@ import { Student } from "@/lib/data/students";
 
 
 const statusClasses: Record<Student["gradStatus"], string> = {
-  "In Progress": "bg-primary/10 text-primary",
+  "In Progress": "bg-primary/10 text-primary dark:text-gray-200",
   Completed: "bg-emerald-50 text-emerald-600",
   "At Risk": "bg-rose-50 text-rose-600",
 };

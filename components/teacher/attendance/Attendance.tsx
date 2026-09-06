@@ -11,7 +11,6 @@ import {
   ChevronRight,
   ClipboardList,
   History,
-  Loader2,
   Plus,
   Users,
 } from "lucide-react";
@@ -35,6 +34,7 @@ import SessionRegister, { type MarkDrafts } from "./SessionRegister";
 import SessionHistory from "./SessionHistory";
 import AttendanceOverview from "./AttendanceOverview";
 import TimetableModal from "./TimetableModal";
+import AttendanceSkeleton from "./AttendanceSkeleton";
 
 /**
  * A module-level constant, not a `= []` default inside the component.
@@ -311,11 +311,7 @@ export default function Attendance() {
   }
 
   if (loadingClassrooms) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-      </div>
-    );
+    return <AttendanceSkeleton />;
   }
 
   return (
@@ -354,7 +350,7 @@ export default function Attendance() {
           <button
             type="button"
             onClick={() => setClassroomOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
           >
             <span>
               {selectedClassroom ? selectedClassroom.className : "Select Classroom"}

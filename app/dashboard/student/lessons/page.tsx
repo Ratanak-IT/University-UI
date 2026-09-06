@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { PlayCircle, FileText, Loader2 } from "lucide-react";
+import { PlayCircle, FileText } from "lucide-react";
 import {
   fetchMyClassrooms,
   fetchClassroomLessons,
@@ -105,8 +105,21 @@ export default function LessonsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-7 w-7 animate-spin text-indigo-600 dark:text-indigo-400" />
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <li key={i} className="flex items-center gap-4 p-5">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-4 w-56 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                  <div className="flex gap-3">
+                    <div className="h-5 w-14 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                    <div className="h-4 w-32 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
+                  </div>
+                </div>
+                <div className="hidden h-3 w-20 shrink-0 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80 sm:block" />
+              </li>
+            ))}
+          </ul>
         </div>
       ) : filteredLessons.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">

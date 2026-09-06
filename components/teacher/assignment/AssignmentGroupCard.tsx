@@ -36,7 +36,7 @@ export default function AssignmentGroupCard({
             ) : (
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             ))}
-          <h2 className="text-2xl font-bold text-primary">{group.title}</h2>
+          <h2 className="text-2xl font-bold text-primary dark:text-gray-200">{group.title}</h2>
         </div>
       </div>
 
