@@ -28,7 +28,7 @@ export default function NavbarStudent() {
     : "ST";
 
   return (
-    <header className="flex w-full items-center justify-between gap-3 border-b border-border bg-card px-4 py-4 sm:px-6 text-card-foreground transition-colors">
+    <header className="flex w-full items-center justify-between gap-3 sm:gap-6 border-b border-border bg-card px-4 py-4 sm:px-6 text-card-foreground transition-colors">
       <div className="flex min-w-0 items-center gap-2">
         <MobileNav />
         <div className="min-w-0">

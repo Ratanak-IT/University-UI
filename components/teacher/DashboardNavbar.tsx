@@ -20,7 +20,7 @@ export default function DashboardNavbar() {
   useNotifyUnreadOnce();
 
   return (
-    <header className="flex w-full items-center justify-between gap-3 border-b border-gray-100 bg-white px-4 py-4 sm:px-8 dark:border-slate-800 dark:bg-slate-900">
+    <header className="flex w-full items-center justify-between gap-3 md:gap-6 border-b border-gray-100 bg-white px-4 py-4 sm:px-8 dark:border-slate-800 dark:bg-slate-900">
       <div className="flex min-w-0 items-center gap-2">
         <MobileNav />
         <div className="min-w-0">

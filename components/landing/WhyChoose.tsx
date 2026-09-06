@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import { GraduationCap, Users, LineChart, Trophy } from "lucide-react";
 
 const FEATURES = [
@@ -35,16 +38,30 @@ export default function WhyChoose() {
   return (
     <section id="about" className="bg-background py-20 text-foreground transition-colors duration-200">
       <div className="mx-auto max-w-[1320px] px-6 lg:px-8">
-        <h2 className="text-center text-[32px] font-bold text-foreground sm:text-[38px]">
+        <motion.h2
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center text-[32px] font-bold text-foreground sm:text-[38px]"
+        >
           Why Thousands Choose <span className="ums-underline">UML</span>
-        </h2>
+        </motion.h2>
         <div className="mt-14 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
-            <div key={f.title} className={`border-l-4 ${f.border} pl-6`}>
+          {FEATURES.map((f, index) => (
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.12 }}
+              whileHover={{ y: -6 }}
+              className={`border-l-4 ${f.border} pl-6`}
+            >
               <f.icon className={`h-12 w-12 ${f.iconColor}`} strokeWidth={1.5} />
               <h3 className="mt-8 text-lg font-bold text-foreground">{f.title}</h3>
               <p className="mt-3 text-[15px] leading-[1.7] text-muted-foreground">{f.body}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

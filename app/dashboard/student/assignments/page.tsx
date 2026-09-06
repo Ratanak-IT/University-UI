@@ -19,9 +19,9 @@ const TABS: { key: Status | "all"; label: string }[] = [
 ];
 
 const statusChip: Record<Status, { label: string; cls: string; icon: React.ElementType }> = {
-  todo: { label: "To do", cls: "bg-amber-100 text-amber-700", icon: Clock },
-  submitted: { label: "Submitted", cls: "bg-indigo-100 text-indigo-700", icon: Upload },
-  graded: { label: "Graded", cls: "bg-emerald-100 text-emerald-700", icon: Check },
+  todo: { label: "To do", cls: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300", icon: Clock },
+  submitted: { label: "Submitted", cls: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300", icon: Upload },
+  graded: { label: "Graded", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300", icon: Check },
 };
 
 function mapStatus(s: string | null): Status {
@@ -74,8 +74,8 @@ export default function AssignmentsPage() {
   return (
     <div className="space-y-6 p-8">
       <div>
-        <h2 className="text-2xl font-black tracking-tight text-indigo-950">Assignments</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <h2 className="text-2xl font-black tracking-tight text-indigo-950 dark:text-slate-100">Assignments</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           {loading
             ? "Loading..."
             : `${counts.todo} to do · ${counts.submitted} submitted · ${counts.graded} graded`}
@@ -83,7 +83,7 @@ export default function AssignmentsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex w-fit items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
+      <div className="flex w-fit items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -91,7 +91,7 @@ export default function AssignmentsPage() {
             className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-colors ${
               tab === t.key
                 ? "bg-indigo-700 text-white"
-                : "text-slate-600 hover:bg-slate-50"
+                : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
             }`}
           >
             {t.label}
@@ -102,16 +102,16 @@ export default function AssignmentsPage() {
       {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+          <Loader2 className="h-7 w-7 animate-spin text-indigo-600 dark:text-indigo-400" />
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
           {filtered.length === 0 ? (
-            <p className="p-10 text-center text-sm text-slate-400">
+            <p className="p-10 text-center text-sm text-slate-400 dark:text-slate-500">
               Nothing here right now.
             </p>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.map((a) => {
                 const chip = statusChip[a.status];
                 const Icon = chip.icon;
@@ -124,11 +124,11 @@ export default function AssignmentsPage() {
                   <li key={a.assignmentId}>
                     <Link
                       href={`/dashboard/student/courses/assignment?classroomId=${a.classroomId}&assignmentId=${a.assignmentId}`}
-                      className="flex items-center gap-4 p-5 transition-colors hover:bg-slate-50"
+                      className="flex items-center gap-4 p-5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-indigo-950">{a.title}</p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="truncate text-sm font-bold text-indigo-950 dark:text-slate-100">{a.title}</p>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                           {a.className} · {a.subjectName}
                         </p>
                       </div>
@@ -136,7 +136,7 @@ export default function AssignmentsPage() {
                       <div className="hidden w-48 shrink-0 sm:block">
                         <p
                           className={`flex items-center gap-1.5 text-xs font-semibold ${
-                            isDueSoon ? "text-rose-600" : "text-slate-500"
+                            isDueSoon ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"
                           }`}
                         >
                           {isDueSoon && <AlertCircle className="h-3.5 w-3.5" strokeWidth={2} />}
@@ -152,7 +152,7 @@ export default function AssignmentsPage() {
                       </div>
 
                       {a.score !== null && (
-                        <span className="w-16 shrink-0 text-sm font-bold text-indigo-950">
+                        <span className="w-16 shrink-0 text-sm font-bold text-indigo-950 dark:text-slate-100">
                           {a.score}/{a.maxScore}
                         </span>
                       )}

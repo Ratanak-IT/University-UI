@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { LogIn, LayoutGrid, TrendingUp } from "lucide-react";
 
 const STEPS = [
@@ -11,7 +14,13 @@ export default function HowItWorks() {
   return (
     <section id="how-it-works" className="bg-background py-20 text-foreground transition-colors duration-200">
       <div className="mx-auto grid max-w-[1320px] items-center gap-14 px-6 lg:grid-cols-2 lg:px-8">
-        <div className="relative flex h-[460px] w-full items-end justify-center">
+        <motion.div
+          initial={{ opacity: 0, x: -50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="relative flex h-[460px] w-full items-end justify-center"
+        >
           {/* Hatched circle decorative background */}
           <Image
             src="/images/deco-circle.png"
@@ -30,16 +39,26 @@ export default function HowItWorks() {
             height={1514}
             className="relative z-10 h-[440px] w-auto object-contain dark:brightness-95"
           />
-        </div>
+        </motion.div>
 
         <div>
-          <h2 className="max-w-lg text-[32px] font-bold leading-tight text-foreground sm:text-[38px]">
+          <motion.h2
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-lg text-[32px] font-bold leading-tight text-foreground sm:text-[38px]"
+          >
             <span className="ums-underline">How</span> Our University Management System Works
-          </h2>
+          </motion.h2>
           <div className="mt-12 space-y-8">
             {STEPS.map((s, i) => (
-              <div 
-                key={s.title} 
+              <motion.div
+                key={s.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.15 }}
                 className={`flex gap-5 ${
                   i < STEPS.length - 1 ? "border-b border-border pb-8" : ""
                 }`}
@@ -51,7 +70,7 @@ export default function HowItWorks() {
                   <h3 className="text-xl font-bold text-foreground">{s.title}</h3>
                   <p className="mt-2 max-w-md text-[17px] leading-[1.4] text-muted-foreground">{s.body}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
