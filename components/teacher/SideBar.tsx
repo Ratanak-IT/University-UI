@@ -8,6 +8,7 @@ import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { navSections } from "./SidebarNav";
 import { useGetTeacherProfileQuery } from "@/lib/redux/apiSlice";
 import PersonAvatar from "@/components/shared/PersonAvatar";
+import { logout } from "@/lib/auth/logout";
 
 /**
  * The permanent rail, from `lg` up. Below that the same navigation is served
@@ -143,8 +144,7 @@ export default function Sidebar() {
               aria-label="Log out"
               onClick={(e) => {
                 e.preventDefault();
-                localStorage.clear();
-                window.location.href = "/login";
+                logout();
               }}
               className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-rose-600 dark:hover:text-rose-400"
             >

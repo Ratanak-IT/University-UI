@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Clock, Check, Upload, Loader2, AlertCircle } from "lucide-react";
 import {
-  fetchMyProfile,
-  fetchStudentAssignments,
-  StudentAssignmentResponse,
-  StudentProfile,
+  fetchStudentAssignmentsList,
+  StudentAssignmentListItem,
 } from "@/lib/api/student";
+import { useGetStudentProfileQuery } from "@/lib/redux/apiSlice";
 
 type Status = "todo" | "submitted" | "graded";
 
@@ -33,23 +32,31 @@ function mapStatus(s: string | null): Status {
 
 export default function AssignmentsPage() {
   const [tab, setTab] = useState<Status | "all">("all");
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [assignments, setAssignments] = useState<StudentAssignmentResponse[]>([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(true);
+  const [assignments, setAssignments] = useState<StudentAssignmentListItem[]>([]);
+
+  // Reuses the same cached profile the navbar already fetched, instead of
+  // firing a second, redundant request for data that's already in hand.
+  const { data: profile, isLoading: loadingProfile } = useGetStudentProfileQuery();
 
   useEffect(() => {
+    if (!profile?.studentId) return;
+    let cancelled = false;
+
     async function load() {
-      setLoading(true);
-      const p = await fetchMyProfile();
-      if (p) {
-        setProfile(p);
-        const data = await fetchStudentAssignments(p.studentId, 0, 100);
-        if (data?.content) setAssignments(data.content);
-      }
-      setLoading(false);
+      setLoadingAssignments(true);
+      const data = await fetchStudentAssignmentsList(profile!.studentId);
+      if (!cancelled && data) setAssignments(data);
+      if (!cancelled) setLoadingAssignments(false);
     }
     load();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile]);
+
+  const loading = loadingProfile || loadingAssignments;
 
   const mapped = assignments.map((a) => ({
     ...a,

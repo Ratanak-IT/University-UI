@@ -6,11 +6,12 @@ type ClassroomCardProps = {
   code: string;
   track: string;
   initials: string;
-  students: number;
+  /** Undefined on a lightweight list — the real count is a click away, not worth a fetch per card. */
+  students?: number;
   year: string;
   room: string;
   classCode: string;
-  toGrade: number;
+  toGrade?: number;
   headerClass: string;
   initialsTextClass: string;
   badgeClass: string;
@@ -52,18 +53,23 @@ export default function ClassroomCard({
       {/* Body */}
       <div className="px-5 py-4">
         <p className="text-sm text-card-foreground">
-          {students} students · {year}
+          {students !== undefined ? `${students} students · ` : ""}
+          {year}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           {room} · Code {classCode}
         </p>
 
         <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}
-          >
-            {toGrade} to grade
-          </span>
+          {toGrade !== undefined ? (
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}
+            >
+              {toGrade} to grade
+            </span>
+          ) : (
+            <span />
+          )}
           <span className="text-sm font-semibold text-primary group-hover:underline">
             Open
           </span>

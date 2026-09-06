@@ -81,10 +81,21 @@ export interface CreateQuizPayload {
   questions?: QuizQuestionPayload[];
 }
 
+export interface QuizClassroomResponse {
+  assignmentId: string;
+  classroomId: string;
+  className: string;
+  classCode: string;
+  subjectName: string | null;
+  availableFrom?: string | null;
+  availableTo?: string | null;
+}
+
 export interface QuizManageResponse {
   quizId: string;
   classroomId?: string;
   className?: string;
+  classrooms?: QuizClassroomResponse[];
   title: string;
   description?: string;
   startAt?: string;
@@ -102,6 +113,33 @@ export interface QuizManageResponse {
     score: number;
     questionOrder: number;
   }[];
+}
+
+export interface QuizAttemptSummary {
+  /** Null when the student has never started the quiz. */
+  attemptId: string | null;
+  studentId: string;
+  studentCode: string | null;
+  studentName: string | null;
+  /** Which of the quiz's (possibly several) released classrooms this row belongs to. */
+  classroomId: string;
+  className: string | null;
+  status: "NOT_STARTED" | "IN_PROGRESS" | "SUBMITTED" | "EXPIRED";
+  startedAt: string | null;
+  submittedAt: string | null;
+  earnedScore: number | null;
+  totalScore: number | null;
+
+  /**
+   * How many times this student left the quiz screen — switched tab or window,
+   * or dropped out of fullscreen.
+   *
+   * <p>Reported, never acted on. A browser cannot stop someone alt-tabbing, so
+   * the honest thing is to say it happened and let the teacher judge: one blip
+   * may be a notification, twenty is a different conversation.
+   */
+  focusLossCount: number;
+  lastFocusLossAt: string | null;
 }
 
 import { API_BASE } from "../api/config";
@@ -451,6 +489,11 @@ export const apiSlice = createApi({
         method: "DELETE",
       }),
       invalidatesTags: ["TeacherQuizzes"],
+    }),
+
+    getQuizAttempts: builder.query<QuizAttemptSummary[], string>({
+      query: (quizId) => `/quizzes/${quizId}/attempts`,
+      providesTags: ["QuizAttempts"],
     }),
 
     getMyNotifications: builder.query<
@@ -941,6 +984,7 @@ export const {
   useAssignQuizToClassroomMutation,
   useGetQuizByIdQuery,
   useDeleteTeacherQuizMutation,
+  useGetQuizAttemptsQuery,
   useGetMyNotificationsQuery,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,

@@ -114,6 +114,10 @@ export interface AssignmentResponse {
   files: FileResponse[];
   createdAt: string;
   createdBy: string;
+  /** How many students have submitted. Only populated by the classroom assignments list. */
+  submittedCount?: number | null;
+  /** Classroom roster size. Only populated by the classroom assignments list. */
+  totalStudents?: number | null;
 }
 
 export interface StudentAssignmentResponse {
@@ -325,6 +329,52 @@ export function fetchStudentAssignments(
   );
 }
 
+export interface StudentDashboardSummary {
+  pendingAssignments: number;
+  upcomingDeadlines: {
+    assignmentId: string;
+    title: string;
+    classCode: string | null;
+    dueDate: string | null;
+  }[];
+}
+
+/**
+ * GET /api/v1/students/{id}/dashboard-summary — pending count + the soonest
+ * few deadlines only. Deliberately not `fetchStudentAssignments`: that one
+ * pulls full assignment detail (description, signed file URLs) for every
+ * assignment just so the dashboard can throw almost all of it away.
+ */
+export function fetchStudentDashboardSummary(studentId: string) {
+  return apiFetch<StudentDashboardSummary>(
+    `/api/v1/students/${studentId}/dashboard-summary`
+  );
+}
+
+export interface StudentAssignmentListItem {
+  assignmentId: string;
+  classroomId: string;
+  className: string | null;
+  subjectName: string | null;
+  title: string;
+  dueDate: string | null;
+  maxScore: number | null;
+  submissionStatus: string | null;
+  score: number | null;
+}
+
+/**
+ * GET /api/v1/students/{id}/assignments-list — every assignment, status and
+ * score only, no description or files. The assignments list page renders a
+ * title/date/status chip per row; the full `fetchStudentAssignments` payload
+ * signs a MinIO URL for every file on every assignment just for that.
+ */
+export function fetchStudentAssignmentsList(studentId: string) {
+  return apiFetch<StudentAssignmentListItem[]>(
+    `/api/v1/students/${studentId}/assignments-list`
+  );
+}
+
 /** GET /api/v1/students/{id}/assignments/{assignmentId} */
 export function fetchStudentAssignmentDetail(
   studentId: string,
@@ -426,6 +476,34 @@ export async function startQuizAttempt(
     return await res.json();
   } catch (err) {
     console.error("startQuizAttempt:", err);
+    return null;
+  }
+}
+
+/**
+ * POST /api/v1/students/{id}/quizzes/{quizId}/attempts/{attemptId}/focus-loss
+ *
+ * <p>Tells the server the student left the quiz screen. Best effort on purpose:
+ * a failure here must never interrupt the quiz, because the student did nothing
+ * wrong by having a flaky connection.
+ *
+ * @returns the running count, or null if it could not be recorded
+ */
+export async function reportQuizFocusLoss(
+  studentId: string,
+  quizId: string,
+  attemptId: string
+): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/students/${studentId}/quizzes/${quizId}/attempts/${attemptId}/focus-loss`,
+      { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeader() } }
+    );
+    if (!res.ok) return null;
+    const body = await res.json();
+    return typeof body?.focusLossCount === "number" ? body.focusLossCount : null;
+  } catch (err) {
+    console.error("reportQuizFocusLoss:", err);
     return null;
   }
 }

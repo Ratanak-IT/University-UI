@@ -25,7 +25,7 @@ import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import { fetchClassroomAssignments } from "@/lib/api/student";
 import { useDeleteAssignmentMutation, useUpdateAssignmentMutation } from "@/lib/redux/apiSlice";
 import { toast } from "@/components/shared/Toast";
-import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 export default function AssignmentGroups() {
   const [classroomFilter, setClassroomFilter] = useState<ClassroomFilter>("all");
@@ -54,6 +54,34 @@ export default function AssignmentGroups() {
 
   const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([]);
 
+  // A classroom's assignments are only fetched once its group is expanded —
+  // fetching every classroom's assignments up front (the old behavior) meant
+  // one round trip per classroom before the page could render anything.
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [loadingGroupId, setLoadingGroupId] = useState<string | null>(null);
+
+  function mapAssignmentItems(active: { assignmentId: string; title: string; dueDate: string | null; maxScore: number }[]): AssignmentItem[] {
+    return active.map((a) => ({
+      id: a.assignmentId,
+      title: a.title,
+      postedDate: a.dueDate ? `Due on ${new Date(a.dueDate).toLocaleString()}` : "No due date",
+      icon: "assignment",
+      meta: {
+        label: `${a.maxScore || 100} pts`,
+        variant: "none",
+      },
+    }));
+  }
+
+  async function loadGroupItems(classroomId: string) {
+    setLoadingGroupId(classroomId);
+    const active = await fetchClassroomAssignments(classroomId);
+    setGroups((prev) =>
+      prev.map((g) => (g.id === classroomId ? { ...g, items: mapAssignmentItems(active || []), loaded: true } : g))
+    );
+    setLoadingGroupId(null);
+  }
+
   async function loadData() {
     setLoading(true);
     try {
@@ -64,12 +92,13 @@ export default function AssignmentGroups() {
 
       const allGroups: AssignmentGroup[] = [];
 
-      // Add Saved Templates Group
+      // Saved Templates is a single cheap call, so it's always loaded up front.
       if (saved && saved.length > 0) {
         allGroups.push({
           id: "templates",
           title: "Saved Templates",
           classroom: "Templates",
+          loaded: true,
           items: saved.map((a) => ({
             id: a.assignmentId,
             title: a.title,
@@ -83,46 +112,53 @@ export default function AssignmentGroups() {
         });
       }
 
-      // Fetch active assignments for each classroom
+      // Classroom groups start empty and collapsed — their assignments are
+      // only fetched when the teacher expands that group.
       if (classes && classes.length > 0) {
         setClassrooms(classes.map((c) => ({ id: c.classroomId, name: c.className || "Classroom" })));
-        
-        await Promise.all(
-          classes.map(async (c) => {
-            const active = await fetchClassroomAssignments(c.classroomId);
-            if (active && active.length > 0) {
-              allGroups.push({
-                id: c.classroomId,
-                title: c.className || "Classroom",
-                classroom: c.className || "Classroom",
-                items: active.map((a) => ({
-                  id: a.assignmentId,
-                  title: a.title,
-                  postedDate: a.dueDate
-                    ? `Due on ${new Date(a.dueDate).toLocaleString()}`
-                    : "No due date",
-                  icon: "assignment",
-                  meta: {
-                    label: `${a.maxScore || 100} pts`,
-                    variant: "none",
-                  },
-                })),
-              });
-            }
-          })
-        );
+        classes.forEach((c) => {
+          allGroups.push({
+            id: c.classroomId,
+            title: c.className || "Classroom",
+            classroom: c.className || "Classroom",
+            items: [],
+            loaded: false,
+          });
+        });
       }
 
       setGroups(allGroups);
+      setLoading(false);
+
+      // Re-fetch any groups the teacher already had open, so an edit/delete
+      // inside one is reflected without re-fetching every other classroom.
+      await Promise.all(Array.from(expandedIds).map((id) => loadGroupItems(id)));
     } catch (err) {
       console.error("Error loading assignments:", err);
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function toggleGroup(group: AssignmentGroup) {
+    if (group.id === "templates") return;
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(group.id)) {
+        next.delete(group.id);
+      } else {
+        next.add(group.id);
+        if (!group.loaded) {
+          loadGroupItems(group.id);
+        }
+      }
+      return next;
+    });
+  }
 
   const classroomOptions = useMemo(() => {
     return classrooms.map((c) => c.name).sort();
@@ -132,6 +168,17 @@ export default function AssignmentGroups() {
     if (classroomFilter === "all") return groups;
     return groups.filter((g) => g.classroom === classroomFilter);
   }, [groups, classroomFilter]);
+
+  // Filtering down to one classroom is a clear signal the teacher wants to
+  // see it — expand and load it automatically instead of making them click twice.
+  function handleClassroomFilterChange(next: ClassroomFilter) {
+    setClassroomFilter(next);
+    if (next === "all") return;
+    const target = groups.find((g) => g.classroom === next);
+    if (!target || target.id === "templates") return;
+    setExpandedIds((prev) => (prev.has(target.id) ? prev : new Set(prev).add(target.id)));
+    if (!target.loaded) loadGroupItems(target.id);
+  }
 
   function handleAssignClick(id: string) {
     setAssigningId(id);
@@ -161,13 +208,16 @@ export default function AssignmentGroups() {
     }
   }
 
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   function handleDeleteAssignment(id: string) {
-    setDeletingAssignmentId(id);
+    setPendingDeleteId(id);
   }
 
-  async function handleConfirmDeleteAssignment() {
-    if (!deletingAssignmentId) return;
-    setDeletingAssignment(true);
+  async function confirmDeleteAssignment() {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
     try {
       await deleteAssignmentMutation(deletingAssignmentId).unwrap();
       toast.success("Assignment deleted successfully!");
@@ -213,7 +263,7 @@ export default function AssignmentGroups() {
     <div className="flex flex-col gap-8">
       <AssignmentsFilterBar
         classroom={classroomFilter}
-        onClassroomChange={setClassroomFilter}
+        onClassroomChange={handleClassroomFilterChange}
         classroomOptions={classroomOptions}
         shownCount={filteredGroups.length}
         totalCount={groups.length}
@@ -228,6 +278,9 @@ export default function AssignmentGroups() {
           <AssignmentGroupCard
             key={group.id}
             group={group}
+            expanded={group.id === "templates" || expandedIds.has(group.id)}
+            loadingItems={loadingGroupId === group.id}
+            onToggle={() => toggleGroup(group)}
             onAssign={handleAssignClick}
             onEdit={handleOpenEdit}
             onDelete={handleDeleteAssignment}
@@ -390,15 +443,10 @@ export default function AssignmentGroups() {
       )}
 
       <ConfirmDialog
-        isOpen={!!deletingAssignmentId}
-        title="Delete assignment?"
-        description="This action cannot be undone. This assignment will be permanently removed."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        variant="danger"
-        loading={deletingAssignment}
-        onConfirm={handleConfirmDeleteAssignment}
-        onCancel={() => setDeletingAssignmentId(null)}
+        open={pendingDeleteId !== null}
+        message="Are you sure you want to delete this assignment? This action cannot be undone."
+        onConfirm={confirmDeleteAssignment}
+        onCancel={() => setPendingDeleteId(null)}
       />
     </div>
   );

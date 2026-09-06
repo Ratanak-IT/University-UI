@@ -9,7 +9,7 @@ import { Lesson, LessonFilter, ClassroomFilter } from "@/lib/types/Lesson";
 import { fetchSavedLessons, assignSavedLesson, deleteLesson, updateLesson } from "@/lib/api/lesson";
 import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import { toast } from "@/components/shared/Toast";
-import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 const PAGE_SIZE = 6;
 
@@ -61,16 +61,17 @@ export default function LessonsPage() {
     }
   }
 
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   function handleDeleteLesson(lessonId: string) {
-    setDeletingLessonId(lessonId);
+    setPendingDeleteId(lessonId);
   }
 
-  async function handleConfirmDeleteLesson() {
-    if (!deletingLessonId) return;
-    setDeleting(true);
-    const ok = await deleteLesson(deletingLessonId);
-    setDeleting(false);
-    setDeletingLessonId(null);
+  async function confirmDeleteLesson() {
+    if (!pendingDeleteId) return;
+    const lessonId = pendingDeleteId;
+    setPendingDeleteId(null);
+    const ok = await deleteLesson(lessonId);
     if (ok) {
       toast.success("Lesson deleted successfully!");
       loadData();
@@ -366,15 +367,10 @@ export default function LessonsPage() {
       )}
 
       <ConfirmDialog
-        isOpen={!!deletingLessonId}
-        title="Delete lesson?"
-        description="This action cannot be undone. This lesson will be permanently removed."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        variant="danger"
-        loading={deleting}
-        onConfirm={handleConfirmDeleteLesson}
-        onCancel={() => setDeletingLessonId(null)}
+        open={pendingDeleteId !== null}
+        message="Are you sure you want to delete this lesson? This action cannot be undone."
+        onConfirm={confirmDeleteLesson}
+        onCancel={() => setPendingDeleteId(null)}
       />
     </div>
   );

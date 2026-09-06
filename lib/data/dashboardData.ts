@@ -112,8 +112,8 @@ export const classrooms: Classroom[] = [
 ];
 
 export const deadlines: Deadline[] = [
-  { title: "Mid-term Project", classCode: "CS101-A", due: "OCT 24", badgeClass: "bg-rose-100 text-rose-600" },
-  { title: "Final Portfolio", classCode: "UXD202-B", due: "NOV 12", badgeClass: "bg-slate-100 text-slate-600" },
-  { title: "Weekly Quiz 08", classCode: "DSTR301", due: "TOMORROW", badgeClass: "bg-sky-100 text-sky-700" },
+  { id: "mock-1", title: "Mid-term Project", classCode: "CS101-A", due: "OCT 24", badgeClass: "bg-rose-100 text-rose-600" },
+  { id: "mock-2", title: "Final Portfolio", classCode: "UXD202-B", due: "NOV 12", badgeClass: "bg-slate-100 text-slate-600" },
+  { id: "mock-3", title: "Weekly Quiz 08", classCode: "DSTR301", due: "TOMORROW", badgeClass: "bg-sky-100 text-sky-700" },
 ];
 

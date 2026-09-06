@@ -52,7 +52,7 @@ const STUDENT_PAGES: SearchItem[] = [
 ];
 
 const TEACHER_PAGES: SearchItem[] = [
-  { id: "t-overview", title: "Overview", category: "Pages", href: "/dashboard/teacher/overview", icon: LayoutDashboard },
+  { id: "t-overview", title: "Overview", category: "Pages", href: "/dashboard/teacher", icon: LayoutDashboard },
   { id: "t-classroom", title: "My Classrooms", category: "Pages", href: "/dashboard/teacher/my-classroom", icon: Users },
   { id: "t-students", title: "My Students", category: "Pages", href: "/dashboard/teacher/my-student", icon: Users },
   { id: "t-assignments", title: "Assignments", category: "Pages", href: "/dashboard/teacher/assignments", icon: FileText },

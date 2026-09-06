@@ -9,7 +9,7 @@ import {
   useGetStudentAttendanceQuery,
   useGetMyNotificationsQuery,
 } from "@/lib/redux/apiSlice";
-import { fetchStudentAssignments } from "@/lib/api/student";
+import { fetchStudentDashboardSummary } from "@/lib/api/student";
 import StatCards from "@/components/teacher/dashboard/StatCards";
 import DeadlinesSection from "@/components/teacher/dashboard/DeadlinesSection";
 import type { StatCard, Deadline } from "@/lib/types/dashboard";
@@ -44,15 +44,13 @@ export default function StudentDashboard() {
 
     async function loadDeadlines() {
       setLoadingAssignments(true);
-      const page = await fetchStudentAssignments(studentId, 0, 100);
+      const summary = await fetchStudentDashboardSummary(studentId);
       if (cancelled) return;
 
-      const pending = (page?.content ?? []).filter((a) => a.dueDate && !a.submissionStatus);
-      setPendingAssignmentsCount(pending.length);
+      setPendingAssignmentsCount(summary?.pendingAssignments ?? 0);
 
-      const upcoming = pending
-        .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
-        .slice(0, 5)
+      const upcoming = (summary?.upcomingDeadlines ?? [])
+        .filter((a) => a.dueDate)
         .map((a): Deadline => {
           const diffDays = Math.ceil(
             (new Date(a.dueDate!).getTime() - Date.now()) / (1000 * 3600 * 24)
@@ -69,7 +67,7 @@ export default function StudentDashboard() {
             due = `${diffDays} days left`;
             badgeClass = "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300";
           }
-          return { title: a.title, classCode: a.className || a.subjectName, due, badgeClass };
+          return { id: a.assignmentId, title: a.title, classCode: a.classCode || "", due, badgeClass };
         });
 
       setDeadlines(upcoming);

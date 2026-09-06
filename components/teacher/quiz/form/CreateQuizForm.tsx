@@ -201,7 +201,7 @@ export function CreateQuizForm() {
         maxAttempts: 1,
       };
 
-      if (!editId && payloadQuestions) {
+      if (payloadQuestions) {
         payload.questions = payloadQuestions;
       }
 
@@ -237,7 +237,7 @@ export function CreateQuizForm() {
         maxAttempts: 1,
       };
 
-      if (!editId && payloadQuestions) {
+      if (payloadQuestions) {
         payload.questions = payloadQuestions;
       }
 

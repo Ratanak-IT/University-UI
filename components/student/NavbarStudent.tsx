@@ -36,7 +36,14 @@ export default function NavbarStudent() {
             Dashboard
           </h1>
           <p className="hidden truncate text-xs font-semibold text-muted-foreground sm:block">
-            Academic Year {profile?.academicYear || "2025–2026"} <span className="mx-1">•</span> Semester {profile?.semester || 2}
+            {profile?.major && (
+              <>
+                {profile.major}
+                <span className="mx-1">•</span>
+              </>
+            )}
+            Year {profile?.yearLevel || 1} <span className="mx-1">•</span> Semester {profile?.semester || 2}
+            <span className="mx-1">•</span> {profile?.academicYear || "2025–2026"}
           </p>
         </div>
       </div>

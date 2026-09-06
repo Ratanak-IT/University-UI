@@ -1,103 +1,73 @@
 "use client";
 
-import { useEffect } from "react";
-import { Trash2, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
-type ConfirmDialogProps = {
-  isOpen: boolean;
-  title: string;
-  description?: string;
+interface ConfirmDialogProps {
+  open: boolean;
+  title?: string;
+  message: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  variant?: "danger" | "default";
-  loading?: boolean;
+  danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
-};
+}
 
-export default function ConfirmDialog({
-  isOpen,
-  title,
-  description,
+export function ConfirmDialog({
+  open,
+  title = "Confirm delete",
+  message,
   confirmLabel = "Delete",
   cancelLabel = "Cancel",
-  variant = "danger",
-  loading = false,
+  danger = true,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
-    };
-  }, [isOpen, onCancel]);
-
-  if (!isOpen) return null;
-
-  const Icon = variant === "danger" ? Trash2 : AlertTriangle;
+  if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
       onClick={onCancel}
     >
       <div
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg"
       >
-        <div
-          className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl ${
-            variant === "danger"
-              ? "bg-red-500/10 text-red-500"
-              : "bg-primary/10 text-primary"
-          }`}
-        >
-          <Icon className="h-6 w-6" />
+        <div className="flex items-start gap-3">
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+              danger
+                ? "bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400"
+                : "bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400"
+            }`}
+          >
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold text-card-foreground">{title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+          </div>
         </div>
 
-        <h2
-          id="confirm-dialog-title"
-          className="mt-4 text-lg font-bold text-card-foreground"
-        >
-          {title}
-        </h2>
-
-        {description && (
-          <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-        )}
-
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <div className="mt-5 flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            disabled={loading}
-            className="rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm font-semibold text-card-foreground transition-colors hover:bg-muted/30 disabled:opacity-50"
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            disabled={loading}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50 ${
-              variant === "danger"
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-primary hover:opacity-90"
+            className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors ${
+              danger ? "bg-rose-600 hover:bg-rose-700" : "bg-primary hover:bg-primary/90"
             }`}
           >
-            {loading ? "Please wait..." : confirmLabel}
+            {confirmLabel}
           </button>
         </div>
       </div>

@@ -17,7 +17,7 @@ export default function DeadlinesSection({ deadlines }: { deadlines: Deadline[] 
       <ul className="space-y-3">
         {deadlines.map((item) => (
           <li
-            key={item.title}
+            key={item.id}
             className="rounded-xl border border-border p-4"
           >
             <div className="flex items-start justify-between">

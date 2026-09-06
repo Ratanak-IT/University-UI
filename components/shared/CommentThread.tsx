@@ -14,7 +14,7 @@ import {
 import { toast } from "@/components/shared/Toast";
 import PersonAvatar from "@/components/shared/PersonAvatar";
 import CommentComposer from "./CommentComposer";
-import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 const ROLE_BADGE: Record<string, string> = {
   TEACHER: "bg-indigo-100 text-indigo-700",
@@ -246,8 +246,7 @@ export default function CommentThread({
   const [error, setError] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
-  const [deletingComment, setDeletingComment] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const focusRef = useRef<HTMLDivElement | null>(null);
 
@@ -321,15 +320,18 @@ export default function CommentThread({
     [load]
   );
 
+  // Deletes are permanent and cascade, so the confirmation wording has to
+  // say so — "are you sure?" doesn't tell someone they're about to wipe a thread.
   const handleDelete = useCallback(async (commentId: string) => {
-    setDeletingCommentId(commentId);
+    setPendingDeleteId(commentId);
   }, []);
 
-  const handleConfirmDeleteComment = useCallback(async () => {
-    if (!deletingCommentId) return;
-    setDeletingComment(true);
+  const confirmDeleteComment = useCallback(async () => {
+    if (!pendingDeleteId) return;
+    const commentId = pendingDeleteId;
+    setPendingDeleteId(null);
     try {
-      await deleteComment(deletingCommentId);
+      await deleteComment(commentId);
       toast.success("Comment deleted successfully!", "Comment Deleted");
       await load();
     } catch (err) {
@@ -337,9 +339,7 @@ export default function CommentThread({
       setError(msg);
       toast.error(msg, "Delete Failed");
     }
-    setDeletingComment(false);
-    setDeletingCommentId(null);
-  }, [deletingCommentId, load]);
+  }, [load, pendingDeleteId]);
 
   return (
     <div className="space-y-4">
@@ -390,15 +390,11 @@ export default function CommentThread({
       )}
 
       <ConfirmDialog
-        isOpen={!!deletingCommentId}
-        title="Delete comment?"
-        description="This comment will be permanently deleted. Any replies to it will be deleted too."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        variant="danger"
-        loading={deletingComment}
-        onConfirm={handleConfirmDeleteComment}
-        onCancel={() => setDeletingCommentId(null)}
+        open={pendingDeleteId !== null}
+        title="Delete comment"
+        message="Delete this comment permanently? Any replies to it will be deleted too."
+        onConfirm={confirmDeleteComment}
+        onCancel={() => setPendingDeleteId(null)}
       />
     </div>
   );

@@ -24,6 +24,7 @@ import Link from "next/link";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 import CommentThread from "@/components/shared/CommentThread";
 import PrivateCommentThread from "@/components/shared/PrivateCommentThread";
+import SafeHtml from "@/components/shared/SafeHtml";
 
 function AssignmentDetailInner() {
   const params = useSearchParams();
@@ -264,9 +265,10 @@ function AssignmentDetailInner() {
 
           {/* Description */}
           {a.description && (
-            <div className="mt-5 rounded-xl bg-slate-50/70 p-4 text-sm text-slate-700 whitespace-pre-line border border-slate-100">
-              {a.description}
-            </div>
+            <SafeHtml
+              html={a.description}
+              className="mt-5 rounded-xl bg-slate-50/70 p-4 text-sm text-slate-700 border border-slate-100 [&_p]:my-2 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_a]:text-indigo-600 [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2"
+            />
           )}
 
           {/* Assignment files attached by teacher */}

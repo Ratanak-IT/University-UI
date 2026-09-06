@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { useGetTeacherProfileQuery } from "@/lib/redux/apiSlice";
 import PersonAvatar from "@/components/shared/PersonAvatar";
+import { logout } from "@/lib/auth/logout";
 
 /**
  * Footer profile banner + sign-out, shared by the desktop rail and the
@@ -19,8 +20,7 @@ export default function SidebarUser({ onNavigate }: { onNavigate?: () => void })
   const { data: profile } = useGetTeacherProfileQuery();
 
   function signOut() {
-    localStorage.clear();
-    window.location.href = "/login";
+    logout();
   }
 
   return (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
+import SafeHtml from "@/components/shared/SafeHtml";
 
 const TABS = ["Description", "Resources", "Discussion"] as const;
 type Tab = (typeof TABS)[number];
@@ -35,7 +36,10 @@ export function LessonTabs({
 
       {active === "Description" && (
         <div className="mt-5 rounded-xl border border-border bg-card p-6">
-          <p className="text-card-foreground/90 leading-relaxed">{description}</p>
+          <SafeHtml
+            html={description}
+            className="text-card-foreground/90 leading-relaxed [&_p]:my-2 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_a]:text-primary [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2"
+          />
 
           <h3 className="mt-5 mb-3 font-semibold text-primary">
             Key Learning Objectives

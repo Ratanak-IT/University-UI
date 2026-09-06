@@ -8,10 +8,12 @@ import {
   fetchClassroomLessons,
   fetchClassroomAssignments,
   fetchMyClassrooms,
+  fetchStudentQuizzes,
   ClassroomResponse,
   ClassroomStudentResponse,
   LessonResponse,
   AssignmentResponse,
+  QuizResponse,
 } from "@/lib/api/student";
 import { fetchTeacherClassrooms } from "@/lib/api/teacher";
 import {
@@ -20,20 +22,44 @@ import {
   useGetClassroomAssignmentsQuery,
   useGetClassroomStudentsQuery,
   useGetClassroomTeachersQuery,
-  useRemoveStudentFromClassroomMutation,
+  useGetStudentProfileQuery,
+  useGetTeacherQuizzesQuery,
   useDeleteAssignmentMutation,
   useUpdateAssignmentMutation,
+  QuizManageResponse,
 } from "@/lib/redux/apiSlice";
 import { deleteLesson, updateLesson } from "@/lib/api/lesson";
 import { toast } from "@/components/shared/Toast";
-import { Loader2, FileText, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X, ChevronRight, GraduationCap, UserX } from "lucide-react";
+import { htmlToPreviewText } from "@/components/shared/SafeHtml";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { Loader2, FileText, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X, ChevronRight, GraduationCap, HelpCircle, Clock, CheckCircle2, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 import { LessonDetailModal } from "@/components/shared/LessonDetailModal";
 import { LessonCard } from "@/components/teacher/my-classroom/LessonCard";
-import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import QuizResultsModal from "@/components/teacher/quiz/QuizResultsModal";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type StudentQuizWindowStatus = "open" | "done" | "missed" | "upcoming";
+
+const STUDENT_QUIZ_BADGE: Record<StudentQuizWindowStatus, { label: string; cls: string }> = {
+  open: { label: "OPEN", cls: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900" },
+  done: { label: "COMPLETED", cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900" },
+  missed: { label: "MISSED", cls: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900" },
+  upcoming: { label: "UPCOMING", cls: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700" },
+};
+
+/** Mirrors the status rules on the student quizzes pages: a closed window without a settled attempt is "missed", not "Completed". */
+function studentQuizWindowStatus(q: { attemptsUsed: number; maxAttempts: number; startAt: string | null; endAt: string | null }): StudentQuizWindowStatus {
+  if (q.attemptsUsed > 0 && q.attemptsUsed >= q.maxAttempts) return "done";
+  const now = Date.now();
+  const start = q.startAt ? new Date(q.startAt).getTime() : 0;
+  const end = q.endAt ? new Date(q.endAt).getTime() : Infinity;
+  if (now < start) return "upcoming";
+  if (now > end) return "missed";
+  return "open";
+}
 
 interface ClassroomDetailViewProps {
   classroomId?: string;
@@ -60,7 +86,7 @@ export default function ClassroomDetailView({
   const [deleteAssignmentMutation] = useDeleteAssignmentMutation();
   const [updateAssignmentMutation] = useUpdateAssignmentMutation();
 
-  const tabs = ["Stream", "Lessons", "Assignments", "People"];
+  const tabs = ["Stream", "Lessons", "Assignments", "Quizzes", "People"];
 
   useEffect(() => {
     if (!classroomId || isDirectId) return;
@@ -96,22 +122,57 @@ export default function ClassroomDetailView({
   const { data: assignments = [], refetch: refetchAssignments } = useGetClassroomAssignmentsQuery(resolvedId, {
     skip: !resolvedId,
   });
-  const [removeStudentMutation] = useRemoveStudentFromClassroomMutation();
-  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
 
-  type ConfirmAction =
-    | { type: "removeStudent"; studentId: string; studentName: string }
-    | { type: "deleteLesson"; lessonId: string }
-    | { type: "deleteAssignment"; assignmentId: string };
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
-  const [confirmLoading, setConfirmLoading] = useState(false);
+  // Quizzes are fetched only once the tab is actually opened — the same
+  // click-to-load principle as this page's detail fetches elsewhere, rather
+  // than pulling them in eagerly alongside lessons/assignments.
+  const { data: studentProfile } = useGetStudentProfileQuery(undefined, { skip: !isStudent });
+  const { data: teacherQuizzes = [] } = useGetTeacherQuizzesQuery(undefined, { skip: isStudent });
+  const [studentQuizzes, setStudentQuizzes] = useState<QuizResponse[]>([]);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const [resultsQuizId, setResultsQuizId] = useState<string | null>(null);
+  const [resultsQuizTitle, setResultsQuizTitle] = useState<string>("");
 
-  const handleRemoveStudent = (studentId: string, studentName: string) => {
-    setConfirmAction({ type: "removeStudent", studentId, studentName });
-  };
+  useEffect(() => {
+    if (activeTab !== "Quizzes" || !isStudent || !studentProfile?.studentId || !resolvedId) return;
+    let cancelled = false;
+    async function load() {
+      setLoadingQuizzes(true);
+      const data = await fetchStudentQuizzes(studentProfile!.studentId);
+      if (cancelled) return;
+      setStudentQuizzes(data || []);
+      setLoadingQuizzes(false);
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, isStudent, studentProfile, resolvedId]);
+
+  const classroomQuizzes = isStudent
+    ? studentQuizzes.filter((q) => q.classroomId === resolvedId)
+    : teacherQuizzes.filter((q) => q.classrooms?.some((c) => c.classroomId === resolvedId));
+
+  const [pendingDeleteLessonId, setPendingDeleteLessonId] = useState<string | null>(null);
+  const [pendingDeleteAssignmentId, setPendingDeleteAssignmentId] = useState<string | null>(null);
 
   const handleDeleteLesson = (lessonId: string) => {
-    setConfirmAction({ type: "deleteLesson", lessonId });
+    setPendingDeleteLessonId(lessonId);
+  };
+
+  const confirmDeleteLesson = async () => {
+    if (!pendingDeleteLessonId) return;
+    const lessonId = pendingDeleteLessonId;
+    setPendingDeleteLessonId(null);
+    setDeletingId(lessonId);
+    const success = await deleteLesson(lessonId);
+    if (success) {
+      toast.success("Lesson deleted successfully!");
+      refetchLessons();
+    } else {
+      toast.error("Failed to delete lesson. Please try again.");
+    }
+    setDeletingId(null);
   };
 
   const handleSaveLessonEdit = async () => {
@@ -133,66 +194,22 @@ export default function ClassroomDetailView({
   };
 
   const handleDeleteAssignment = (assignmentId: string) => {
-    setConfirmAction({ type: "deleteAssignment", assignmentId });
+    setPendingDeleteAssignmentId(assignmentId);
   };
 
-  const handleConfirmAction = async () => {
-    if (!confirmAction) return;
-    setConfirmLoading(true);
-
-    if (confirmAction.type === "removeStudent") {
-      if (resolvedId) {
-        setRemovingStudentId(confirmAction.studentId);
-        try {
-          await removeStudentMutation({ classroomId: resolvedId, studentId: confirmAction.studentId }).unwrap();
-          toast.success("Student removed from classroom.");
-        } catch {
-          toast.error("Failed to remove student. Please try again.");
-        }
-        setRemovingStudentId(null);
-      }
-    } else if (confirmAction.type === "deleteLesson") {
-      setDeletingId(confirmAction.lessonId);
-      const success = await deleteLesson(confirmAction.lessonId);
-      if (success) {
-        toast.success("Lesson deleted successfully!");
-        refetchLessons();
-      } else {
-        toast.error("Failed to delete lesson. Please try again.");
-      }
-      setDeletingId(null);
-    } else if (confirmAction.type === "deleteAssignment") {
-      setDeletingId(confirmAction.assignmentId);
-      try {
-        await deleteAssignmentMutation(confirmAction.assignmentId).unwrap();
-        toast.success("Assignment deleted successfully!");
-        refetchAssignments();
-      } catch {
-        toast.error("Failed to delete assignment. Please try again.");
-      }
-      setDeletingId(null);
+  const confirmDeleteAssignment = async () => {
+    if (!pendingDeleteAssignmentId) return;
+    const assignmentId = pendingDeleteAssignmentId;
+    setPendingDeleteAssignmentId(null);
+    setDeletingId(assignmentId);
+    try {
+      await deleteAssignmentMutation(assignmentId).unwrap();
+      toast.success("Assignment deleted successfully!");
+      refetchAssignments();
+    } catch {
+      toast.error("Failed to delete assignment. Please try again.");
     }
-
-    setConfirmLoading(false);
-    setConfirmAction(null);
-  };
-
-  const confirmDialogCopy: Record<ConfirmAction["type"], { title: string; description: string }> = {
-    removeStudent: {
-      title: "Remove student?",
-      description:
-        confirmAction?.type === "removeStudent"
-          ? `${confirmAction.studentName} will lose access to this classroom.`
-          : "",
-    },
-    deleteLesson: {
-      title: "Delete lesson?",
-      description: "This action cannot be undone. This lesson will be permanently removed.",
-    },
-    deleteAssignment: {
-      title: "Delete assignment?",
-      description: "This action cannot be undone. This assignment will be permanently removed.",
-    },
+    setDeletingId(null);
   };
 
   const handleSaveAssignmentEdit = async () => {
@@ -576,12 +593,24 @@ export default function ClassroomDetailView({
                             )}
                           </div>
                           {a.description && (
-                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{a.description}</p>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{htmlToPreviewText(a.description)}</p>
                           )}
                           <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
                             <span className="font-medium text-indigo-600 dark:text-indigo-400">{a.maxScore} points</span>
                             {a.dueDate && (
                               <span>Due {new Date(a.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                            )}
+                            {!isStudent && a.totalStudents != null && (
+                              <span
+                                className={`inline-flex items-center gap-1 font-medium ${
+                                  a.submittedCount === a.totalStudents && a.totalStudents > 0
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : "text-slate-500 dark:text-slate-400"
+                                }`}
+                              >
+                                <Users className="h-3.5 w-3.5" />
+                                {a.submittedCount ?? 0} / {a.totalStudents} submitted
+                              </span>
                             )}
                           </div>
                           {a.files && a.files.length > 0 && (
@@ -615,6 +644,114 @@ export default function ClassroomDetailView({
                       </div>
                     </div>
                   ))
+                )}
+              </div>
+            )}
+
+            {/* ─── Quizzes Tab ─── */}
+            {activeTab === "Quizzes" && (
+              <div className="space-y-4">
+                {!isStudent && classroom && (
+                  <div className="flex justify-end">
+                    <Link
+                      href="/dashboard/teacher/quiz/create-quiz"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800 transition-colors shadow-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Quiz
+                    </Link>
+                  </div>
+                )}
+
+                {isStudent && loadingQuizzes ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                  </div>
+                ) : classroomQuizzes.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
+                    <HelpCircle className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700" />
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">No quizzes in this classroom yet.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {isStudent
+                      ? (classroomQuizzes as QuizResponse[]).map((q) => {
+                            const status = studentQuizWindowStatus(q);
+                            const badge = STUDENT_QUIZ_BADGE[status];
+                            return (
+                              <Link
+                                key={q.quizId}
+                                href={`/dashboard/student/courses?classroomId=${resolvedId}&tab=Quizzes`}
+                                className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                              >
+                                <div>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{q.title}</h4>
+                                    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold ${badge.cls}`}>
+                                      {badge.label}
+                                    </span>
+                                  </div>
+                                  {q.description && (
+                                    <p className="mt-1.5 text-xs text-slate-500 line-clamp-2 dark:text-slate-400">{q.description}</p>
+                                  )}
+                                  <div className="mt-3 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                                    <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {q.durationMinutes} mins</span>
+                                    <span>Attempts: {q.attemptsUsed}/{q.maxAttempts}</span>
+                                  </div>
+                                  {q.bestScore !== null && (
+                                    <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                      <CheckCircle2 className="h-3.5 w-3.5" /> Best score: {q.bestScore}
+                                    </p>
+                                  )}
+                                </div>
+                                <span className="mt-4 flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 transition-colors group-hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-300 dark:group-hover:bg-indigo-950">
+                                  {status === "open" ? "Take Quiz" : "View"}
+                                  <ChevronRight className="h-3.5 w-3.5" />
+                                </span>
+                              </Link>
+                            );
+                          })
+                      : (classroomQuizzes as QuizManageResponse[]).map((q) => (
+                          <div
+                            key={q.quizId}
+                            className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                          >
+                            <div>
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{q.title}</h4>
+                                <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                  {q.questions?.length ?? 0} questions
+                                </span>
+                              </div>
+                              {q.description && (
+                                <p className="mt-1.5 text-xs text-slate-500 line-clamp-2 dark:text-slate-400">{q.description}</p>
+                              )}
+                              <div className="mt-3 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                                <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {q.durationMinutes} mins</span>
+                                <span>Max attempts: {q.maxAttempts}</span>
+                              </div>
+                            </div>
+                            <div className="mt-4 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setResultsQuizId(q.quizId);
+                                  setResultsQuizTitle(q.title);
+                                }}
+                                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                              >
+                                <ClipboardList className="h-3.5 w-3.5" /> Results
+                              </button>
+                              <Link
+                                href={`/dashboard/teacher/quiz/create-quiz?editId=${q.quizId}`}
+                                className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                  </div>
                 )}
               </div>
             )}
@@ -663,21 +800,6 @@ export default function ClassroomDetailView({
                             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{s.fullName}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{s.studentCode} · {s.email}</p>
                           </div>
-                          {!isStudent && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveStudent(s.studentId, s.fullName)}
-                              disabled={removingStudentId === s.studentId}
-                              title="Remove student from classroom"
-                              className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors disabled:opacity-50"
-                            >
-                              {removingStudentId === s.studentId ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-rose-600" />
-                              ) : (
-                                <UserX className="h-4 w-4" />
-                              )}
-                            </button>
-                          )}
                         </li>
                       ))}
                     </ul>
@@ -833,16 +955,25 @@ export default function ClassroomDetailView({
       <LessonDetailModal lesson={detailLesson} onClose={() => setDetailLesson(null)} />
 
       <ConfirmDialog
-        isOpen={!!confirmAction}
-        title={confirmAction ? confirmDialogCopy[confirmAction.type].title : ""}
-        description={confirmAction ? confirmDialogCopy[confirmAction.type].description : ""}
-        confirmLabel={confirmAction?.type === "removeStudent" ? "Remove" : "Delete"}
-        cancelLabel="Cancel"
-        variant="danger"
-        loading={confirmLoading}
-        onConfirm={handleConfirmAction}
-        onCancel={() => setConfirmAction(null)}
+        open={pendingDeleteLessonId !== null}
+        message="Are you sure you want to delete this lesson? This action cannot be undone."
+        onConfirm={confirmDeleteLesson}
+        onCancel={() => setPendingDeleteLessonId(null)}
       />
+      <ConfirmDialog
+        open={pendingDeleteAssignmentId !== null}
+        message="Are you sure you want to delete this assignment? This action cannot be undone."
+        onConfirm={confirmDeleteAssignment}
+        onCancel={() => setPendingDeleteAssignmentId(null)}
+      />
+
+      {!isStudent && (
+        <QuizResultsModal
+          quizId={resultsQuizId}
+          quizTitle={resultsQuizTitle}
+          onClose={() => setResultsQuizId(null)}
+        />
+      )}
     </div>
   );
 }

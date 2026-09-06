@@ -2,6 +2,7 @@
 
 import { LogOut } from "lucide-react";
 import { useGetStudentProfileQuery } from "@/lib/redux/apiSlice";
+import { logout } from "@/lib/auth/logout";
 
 /**
  * Footer profile banner + sign-out, shared by the desktop rail and the
@@ -24,8 +25,7 @@ export default function SidebarUser() {
     : "ST";
 
   function signOut() {
-    localStorage.clear();
-    window.location.href = "/login";
+    logout();
   }
 
   return (

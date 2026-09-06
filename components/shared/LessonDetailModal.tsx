@@ -6,6 +6,7 @@ import type { LessonResponse } from "@/lib/api/student";
 import { Watermark } from "@/components/shared/Watermark";
 import { ProtectedMediaViewer } from "@/components/shared/ProtectedMediaViewer";
 import { useContentProtection } from "@/lib/hooks/useContentProtection";
+import SafeHtml from "@/components/shared/SafeHtml";
 
 interface LessonDetailModalProps {
   lesson: LessonResponse | null;
@@ -99,7 +100,10 @@ export function LessonDetailModal({ lesson, onClose }: LessonDetailModalProps) {
           {lesson.content && (
             <div className="mb-5">
               <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Description</h4>
-              <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{lesson.content}</p>
+              <SafeHtml
+                html={lesson.content}
+                className="text-slate-300 leading-relaxed [&_p]:my-1.5 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_a]:text-sky-400 [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2"
+              />
             </div>
           )}
 

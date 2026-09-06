@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Google_Sans_Flex, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import ScrollToTopButton from "@/components/layout/ScrollToTopButton"; // <--- 1. Import component
 
-const googleSans = Google_Sans_Flex({
+const googleSans = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
