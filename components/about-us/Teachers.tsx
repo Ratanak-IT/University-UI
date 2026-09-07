@@ -168,7 +168,7 @@ const teachers = [
   {
     name: "Chan Chhaya",
     role: "Mentor",
-    img: "/teacher/Chan Chhayya.jpg",
+    img: "/teacher/Chan chhayya.jpg",
     links: {
       fb: "https://www.facebook.com/share/1DMUCAWYV4/?mibextid=wwXIfr",
       gh: "https://github.com/it-chhaya",
