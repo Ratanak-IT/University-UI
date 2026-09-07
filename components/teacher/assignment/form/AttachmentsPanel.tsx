@@ -3,7 +3,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FilePlus2, FolderPlus, Link2, Upload } from "lucide-react";
+import { FilePlus2, Link2, Upload } from "lucide-react";
 
 import { FormAttachment } from "@/lib/types/AssignmentFormValues";
 import { SubmissionAttachmentRow } from "./SubmissionAttachmentRow";
@@ -25,7 +25,6 @@ export function AttachmentsPanel({
   onChange,
 }: AttachmentsPanelProps) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [linkFormOpen, setLinkFormOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,18 +56,6 @@ export function AttachmentsPanel({
     setLinkValue("");
     setLinkFormOpen(false);
     setAddMenuOpen(false);
-  }
-
-  function createBlank(type: "Doc" | "Quiz" | "Slides") {
-    onChange([
-      ...attachments,
-      {
-        id: `${type}-${Date.now()}`,
-        kind: "created",
-        name: `Blank ${type}`,
-      },
-    ]);
-    setCreateMenuOpen(false);
   }
 
   function removeAttachment(id: string) {
@@ -111,7 +98,6 @@ export function AttachmentsPanel({
             type="button"
             onClick={() => {
               setAddMenuOpen((v) => !v);
-              setCreateMenuOpen(false);
               setLinkFormOpen(false);
             }}
             className="flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/50"
@@ -157,28 +143,6 @@ export function AttachmentsPanel({
                   </button>
                 </div>
               )}
-            </div>
-          )}
-        </div>
-
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => {
-              setCreateMenuOpen((v) => !v);
-              setAddMenuOpen(false);
-            }}
-            className="flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/50"
-          >
-            <FolderPlus className="h-4 w-4 text-emerald-500" />
-            Create new
-          </button>
-
-          {createMenuOpen && (
-            <div className="absolute left-0 z-10 mt-1 w-44 rounded-xl border border-border bg-card p-1.5 shadow-lg">
-              <MenuItem label="Doc" onClick={() => createBlank("Doc")} />
-              <MenuItem label="Quiz" onClick={() => createBlank("Quiz")} />
-              <MenuItem label="Slides" onClick={() => createBlank("Slides")} />
             </div>
           )}
         </div>

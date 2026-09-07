@@ -20,8 +20,6 @@ export interface QuizFormData {
   openingDate: string;
   timeLimitMinutes: string;
   courseId: string;
-  topicId: string;
-  contributesToFinalGrade: boolean;
   questions: QuizQuestion[];
 }
 
@@ -62,7 +60,5 @@ export const initialQuizFormData: QuizFormData = {
   openingDate: "",
   timeLimitMinutes: "",
   courseId: "",
-  topicId: "",
-  contributesToFinalGrade: false,
   questions: [createEmptyQuestion(0)],
 };

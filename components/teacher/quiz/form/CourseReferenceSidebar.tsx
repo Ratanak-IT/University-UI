@@ -4,10 +4,6 @@ import { Link2, Save, Send } from "lucide-react";
 interface CourseReferenceSidebarProps {
   courseId: string;
   onCourseIdChange: (value: string) => void;
-  topicId: string;
-  onTopicIdChange: (value: string) => void;
-  contributesToFinalGrade: boolean;
-  onContributesToFinalGradeChange: (value: boolean) => void;
   onSaveDraft: () => void;
   onPublish: () => void;
   submitting?: boolean;
@@ -16,10 +12,6 @@ interface CourseReferenceSidebarProps {
 export function CourseReferenceSidebar({
   courseId,
   onCourseIdChange,
-  topicId,
-  onTopicIdChange,
-  contributesToFinalGrade,
-  onContributesToFinalGradeChange,
   onSaveDraft,
   onPublish,
   submitting = false,
@@ -54,27 +46,6 @@ export function CourseReferenceSidebar({
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Topic / Module</label>
-            <input
-              type="text"
-              value={topicId}
-              onChange={(e) => onTopicIdChange(e.target.value)}
-              placeholder="E.g., Module 1: Introduction"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-600"
-            />
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input
-              type="checkbox"
-              checked={contributesToFinalGrade}
-              onChange={(e) => onContributesToFinalGradeChange(e.target.checked)}
-              className="h-4 w-4 rounded border-border text-indigo-600 focus:ring-2 focus:ring-indigo-600"
-            />
-            Contributes to final grade
-          </label>
         </div>
       </aside>
 

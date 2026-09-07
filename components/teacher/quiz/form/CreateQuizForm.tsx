@@ -42,8 +42,6 @@ export function CreateQuizForm() {
       openingDate: targetQuiz.startAt ? targetQuiz.startAt.split("T")[0] : "",
       timeLimitMinutes: String(targetQuiz.durationMinutes || 30),
       courseId: targetQuiz.classroomId || "",
-      topicId: "Module 1",
-      contributesToFinalGrade: true,
       questions: targetQuiz.questions && targetQuiz.questions.length > 0
         ? targetQuiz.questions.map((q, idx) => {
             const backendType = q.type ?? "MULTIPLE_CHOICE";
@@ -201,6 +199,10 @@ export function CreateQuizForm() {
         maxAttempts: 1,
       };
 
+      if (form.openingDate) {
+        payload.startAt = `${form.openingDate}T00:00:00`;
+      }
+
       if (payloadQuestions) {
         payload.questions = payloadQuestions;
       }
@@ -236,6 +238,10 @@ export function CreateQuizForm() {
         durationMinutes: Math.max(1, Number(form.timeLimitMinutes) || 30),
         maxAttempts: 1,
       };
+
+      if (form.openingDate) {
+        payload.startAt = `${form.openingDate}T00:00:00`;
+      }
 
       if (payloadQuestions) {
         payload.questions = payloadQuestions;
@@ -346,10 +352,6 @@ export function CreateQuizForm() {
           <CourseReferenceSidebar
             courseId={form.courseId}
             onCourseIdChange={(v) => update("courseId", v)}
-            topicId={form.topicId}
-            onTopicIdChange={(v) => update("topicId", v)}
-            contributesToFinalGrade={form.contributesToFinalGrade}
-            onContributesToFinalGradeChange={(v) => update("contributesToFinalGrade", v)}
             onSaveDraft={handleSaveDraft}
             onPublish={handlePublish}
             submitting={submitting}
