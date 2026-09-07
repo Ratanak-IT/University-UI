@@ -137,14 +137,11 @@ import {
   BookOpen,
   SlidersHorizontal,
   Calendar,
-  LayoutGrid,
-  List,
 } from "lucide-react";
 import ModernSelect from "@/components/shared/ModernSelect";
 
 export type StatusFilter = "all" | "published" | "draft" | "scheduled";
 export type SortOption = "dateModified" | "title" | "status";
-export type ViewMode = "grid" | "list";
 export type ClassroomFilter = string;
 
 interface QuizFilterBarProps {
@@ -152,8 +149,6 @@ interface QuizFilterBarProps {
   onStatusChange: (status: StatusFilter) => void;
   sort: SortOption;
   onSortChange: (sort: SortOption) => void;
-  view: ViewMode;
-  onViewChange: (view: ViewMode) => void;
   classroom: ClassroomFilter;
   onClassroomChange: (value: ClassroomFilter) => void;
   classroomOptions: string[];
@@ -177,8 +172,6 @@ export default function QuizFilterBar({
   onStatusChange,
   sort,
   onSortChange,
-  view,
-  onViewChange,
   classroom,
   onClassroomChange,
   classroomOptions,
@@ -215,29 +208,6 @@ export default function QuizFilterBar({
             icon={Calendar}
           />
         </div>
-      </div>
-
-      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-slate-800">
-        <button
-          type="button"
-          onClick={() => onViewChange("grid")}
-          className={`rounded-lg p-2 transition-all ${
-            view === "grid" ? "bg-white text-indigo-700 shadow-sm dark:bg-slate-900 dark:text-indigo-400" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-          }`}
-          aria-label="Grid view"
-        >
-          <LayoutGrid size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onViewChange("list")}
-          className={`rounded-lg p-2 transition-all ${
-            view === "list" ? "bg-white text-indigo-700 shadow-sm dark:bg-slate-900 dark:text-indigo-400" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-          }`}
-          aria-label="List view"
-        >
-          <List size={18} />
-        </button>
       </div>
     </div>
   );

@@ -578,7 +578,7 @@ export default function Attendan2Grades() {
                   ? [{ value: "", label: "No classrooms for this Year/Semester" }]
                   : filteredClassrooms.map((c) => ({
                       value: c.classroomId,
-                      label: `${c.className} (${c.classCode || "Class"})`,
+                      label: c.className,
                       badge: `Y${c.yearLevel || 2} S${c.semester || 2}`,
                     }))
               }
@@ -679,7 +679,7 @@ export default function Attendan2Grades() {
           <div>
             <h2 className="text-base font-semibold text-card-foreground">Grade Book</h2>
             <p className="text-xs text-muted-foreground">
-              Class: <strong>{selectedClassroomObj?.className || "Classroom"}</strong> ({selectedClassroomObj?.classCode || "Code"})
+              Class: <strong>{selectedClassroomObj?.className || "Classroom"}</strong>
             </p>
           </div>
           <button

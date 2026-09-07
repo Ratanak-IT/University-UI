@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PersonAvatar from "@/components/shared/PersonAvatar";
 import {
   LessonResponse,
+  LessonFileResponse,
   QuizResponse,
 } from "@/lib/api/student";
 import {
@@ -21,13 +22,18 @@ import {
   useUpdateAssignmentMutation,
   useDeleteSavedLessonMutation,
   useUpdateSavedLessonMutation,
+  useUpdateSavedLessonWithFilesMutation,
+  useRemoveLessonFileMutation,
+  useSearchStudentDirectoryQuery,
+  useAddStudentsToClassroomMutation,
+  useRemoveStudentFromClassroomMutation,
   QuizManageResponse,
 } from "@/lib/redux/apiSlice";
 import { toast } from "@/components/shared/Toast";
 import { apiErrorMessage } from "@/lib/api/errors";
 import { htmlToPreviewText } from "@/components/shared/SafeHtml";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Loader2, FileText, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X, ChevronRight, GraduationCap, HelpCircle, Clock, CheckCircle2, ClipboardList } from "lucide-react";
+import { Loader2, FileText, Users, MapPin, Calendar, BookOpen, Plus, Trash2, Pencil, X, ChevronRight, GraduationCap, HelpCircle, Clock, CheckCircle2, ClipboardList, Upload } from "lucide-react";
 import Link from "next/link";
 import { SecureFileViewerModal } from "@/components/shared/SecureFileViewerModal";
 import { LessonDetailModal } from "@/components/shared/LessonDetailModal";
@@ -73,7 +79,8 @@ export default function ClassroomDetailView({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Edit Modals State
-  const [editingLesson, setEditingLesson] = useState<{ lessonId: string; title: string; content: string; videoLink: string } | null>(null);
+  const [editingLesson, setEditingLesson] = useState<{ lessonId: string; title: string; content: string; videoLink: string; files: LessonFileResponse[] } | null>(null);
+  const [newLessonFiles, setNewLessonFiles] = useState<File[]>([]);
   const [editingAssignment, setEditingAssignment] = useState<{ assignmentId: string; title: string; description: string; maxScore: number; dueDate: string } | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -81,6 +88,32 @@ export default function ClassroomDetailView({
   const [updateAssignmentMutation] = useUpdateAssignmentMutation();
   const [deleteSavedLesson] = useDeleteSavedLessonMutation();
   const [updateSavedLesson] = useUpdateSavedLessonMutation();
+  const [updateSavedLessonWithFiles] = useUpdateSavedLessonWithFilesMutation();
+  const [removeLessonFile] = useRemoveLessonFileMutation();
+
+  // Add-student picker (teacher only)
+  const [addStudentOpen, setAddStudentOpen] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [debouncedStudentSearch, setDebouncedStudentSearch] = useState("");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
+  const [addStudentsError, setAddStudentsError] = useState("");
+  const [addingStudents, setAddingStudents] = useState(false);
+  const [addStudentsToClassroomMutation] = useAddStudentsToClassroomMutation();
+  const [removeStudentFromClassroomMutation] = useRemoveStudentFromClassroomMutation();
+
+  /** The student a teacher has asked to unenrol, held until they confirm. */
+  const [pendingRemoveStudent, setPendingRemoveStudent] =
+    useState<{ studentId: string; fullName: string } | null>(null);
+
+  const { data: studentSearchResults, isFetching: searchingStudents } = useSearchStudentDirectoryQuery(
+    { q: debouncedStudentSearch, size: 20 },
+    { skip: !addStudentOpen }
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedStudentSearch(studentSearch.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [studentSearch]);
 
   const tabs = ["Stream", "Lessons", "Assignments", "Quizzes", "People"];
 
@@ -161,19 +194,92 @@ export default function ClassroomDetailView({
     if (!editingLesson || !editingLesson.title.trim()) return;
     setSavingEdit(true);
     try {
-      await updateSavedLesson({
-        lessonId: editingLesson.lessonId,
-        title: editingLesson.title,
-        content: editingLesson.content,
-        videoLink: editingLesson.videoLink,
-      }).unwrap();
+      if (newLessonFiles.length > 0) {
+        const formData = new FormData();
+        formData.append(
+          "lesson",
+          new Blob(
+            [JSON.stringify({
+              title: editingLesson.title,
+              content: editingLesson.content,
+              videoLink: editingLesson.videoLink,
+            })],
+            { type: "application/json" }
+          )
+        );
+        newLessonFiles.forEach((file) => formData.append("file", file));
+        await updateSavedLessonWithFiles({ lessonId: editingLesson.lessonId, formData }).unwrap();
+      } else {
+        await updateSavedLesson({
+          lessonId: editingLesson.lessonId,
+          title: editingLesson.title,
+          content: editingLesson.content,
+          videoLink: editingLesson.videoLink,
+        }).unwrap();
+      }
       toast.success("Lesson updated successfully!");
       setEditingLesson(null);
+      setNewLessonFiles([]);
       refetchLessons();
     } catch (err) {
       toast.error("Failed to update lesson", apiErrorMessage(err, "Please try again."));
     }
     setSavingEdit(false);
+  };
+
+  const handleRemoveExistingLessonFile = async (fileId: string) => {
+    if (!editingLesson) return;
+    try {
+      await removeLessonFile({ lessonId: editingLesson.lessonId, fileId }).unwrap();
+      setEditingLesson({
+        ...editingLesson,
+        files: editingLesson.files.filter((f) => f.fileId !== fileId),
+      });
+      refetchLessons();
+    } catch (err) {
+      toast.error("Failed to remove file", apiErrorMessage(err, "Please try again."));
+    }
+  };
+
+  const toggleSelectedStudent = (studentId: string) => {
+    setSelectedStudentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(studentId)) next.delete(studentId);
+      else next.add(studentId);
+      return next;
+    });
+  };
+
+  const handleAddStudents = async (override = false) => {
+    if (!resolvedId || selectedStudentIds.size === 0) return;
+    setAddingStudents(true);
+    setAddStudentsError("");
+    try {
+      await addStudentsToClassroomMutation({
+        classroomId: resolvedId,
+        studentIds: Array.from(selectedStudentIds),
+        override,
+      }).unwrap();
+      toast.success(`${selectedStudentIds.size} student(s) added to the classroom.`);
+      setAddStudentOpen(false);
+      setSelectedStudentIds(new Set());
+      setStudentSearch("");
+    } catch (err) {
+      setAddStudentsError(apiErrorMessage(err, "Failed to add students. Please try again."));
+    }
+    setAddingStudents(false);
+  };
+
+  const confirmRemoveStudent = async () => {
+    if (!resolvedId || !pendingRemoveStudent) return;
+    const { studentId, fullName } = pendingRemoveStudent;
+    setPendingRemoveStudent(null);
+    try {
+      await removeStudentFromClassroomMutation({ classroomId: resolvedId, studentId }).unwrap();
+      toast.success(`${fullName} was removed from the classroom.`);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Could not remove this student. Please try again."));
+    }
   };
 
   const handleDeleteAssignment = (assignmentId: string) => {
@@ -233,7 +339,7 @@ export default function ClassroomDetailView({
   const heroTitle = classroom.className;
   const heroBadge = classroom.programName
     ? `${classroom.programName} · Year ${classroom.yearLevel ?? ""}`
-    : classroom.classCode;
+    : "";
   const heroSemester = classroom.semester ? `Semester ${classroom.semester}` : "";
   const heroRoom = classroom.room ? `Room ${classroom.room}` : "";
 
@@ -270,9 +376,11 @@ export default function ClassroomDetailView({
           <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -right-20 bottom-[-60px] h-40 w-40 rounded-full bg-white/10" />
           <div className="relative">
-            <span className="inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
-              {heroBadge}
-            </span>
+            {heroBadge && (
+              <span className="inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                {heroBadge}
+              </span>
+            )}
             <h1 className="mt-4 text-4xl font-bold text-white">{heroTitle}</h1>
             <p className="mt-2 text-sm text-white/80">
               {heroSemester} · {students.length} students · {heroRoom}
@@ -491,14 +599,16 @@ export default function ClassroomDetailView({
                         isStudent={isStudent}
                         isDeleting={deletingId === l.lessonId}
                         onOpen={setDetailLesson}
-                        onEdit={(lesson) =>
+                        onEdit={(lesson) => {
                           setEditingLesson({
                             lessonId: lesson.lessonId,
                             title: lesson.title,
                             content: lesson.content || "",
                             videoLink: lesson.videoLink || "",
-                          })
-                        }
+                            files: lesson.files || [],
+                          });
+                          setNewLessonFiles([]);
+                        }}
                         onDelete={handleDeleteLesson}
                       />
                     ))}
@@ -765,8 +875,17 @@ export default function ClassroomDetailView({
 
                 {/* Students */}
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:border-slate-800 dark:bg-slate-900">
-                  <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
+                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
                     <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Students ({students.length})</h3>
+                    {!isStudent && (
+                      <button
+                        type="button"
+                        onClick={() => setAddStudentOpen(true)}
+                        className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-indigo-700"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add Student
+                      </button>
+                    )}
                   </div>
                   {students.length === 0 ? (
                     <p className="p-5 text-sm text-slate-500 dark:text-slate-400">No students enrolled.</p>
@@ -779,6 +898,17 @@ export default function ClassroomDetailView({
                             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{s.fullName}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400">{s.studentCode} · {s.email}</p>
                           </div>
+                          {!isStudent && (
+                            <button
+                              type="button"
+                              onClick={() => setPendingRemoveStudent({ studentId: s.studentId, fullName: s.fullName })}
+                              aria-label={`Remove ${s.fullName} from this classroom`}
+                              title="Remove from this classroom"
+                              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -789,6 +919,128 @@ export default function ClassroomDetailView({
           </div>
         </div>
       </div>
+
+      {/* Add Student Modal */}
+      {addStudentOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Add Student</h3>
+              <button
+                type="button"
+                onClick={() => { setAddStudentOpen(false); setSelectedStudentIds(new Set()); setStudentSearch(""); setAddStudentsError(""); }}
+                className="rounded-lg p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <input
+                type="text"
+                autoFocus
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                placeholder="Search by name or student code..."
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+              />
+            </div>
+
+            {addStudentsError && (
+              <div className="mt-3 rounded-xl bg-rose-50 px-3 py-2.5 text-xs font-medium text-rose-700 dark:bg-rose-950/40 dark:text-rose-400">
+                {addStudentsError}
+                {addStudentsError.toLowerCase().includes("prerequisite") || addStudentsError.toLowerCase().includes("conflict") || addStudentsError.toLowerCase().includes("clash") ? (
+                  <button
+                    type="button"
+                    onClick={() => handleAddStudents(true)}
+                    className="ml-2 font-bold underline"
+                  >
+                    Add anyway
+                  </button>
+                ) : null}
+              </div>
+            )}
+
+            <div className="mt-3 flex-1 overflow-y-auto">
+              {searchingStudents ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+                </div>
+              ) : (() => {
+                const enrolledIds = new Set(students.map((s) => s.studentId));
+                const candidates = (studentSearchResults?.content ?? []).filter(
+                  (s) => !enrolledIds.has(s.studentId)
+                );
+                if (candidates.length === 0) {
+                  return (
+                    <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                      {studentSearch ? "No matching students found." : "No students found."}
+                    </p>
+                  );
+                }
+                return (
+                  <ul className="space-y-1">
+                    {candidates.map((s) => {
+                      const selected = selectedStudentIds.has(s.studentId);
+                      return (
+                        <li key={s.studentId}>
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectedStudent(s.studentId)}
+                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors ${
+                              selected
+                                ? "bg-indigo-50 dark:bg-indigo-950/40"
+                                : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                            }`}
+                          >
+                            <PersonAvatar name={s.fullName} avatarUrl={s.avatarUrl} size="sm" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{s.fullName}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{s.studentCode} · {s.email}</p>
+                            </div>
+                            <div
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${
+                                selected
+                                  ? "border-indigo-600 bg-indigo-600"
+                                  : "border-slate-300 dark:border-slate-700"
+                              }`}
+                            >
+                              {selected && <CheckCircle2 className="h-4 w-4 text-white" />}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              })()}
+            </div>
+
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                {selectedStudentIds.size} selected
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setAddStudentOpen(false); setSelectedStudentIds(new Set()); setStudentSearch(""); setAddStudentsError(""); }}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={addingStudents || selectedStudentIds.size === 0}
+                  onClick={() => handleAddStudents(false)}
+                  className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {addingStudents ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Selected"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Lesson Modal */}
       {editingLesson && (
@@ -828,11 +1080,78 @@ export default function ClassroomDetailView({
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">FILES</label>
+
+                {editingLesson.files.length > 0 && (
+                  <ul className="mb-2 space-y-1.5">
+                    {editingLesson.files.map((f) => (
+                      <li
+                        key={f.fileId}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-800/50"
+                      >
+                        <span className="flex min-w-0 items-center gap-2 text-slate-700 dark:text-slate-300">
+                          <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                          <span className="truncate">{f.fileOriginalName}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExistingLessonFile(f.fileId)}
+                          className="shrink-0 rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
+                          aria-label={`Remove ${f.fileOriginalName}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {newLessonFiles.length > 0 && (
+                  <ul className="mb-2 space-y-1.5">
+                    {newLessonFiles.map((file, idx) => (
+                      <li
+                        key={`${file.name}-${idx}`}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm dark:border-indigo-900 dark:bg-indigo-950/40"
+                      >
+                        <span className="flex min-w-0 items-center gap-2 text-indigo-700 dark:text-indigo-300">
+                          <FileText className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{file.name}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setNewLessonFiles((prev) => prev.filter((_, i) => i !== idx))}
+                          className="shrink-0 rounded-lg p-1 text-indigo-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
+                          aria-label={`Remove ${file.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                  <Upload className="h-4 w-4" />
+                  Add files
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      if (files.length > 0) setNewLessonFiles((prev) => [...prev, ...files]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
             </div>
             <div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => setEditingLesson(null)}
+                onClick={() => { setEditingLesson(null); setNewLessonFiles([]); }}
                 className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 Cancel
@@ -938,6 +1257,16 @@ export default function ClassroomDetailView({
         message="Are you sure you want to delete this lesson? This action cannot be undone."
         onConfirm={confirmDeleteLesson}
         onCancel={() => setPendingDeleteLessonId(null)}
+      />
+      <ConfirmDialog
+        open={pendingRemoveStudent !== null}
+        title="Remove student"
+        /* Named, because one row of a list looks much like the next and this
+           is the point at which the wrong one stops being recoverable here. */
+        message={`Remove ${pendingRemoveStudent?.fullName ?? "this student"} from this classroom? Their grades and attendance stay on their record.`}
+        confirmLabel="Remove"
+        onConfirm={confirmRemoveStudent}
+        onCancel={() => setPendingRemoveStudent(null)}
       />
       <ConfirmDialog
         open={pendingDeleteAssignmentId !== null}

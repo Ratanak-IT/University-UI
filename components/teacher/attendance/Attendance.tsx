@@ -374,7 +374,7 @@ export default function Attendance() {
                       : "text-slate-700 dark:text-slate-300"
                   }`}
                 >
-                  {c.className} ({c.classCode})
+                  {c.className}
                 </button>
               ))}
               {classrooms.length === 0 && (

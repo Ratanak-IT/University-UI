@@ -9,7 +9,7 @@ import { initialQuizFormData, QuizFormData, createEmptyQuestion } from "@/lib/ty
 import { QuizDetailsSection } from "./QuizDetailsSection";
 import { ScheduleSidebar } from "./ScheduleSidebar";
 import { QuestionsSection } from "./QuestionsSection";
-import { Quiz } from "@/lib/types/quiz";
+import { apiErrorMessage } from "@/lib/api/errors";
 
 import {
   useCreateTeacherQuizMutation,
@@ -94,28 +94,6 @@ export function CreateQuizForm() {
     } else {
       toast.success(msg);
     }
-  }
-
-  function parseErrorMsg(err: any, fallback: string): string {
-    console.error("API Error details:", err);
-    if (!err) return fallback;
-    if (typeof err === "string") return err;
-    const data = err.data || err;
-    if (typeof data === "string") return data;
-    if (data.message && typeof data.message === "string") return data.message;
-    if (data.error && typeof data.error === "string") return data.error;
-    if (typeof data === "object") {
-      try {
-        const entries = Object.entries(data).filter(([_, v]) => typeof v === "string");
-        if (entries.length > 0) {
-          return entries.map(([k, v]) => `${k}: ${v}`).join("; ");
-        }
-        const str = JSON.stringify(data);
-        if (str && str !== "{}" && str !== "[]") return str;
-      } catch (e) {}
-    }
-    if (err.message && typeof err.message === "string") return err.message;
-    return fallback;
   }
 
   /** Frontend's lowercase union -> the backend's `QuestionType` enum. */
@@ -220,7 +198,7 @@ export function CreateQuizForm() {
       }, 1000);
     } catch (err: any) {
       console.error("Save Draft Error:", err);
-      showToastMsg(parseErrorMsg(err, "Failed to save quiz. Please check fields."));
+      toast.error(apiErrorMessage(err, "Failed to save quiz. Please check fields."));
     }
   }
 
@@ -275,9 +253,9 @@ export function CreateQuizForm() {
           }).unwrap();
         } catch (assignErr) {
           console.warn("Classroom assign warning:", assignErr);
-          showToastMsg(
+          toast.error(
             "Quiz saved, but assigning it to the classroom failed: " +
-              parseErrorMsg(assignErr, "please assign it manually from the quiz list.")
+              apiErrorMessage(assignErr, "please assign it manually from the quiz list.")
           );
         }
       }
@@ -288,7 +266,7 @@ export function CreateQuizForm() {
       }, 1000);
     } catch (err: any) {
       console.error("Publish Quiz Error:", err);
-      showToastMsg(parseErrorMsg(err, "Failed to update quiz. Please check required fields."));
+      toast.error(apiErrorMessage(err, "Failed to update quiz. Please check required fields."));
     }
   }
 

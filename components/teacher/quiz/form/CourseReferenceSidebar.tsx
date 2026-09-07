@@ -41,7 +41,7 @@ export function CourseReferenceSidebar({
               <option value="">Select Classroom...</option>
               {classrooms.map((c) => (
                 <option key={c.classroomId} value={c.classroomId}>
-                  {c.className} ({c.classCode || "Class"})
+                  {c.className}
                 </option>
               ))}
             </select>

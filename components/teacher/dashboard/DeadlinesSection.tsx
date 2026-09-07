@@ -30,7 +30,6 @@ export default function DeadlinesSection({ deadlines }: { deadlines: Deadline[] 
                 {item.due}
               </span>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">{item.classCode}</p>
           </li>
         ))}
       </ul>

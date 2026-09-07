@@ -107,7 +107,7 @@ export default function MyClassesPage() {
               <div className={`relative px-5 py-5 ${c.headerClass}`}>
                 <h3 className="text-lg font-bold text-white">{c.title}</h3>
                 <p className="mt-0.5 text-sm text-white/80">
-                  {c.code} · {c.track}
+                  {c.track}
                 </p>
                 <span
                   className={`absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sm font-bold ${c.initialsTextClass}`}
@@ -122,7 +122,7 @@ export default function MyClassesPage() {
                   {c.teacher} · {c.year}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {c.room} · Code {c.code}
+                  {c.room}
                 </p>
 
                 <div className="mt-4 flex items-center justify-between border-t border-border pt-4">

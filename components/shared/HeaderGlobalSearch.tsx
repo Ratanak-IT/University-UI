@@ -99,7 +99,7 @@ export default function HeaderGlobalSearch({
     const courses: SearchItem[] = classrooms.map((c) => ({
       id: c.classroomId,
       title: c.subjectName || c.className,
-      subtitle: `${c.classCode}${c.className && c.className !== (c.subjectName || c.className) ? ` · ${c.className}` : ""}`,
+      subtitle: c.className && c.className !== (c.subjectName || c.className) ? c.className : "",
       category: "Courses",
       href: `${courseHrefBase}/${c.classroomId}`,
       icon: BookOpen,

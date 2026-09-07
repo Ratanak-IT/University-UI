@@ -101,6 +101,16 @@ export interface CreateQuizPayload {
   questions?: QuizQuestionPayload[];
 }
 
+export interface StudentDirectoryResponse {
+  studentId: string;
+  studentCode: string;
+  fullName: string;
+  email: string;
+  avatarUrl: string | null;
+  yearLevel: number | null;
+  departmentName: string | null;
+}
+
 export interface QuizClassroomResponse {
   assignmentId: string;
   classroomId: string;
@@ -457,6 +467,29 @@ export const apiSlice = createApi({
       query: ({ classroomId, studentId }) => ({
         url: `/classrooms/${classroomId}/students/${studentId}`,
         method: "DELETE",
+      }),
+      invalidatesTags: ["ClassroomStudents"],
+    }),
+
+    /** Name/code search for a teacher picking who to add to their classroom. */
+    searchStudentDirectory: builder.query<
+      { content: StudentDirectoryResponse[]; totalElements: number },
+      { q?: string; page?: number; size?: number }
+    >({
+      query: ({ q, page = 0, size = 20 }) => ({
+        url: `/students/search`,
+        params: { q, page, size },
+      }),
+    }),
+
+    addStudentsToClassroom: builder.mutation<
+      void,
+      { classroomId: string; studentIds: string[]; override?: boolean }
+    >({
+      query: ({ classroomId, studentIds, override = false }) => ({
+        url: `/classrooms/${classroomId}/students`,
+        method: "POST",
+        body: { studentIds, override },
       }),
       invalidatesTags: ["ClassroomStudents"],
     }),
@@ -1226,11 +1259,33 @@ export const apiSlice = createApi({
       invalidatesTags: ["SavedLessons", "ClassroomLessons"],
     }),
 
+    /**
+     * Plain-JSON update — title/content/video/allowDownload only, no new files.
+     * `updateSavedLessonWithFiles` below is the multipart sibling used when the
+     * edit form has new files to attach.
+     */
     updateSavedLesson: builder.mutation<any, { lessonId: string; title?: string; content?: string; videoLink?: string; allowDownload?: boolean }>({
       query: ({ lessonId, ...body }) => ({
         url: `/lessons/${lessonId}`,
         method: "PUT",
         body,
+      }),
+      invalidatesTags: ["SavedLessons", "ClassroomLessons"],
+    }),
+
+    updateSavedLessonWithFiles: builder.mutation<any, { lessonId: string; formData: FormData }>({
+      query: ({ lessonId, formData }) => ({
+        url: `/lessons/${lessonId}`,
+        method: "PUT",
+        body: formData,
+      }),
+      invalidatesTags: ["SavedLessons", "ClassroomLessons"],
+    }),
+
+    removeLessonFile: builder.mutation<void, { lessonId: string; fileId: string }>({
+      query: ({ lessonId, fileId }) => ({
+        url: `/lessons/${lessonId}/files/${fileId}`,
+        method: "DELETE",
       }),
       invalidatesTags: ["SavedLessons", "ClassroomLessons"],
     }),
@@ -1255,6 +1310,8 @@ export const {
   useGetClassroomStudentsQuery,
   useGetClassroomTeachersQuery,
   useRemoveStudentFromClassroomMutation,
+  useSearchStudentDirectoryQuery,
+  useAddStudentsToClassroomMutation,
   useGetTeacherAttendanceQuery,
   useRecordTeacherAttendanceMutation,
   useGetExamScoresQuery,
@@ -1319,6 +1376,8 @@ export const {
   useGetLessonsForClassroomsQuery,
   useDeleteSavedLessonMutation,
   useUpdateSavedLessonMutation,
+  useUpdateSavedLessonWithFilesMutation,
+  useRemoveLessonFileMutation,
   useGetScheduleQuery,
   useSaveScheduleMutation,
   useGenerateSessionsMutation,

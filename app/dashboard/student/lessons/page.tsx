@@ -116,9 +116,8 @@ export default function LessonsPage() {
                   </p>
                   <p className="mt-1 flex flex-wrap items-center gap-3 text-xs">
                     <span className="rounded-md bg-indigo-50 px-2 py-0.5 font-bold text-indigo-700 dark:bg-indigo-950/60 dark:text-gray-200">
-                      {l.classCode}
+                      {l.className}
                     </span>
-                    <span className="text-slate-500 dark:text-slate-400">{l.className}</span>
                     {l.videoLink && (
                       <button
                         onClick={() => setViewerFile({ name: `${l.title} (Video)`, url: l.videoLink || "", isVideo: true })}

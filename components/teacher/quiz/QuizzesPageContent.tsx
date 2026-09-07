@@ -4,7 +4,7 @@ import { toast } from "@/components/shared/Toast";
 import { useState, useMemo } from "react";
 import { Plus, X, Clock, HelpCircle, Tag, CheckCircle2 } from "lucide-react";
 
-import QuizFilterBar, { ViewMode } from "./QuizFilterBar";
+import QuizFilterBar from "./QuizFilterBar";
 import QuizGrid from "./QuizGrid";
 import QuizCardSkeleton from "./QuizCardSkeleton";
 import QuizEmptyState from "./QuizEmptyState";
@@ -30,7 +30,6 @@ export default function QuizzesPageContent() {
   const router = useRouter();
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortOption>("dateModified");
-  const [view, setView] = useState<ViewMode>("grid");
   const [classroom, setClassroom] = useState<ClassroomFilter>("all");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -183,8 +182,6 @@ export default function QuizzesPageContent() {
         onStatusChange={setStatus}
         sort={sort}
         onSortChange={setSort}
-        view={view}
-        onViewChange={setView}
         classroom={classroom}
         onClassroomChange={setClassroom}
         classroomOptions={classroomOptions}
@@ -254,7 +251,7 @@ export default function QuizzesPageContent() {
                 onChange={(val) => setTargetClassroomId(val)}
                 options={teacherClassrooms.map((c) => ({
                   value: c.classroomId,
-                  label: `${c.className} (${c.classCode || "Class"})`,
+                  label: c.className,
                 }))}
               />
             </div>

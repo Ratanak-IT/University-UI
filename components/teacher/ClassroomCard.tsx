@@ -57,7 +57,7 @@ export default function ClassroomCard({
           {year}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          {room} · Code {classCode}
+          {room}
         </p>
 
         <div className="mt-4 flex items-center justify-between border-t border-border pt-4">

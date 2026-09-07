@@ -211,7 +211,7 @@ export default function CoursesPage() {
                 onChange={(val) => setSelectedClassroom(val)}
                 options={classrooms.map((c) => ({
                   value: c.classroomId,
-                  label: `${c.className} (${c.classCode})`,
+                  label: c.className,
                 }))}
               />
             </div>
