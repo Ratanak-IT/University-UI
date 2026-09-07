@@ -1,4 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import {
+  isAccountBlockedMessage,
+  messageFromError,
+  signOutAsBlocked,
+} from "@/lib/auth/accountBlocked";
 import {
   StudentProfile,
   StudentAttendanceResponse,
@@ -255,18 +261,60 @@ function mapPolicy(raw: unknown): AttendancePolicy {
   };
 }
 
-export const apiSlice = createApi({
-  reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${API_BASE}/api/v1`,
-    prepareHeaders: (headers) => {
-      const token = getAuthHeaderToken();
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
+/**
+ * Ends the session the moment the server says the account is blocked.
+ *
+ * <p>Wrapping the base query rather than handling this in each screen: a
+ * suspended student would otherwise sit on a dashboard where every panel failed
+ * silently, which looks like the site is broken instead of like a decision
+ * somebody made about their account.
+ */
+const withBlockedAccountCheck =
+  (baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>): BaseQueryFn<
+    string | FetchArgs,
+    unknown,
+    FetchBaseQueryError
+  > =>
+  async (args, api, extraOptions) => {
+    const result = await baseQuery(args, api, extraOptions);
+
+    if (result.error?.status === 403) {
+      const message = messageFromError(result.error);
+      if (isAccountBlockedMessage(message)) {
+        signOutAsBlocked(message!);
       }
-      return headers;
-    },
-  }),
+    }
+
+    return result;
+  };
+
+export const apiSlice = createApi({
+  /*
+    Freshness, not just correctness. Tag invalidation already covers a user's
+    own edits; these cover everything else — a tab left open while a teacher
+    marked the register, a phone picked up again, a network that dropped and
+    came back. Without them the only way to see current data was to reload.
+
+    setupListeners() is already wired in store.ts, which is what makes the
+    first two do anything at all.
+  */
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  refetchOnMountOrArgChange: 30,
+
+  reducerPath: "api",
+  baseQuery: withBlockedAccountCheck(
+    fetchBaseQuery({
+      baseUrl: `${API_BASE}/api/v1`,
+      prepareHeaders: (headers) => {
+        const token = getAuthHeaderToken();
+        if (token) {
+          headers.set("Authorization", `Bearer ${token}`);
+        }
+        return headers;
+      },
+    })
+  ),
   tagTypes: [
     "StudentProfile",
     "StudentAttendance",
