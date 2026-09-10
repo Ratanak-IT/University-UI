@@ -12,10 +12,18 @@ import {
   LabelList,
   ResponsiveContainer,
 } from "recharts";
-import { BarChart3, ShieldAlert } from "lucide-react";
+import { BarChart3, FileCheck2 } from "lucide-react";
 import type { StudentMetrics } from "@/lib/api/teacher";
 
-type Band = { label: string; min: number; max: number; color?: string };
+export type SubmissionRow = {
+  id: string;
+  title: string;
+  classCode: string;
+  submitted: number;
+  total: number;
+};
+
+type Band = { label: string; min: number; max: number };
 
 const PERFORMANCE_BANDS: Band[] = [
   { label: "90–100", min: 90, max: 101 },
@@ -25,19 +33,19 @@ const PERFORMANCE_BANDS: Band[] = [
   { label: "Below 60", min: 0, max: 60 },
 ];
 
-const ATTENDANCE_BANDS: Band[] = [
-  { label: "Excellent · 95%+", min: 95, max: 101, color: "#10b981" },
-  { label: "Good · 85–94%", min: 85, max: 95, color: "#0ea5e9" },
-  { label: "At risk · 70–84%", min: 70, max: 85, color: "#f59e0b" },
-  { label: "Critical · under 70%", min: 0, max: 70, color: "#f43f5e" },
-];
-
 function bucketize(values: number[], bands: Band[]) {
   return bands.map((b) => ({
     label: b.label,
     count: values.filter((v) => v >= b.min && v < b.max).length,
-    color: b.color,
   }));
+}
+
+/** Completion-rate color: healthy (emerald) → falling behind (rose), so a low bar reads as urgent without relying on the number alone. */
+function submissionColor(pct: number) {
+  if (pct >= 90) return "#10b981";
+  if (pct >= 60) return "#0ea5e9";
+  if (pct >= 30) return "#f59e0b";
+  return "#f43f5e";
 }
 
 function CountTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { label: string; count: number } }> }) {
@@ -53,11 +61,30 @@ function CountTooltip({ active, payload }: { active?: boolean; payload?: Array<{
   );
 }
 
-function EmptyState({ text }: { text: string }) {
+function SubmissionTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: { title: string; classCode: string; submitted: number; total: number; pct: number } }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const { title, classCode, submitted, total, pct } = payload[0].payload;
   return (
-    <div className="flex h-[220px] flex-col items-center justify-center gap-1 text-center">
+    <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
+      <p className="font-semibold text-card-foreground">{title}</p>
+      <p className="text-muted-foreground">
+        {classCode} · {submitted}/{total} submitted ({pct}%)
+      </p>
+    </div>
+  );
+}
+
+function EmptyState({ text, hint }: { text: string; hint: string }) {
+  return (
+    <div className="flex h-55 flex-col items-center justify-center gap-1 text-center">
       <p className="text-sm font-medium text-card-foreground">{text}</p>
-      <p className="text-xs text-muted-foreground">Check back once grades or attendance are recorded.</p>
+      <p className="text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }
@@ -87,7 +114,15 @@ function ChartCard({
   );
 }
 
-export default function InsightsCharts({ studentMetrics }: { studentMetrics: StudentMetrics[] }) {
+export default function InsightsCharts({
+  studentMetrics,
+  submissionRows,
+  submissionsLoading,
+}: {
+  studentMetrics: StudentMetrics[];
+  submissionRows: SubmissionRow[];
+  submissionsLoading?: boolean;
+}) {
   const performanceData = useMemo(() => {
     const values = studentMetrics
       .map((s) => s.performancePercent)
@@ -95,12 +130,23 @@ export default function InsightsCharts({ studentMetrics }: { studentMetrics: Stu
     return { values, buckets: bucketize(values, PERFORMANCE_BANDS) };
   }, [studentMetrics]);
 
-  const attendanceData = useMemo(() => {
-    const values = studentMetrics
-      .map((s) => s.attendancePercent)
-      .filter((v): v is number => v != null);
-    return { values, buckets: bucketize(values, ATTENDANCE_BANDS) };
-  }, [studentMetrics]);
+  const submissionData = useMemo(
+    () =>
+      submissionRows.map((r) => {
+        const pct = r.total > 0 ? Math.round((r.submitted / r.total) * 100) : 0;
+        const label = r.title.length > 24 ? `${r.title.slice(0, 23)}…` : r.title;
+        return {
+          label: `${label} · ${r.classCode}`,
+          title: r.title,
+          classCode: r.classCode,
+          submitted: r.submitted,
+          total: r.total,
+          pct,
+          color: submissionColor(pct),
+        };
+      }),
+    [submissionRows]
+  );
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -110,7 +156,7 @@ export default function InsightsCharts({ studentMetrics }: { studentMetrics: Stu
         subtitle="Students by graded-work score band"
       >
         {performanceData.values.length === 0 ? (
-          <EmptyState text="No graded scores yet" />
+          <EmptyState text="No graded scores yet" hint="Check back once grades are recorded." />
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart
@@ -143,39 +189,58 @@ export default function InsightsCharts({ studentMetrics }: { studentMetrics: Stu
       </ChartCard>
 
       <ChartCard
-        icon={ShieldAlert}
-        title="Attendance health"
-        subtitle="Students by overall attendance rate"
+        icon={FileCheck2}
+        title="Submission progress"
+        subtitle="Assignments due soon, by % of roster submitted"
       >
-        {attendanceData.values.length === 0 ? (
-          <EmptyState text="No attendance recorded yet" />
+        {submissionsLoading ? (
+          <div className="h-55 animate-pulse rounded-xl bg-muted" />
+        ) : submissionData.length === 0 ? (
+          <EmptyState text="No assignments due soon" hint="Rows appear once an assignment has a due date." />
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart
-              data={attendanceData.buckets}
+              data={submissionData}
               layout="vertical"
-              margin={{ top: 0, right: 28, bottom: 0, left: 0 }}
+              margin={{ top: 0, right: 44, bottom: 0, left: 0 }}
               barCategoryGap={14}
             >
               <CartesianGrid horizontal={false} stroke="var(--color-border)" />
-              <XAxis type="number" hide />
+              <XAxis type="number" domain={[0, 100]} hide />
               <YAxis
                 type="category"
                 dataKey="label"
-                width={118}
+                width={150}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
+                tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
               />
-              <Tooltip content={<CountTooltip />} cursor={{ fill: "var(--color-muted)" }} />
-              <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={22}>
-                {attendanceData.buckets.map((entry) => (
-                  <Cell key={entry.label} fill={entry.color} />
+              <Tooltip content={<SubmissionTooltip />} cursor={{ fill: "var(--color-muted)" }} />
+              <Bar dataKey="pct" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                {submissionData.map((entry) => (
+                  <Cell key={entry.title + entry.classCode} fill={entry.color} />
                 ))}
                 <LabelList
-                  dataKey="count"
+                  dataKey="pct"
                   position="right"
-                  style={{ fill: "var(--color-muted-foreground)", fontSize: 12, fontWeight: 600 }}
+                  content={(props: { x?: string | number; y?: string | number; width?: string | number; height?: string | number; index?: number }) => {
+                    const row = props.index != null ? submissionData[props.index] : undefined;
+                    if (!row) return null;
+                    const x = Number(props.x ?? 0) + Number(props.width ?? 0) + 8;
+                    const y = Number(props.y ?? 0) + Number(props.height ?? 0) / 2;
+                    return (
+                      <text
+                        x={x}
+                        y={y}
+                        dy={4}
+                        fontSize={12}
+                        fontWeight={600}
+                        fill="var(--color-muted-foreground)"
+                      >
+                        {row.submitted}/{row.total}
+                      </text>
+                    );
+                  }}
                 />
               </Bar>
             </BarChart>

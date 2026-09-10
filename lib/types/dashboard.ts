@@ -39,12 +39,13 @@ export type Classroom = {
 };
 
 export type Deadline = {
-  /** The assignment's own id — titles are not unique across classes. */
+  /** The assignment's (or quiz's) own id — titles are not unique across classes. */
   id: string;
   title: string;
   classCode: string;
   due: string;
   badgeClass: string;
+  kind?: "assignment" | "quiz";
 };
 
 export type AttendanceRow = {
