@@ -4,6 +4,11 @@ import { useEffect } from "react";
 import { useGetClassroomAssignmentsQuery } from "@/lib/redux/apiSlice";
 import type { AssignmentResponse } from "@/lib/api/student";
 
+// Stable reference: `data = []` as an inline default creates a new array
+// every render while the query is still loading/erroring, which re-fires the
+// effect below forever (new reference -> setState -> re-render -> repeat).
+const EMPTY: AssignmentResponse[] = [];
+
 /**
  * Renders nothing — just owns one classroom's assignments query and reports
  * the result up to the dashboard. One instance per classroom lets the
@@ -18,7 +23,7 @@ export default function AssignmentFetcher({
   classroomId: string;
   onLoaded: (classroomId: string, items: AssignmentResponse[]) => void;
 }) {
-  const { data = [] } = useGetClassroomAssignmentsQuery(classroomId);
+  const { data = EMPTY } = useGetClassroomAssignmentsQuery(classroomId);
 
   useEffect(() => {
     onLoaded(classroomId, data);
