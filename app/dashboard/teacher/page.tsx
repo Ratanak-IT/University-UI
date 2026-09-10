@@ -5,11 +5,14 @@ import { BookMarked, Users, Folder, ClipboardCheck } from "lucide-react";
 import StatCards from "@/components/teacher/dashboard/StatCards";
 import DashboardSkeleton from "@/components/teacher/dashboard/DashboardSkeleton";
 import ClassroomsSection from "@/components/teacher/dashboard/ClassroomsSection";
+import PerformanceGauges from "@/components/teacher/dashboard/PerformanceGauges";
+import InsightsCharts from "@/components/teacher/dashboard/InsightsCharts";
 import { mapClassroomToTeacherCard } from "@/lib/api/teacher";
 import {
   useGetTeacherProfileQuery,
   useGetTeacherClassroomsQuery,
   useGetTeacherDashboardSummaryQuery,
+  useGetTeacherStudentMetricsQuery,
 } from "@/lib/redux/apiSlice";
 import { StatCard } from "@/lib/types/dashboard";
 
@@ -22,8 +25,9 @@ export default function DashboardPage() {
   // on the backend) instead of looping over every classroom's detail.
   const { data: classData = [], isLoading: loadingClassrooms } = useGetTeacherClassroomsQuery();
   const { data: summary, isLoading: loadingSummary } = useGetTeacherDashboardSummaryQuery();
+  const { data: studentMetrics = [], isLoading: loadingMetrics } = useGetTeacherStudentMetricsQuery();
 
-  const loading = loadingProfile || loadingClassrooms || loadingSummary;
+  const loading = loadingProfile || loadingClassrooms || loadingSummary || loadingMetrics;
 
   const classrooms = useMemo(
     () => classData.map((c, i) => mapClassroomToTeacherCard(c, i)),
@@ -75,6 +79,17 @@ export default function DashboardPage() {
   return (
     <div className="px-8 py-8">
       <StatCards stats={statsList} />
+
+      <div className="mt-6">
+        <PerformanceGauges
+          avgAttendancePercent={summary?.avgAttendancePercent ?? null}
+          avgPerformancePercent={summary?.avgPerformancePercent ?? null}
+        />
+      </div>
+
+      <div className="mt-6">
+        <InsightsCharts studentMetrics={studentMetrics} />
+      </div>
 
       <div className="mt-6">
         <ClassroomsSection classrooms={classrooms} />

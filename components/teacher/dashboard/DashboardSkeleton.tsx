@@ -10,6 +10,16 @@ export default function DashboardSkeleton() {
         ))}
       </div>
 
+      <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <div className="h-40 animate-pulse rounded-2xl bg-slate-200/80 dark:bg-slate-800/80" />
+        <div className="h-40 animate-pulse rounded-2xl bg-slate-200/80 dark:bg-slate-800/80" />
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="h-75 animate-pulse rounded-2xl bg-slate-200/80 dark:bg-slate-800/80" />
+        <div className="h-75 animate-pulse rounded-2xl bg-slate-200/80 dark:bg-slate-800/80" />
+      </div>
+
       <div className="mt-6">
         <div className="mb-4 flex items-center justify-between">
           <div className="h-5 w-40 animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-800/80" />
