@@ -41,13 +41,13 @@ export default function Sidebar() {
       {/* Logo Header */}
       <Link href="/">
         <div className="flex items-center gap-3 bg-muted/60 px-6 py-5.5">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
+          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white p-1.5 shadow-sm">
             <Image
               src="/logo-rm.png"
               alt="UMS Logo"
               width={48}
               height={48}
-              className="object-contain"
+              className="h-full w-full object-contain"
             />
           </div>
 

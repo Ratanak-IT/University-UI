@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { BookMarked, Users, Folder, ClipboardCheck } from "lucide-react";
 import StatCards from "@/components/teacher/dashboard/StatCards";
 import DashboardSkeleton from "@/components/teacher/dashboard/DashboardSkeleton";
+import WelcomeHeader from "@/components/teacher/WelcomeHeader";
 import ClassroomsSection from "@/components/teacher/dashboard/ClassroomsSection";
 import OverviewStats from "@/components/teacher/dashboard/OverviewStats";
 import DeadlinesSection from "@/components/teacher/dashboard/DeadlinesSection";
@@ -25,7 +26,7 @@ const UPCOMING_WINDOW_DAYS = 14;
 const DUE_SOON_WINDOW_DAYS = 7;
 
 export default function DashboardPage() {
-  const { isLoading: loadingProfile } = useGetTeacherProfileQuery();
+  const { data: profile, isLoading: loadingProfile } = useGetTeacherProfileQuery();
   // Only fetch the lightweight classroom list — enough to render cards.
   // Per-classroom detail (students, assignments, submissions) is fetched
   // on demand when the user opens a specific classroom. The aggregate
@@ -187,11 +188,20 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
+  const teacherName = profile ? `${profile.firstName} ${profile.lastName}` : "Teacher";
+
   return (
     <div className="px-8 py-8">
       {classroomMeta.map((c) => (
         <AssignmentFetcher key={c.id} classroomId={c.id} onLoaded={handleAssignmentsLoaded} />
       ))}
+
+      <WelcomeHeader
+        teacherName={teacherName}
+        academicYear={classrooms[0]?.year.split(" · ")[2] || "2024–2025"}
+        semester={classrooms[0]?.year.split(" · ")[1] || "Semester 2"}
+        activeClassrooms={classrooms.length}
+      />
 
       <StatCards stats={statsList} />
 

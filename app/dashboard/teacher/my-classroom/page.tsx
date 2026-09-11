@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import ClassroomsGrid from "@/components/teacher/my-classroom/ClassroomsGrid";
 import StatCards from "@/components/teacher/my-classroom/StatCards";
 import MyClassroomSkeleton from "@/components/teacher/my-classroom/MyClassroomSkeleton";
-import WelcomeHeader from "@/components/teacher/WelcomeHeader";
 import { mapClassroomToTeacherCard } from "@/lib/api/teacher";
 import {
   useGetTeacherProfileQuery,
@@ -14,7 +13,7 @@ import {
 import { StatItem } from "@/lib/types/dashboard";
 
 export default function DashboardPage() {
-  const { data: profile, isLoading: loadingProfile } = useGetTeacherProfileQuery();
+  const { isLoading: loadingProfile } = useGetTeacherProfileQuery();
   // Only fetch the lightweight classroom list — enough to render cards.
   // Per-classroom detail (students, assignments, submissions) is fetched
   // on demand when the user opens a specific classroom. The aggregate
@@ -68,22 +67,8 @@ export default function DashboardPage() {
     return <MyClassroomSkeleton />;
   }
 
-  const teacherName = profile
-    ? `${profile.firstName} ${profile.lastName}`
-    : "Teacher";
-
   return (
     <div className="px-8 py-8">
-      <WelcomeHeader
-        teacherName={teacherName}
-        academicYear={classrooms[0]?.year.split(" · ")[2] || "2024–2025"}
-        semester={classrooms[0]?.year.split(" · ")[1] || "Semester 2"}
-        activeClassrooms={classrooms.length}
-        onNewClassroom={() => {
-          // handle new classroom creation
-        }}
-      />
-
       <StatCards stats={statsList} />
 
       <ClassroomsGrid classrooms={classrooms} />

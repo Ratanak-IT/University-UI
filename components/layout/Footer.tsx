@@ -47,16 +47,13 @@ export default function Footer() {
             <h4 className="mb-5 text-[24px] font-bold text-primary dark:text-gray-200">
               UMS Platform
             </h4>
-            <img
-              src="/logo-rm.png"
-              alt="UML Logo"
-              className="mb-6 h-24 object-contain dark:hidden"
-            />
-            <img
-              src="/logo-rm.png"
-              alt="UML Logo"
-              className="mb-6 hidden h-24 object-contain dark:block"
-            />
+            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-white p-3 shadow-sm">
+              <img
+                src="/logo-rm.png"
+                alt="UML Logo"
+                className="h-full w-full object-contain"
+              />
+            </div>
             <p className="text-[18px] leading-relaxed text-muted-foreground">
               Building a secure, user-friendly,
               <br />
@@ -160,7 +157,7 @@ export default function Footer() {
       <div className="border-t border-border py-6 text-sm text-muted-foreground/80">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between px-6 sm:flex-row text-center sm:text-left">
           <span>
-            © {new Date().getFullYear()} UML. All rights reserved. Designed by University Management System
+            © {new Date().getFullYear()} UMS. All rights reserved. Designed by University Management System
           </span>
           <div className="mt-4 flex gap-5 sm:mt-0">
             <a href="#" className="hover:text-primary transition">Privacy Policy</a>
